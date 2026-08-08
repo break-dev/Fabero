@@ -22,9 +22,21 @@ export const usePerfil = () => {
     }, [setPerfil, setLoading]);
 
     useEffect(() => {
-        // Si no hay perfil, o si el ID del perfil no coincide con el ID del usuario logueado
-        const necesitaCarga = !perfil || (usuarioAuth && perfil.id_usuario !== usuarioAuth.id_usuario);
-        
+        // Necesita carga si:
+        //  - No hay perfil cacheado.
+        //  - El id_usuario del perfil no coincide con el logueado.
+        //  - El perfil fue cargado con un backend viejo y le faltan campos nuevos
+        //    (caso de migración: autoriza_ingreso_unidades introducido después).
+        const perfilObsoleto =
+            perfil !== null &&
+            (perfil as { autoriza_ingreso_unidades?: unknown })
+                .autoriza_ingreso_unidades === undefined;
+
+        const necesitaCarga =
+            !perfil ||
+            (usuarioAuth && perfil.id_usuario !== usuarioAuth.id_usuario) ||
+            perfilObsoleto;
+
         if (necesitaCarga && !loading) {
             cargarPerfil();
         }
@@ -33,6 +45,6 @@ export const usePerfil = () => {
     return {
         perfil,
         loading,
-        refetch: cargarPerfil
+        refetch: cargarPerfil,
     };
 };

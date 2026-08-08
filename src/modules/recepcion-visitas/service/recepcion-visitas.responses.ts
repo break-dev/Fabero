@@ -1,6 +1,9 @@
 export interface RecepcionVisitaDetalleResponse {
   id_detalle: number;
   id_visitante: number;
+  id_visita_vehiculo?: number | null;
+  vehiculo_placa?: string | null;
+  es_conductor?: boolean;
   visitante_nombre: string;
   visitante_apellido: string;
   visitante_dni: string;
@@ -8,6 +11,7 @@ export interface RecepcionVisitaDetalleResponse {
   url_foto_documento: string[];
   fecha_hora_salida: string | null;
   observacion_salida: string | null;
+  evidencias_salida?: string[] | null;
   estado: string;
 }
 
@@ -25,4 +29,5 @@ export interface RecepcionVisitaResponse {
   serie_placa: string | null;
   numero_placa: string | null;
   visitantes: RecepcionVisitaDetalleResponse[];
+  vehiculos?: { id: number; placa: string; cantidad_personas: number; url_foto?: string[] }[];
 }

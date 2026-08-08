@@ -20,14 +20,12 @@ export const useRegistroVehiculoSimple = (
   const { notifySuccess, notifyError } = useNotify();
 
   const [payload, setPayload] = useState<{
-    serie_placa: string;
-    numero_placa: string;
+    placa: string;
   }>({
-    serie_placa: "",
-    numero_placa: "",
+    placa: "",
   });
 
-  const handleChange = (field: "serie_placa" | "numero_placa", value: string) => {
+  const handleChange = (field: "placa", value: string) => {
     setPayload((prev) => ({ ...prev, [field]: value.toUpperCase() }));
     if (error) setError(null);
   };
@@ -36,17 +34,12 @@ export const useRegistroVehiculoSimple = (
     e.preventDefault();
     setError(null);
 
-    if (idEmpresaTransporte === null || idTipoVehiculo === null) {
-      setError(
-        "No se puede registrar el vehículo: faltan los datos de empresa de transporte y/o tipo de vehículo en el contexto.",
-      );
-      return;
-    }
-
     const validation = z
       .object({
-        serie_placa: z.string().max(10, "La serie no debe superar los 10 caracteres"),
-        numero_placa: z.string().min(1, "El número de placa es requerido").max(10, "La placa no debe superar los 10 caracteres"),
+        placa: z
+          .string()
+          .min(1, "La placa es requerida")
+          .max(20, "La placa no debe superar los 20 caracteres"),
       })
       .safeParse(payload);
     if (!validation.success) {
@@ -57,8 +50,9 @@ export const useRegistroVehiculoSimple = (
     setLoading(true);
     try {
       const response = await AuxService.crear_vehiculo({
-        serie_placa: validation.data.serie_placa.trim() || null,
-        numero_placa: validation.data.numero_placa.trim(),
+        placa: validation.data.placa.trim(),
+        numero_placa: validation.data.placa.trim(),
+        serie_placa: null,
         id_empresa_transporte: idEmpresaTransporte,
         id_tipo_vehiculo: idTipoVehiculo,
       });
@@ -67,7 +61,7 @@ export const useRegistroVehiculoSimple = (
       } else {
         notifySuccess("Vehículo registrado exitosamente");
       }
-      setPayload({ serie_placa: "", numero_placa: "" });
+      setPayload({ placa: "" });
       onSuccess(response);
     } catch (err: unknown) {
       console.error(err);

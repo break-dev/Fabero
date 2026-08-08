@@ -1,12 +1,17 @@
 import { Stack, Button } from "@mantine/core";
 import { useTitlePage } from "../../../hooks/useTitlePage";
 import { useRecepciones } from "../hooks/useRecepciones";
+import { usePerfil } from "../../perfil/hooks/usePerfil";
 import { Filtros } from "./components/filtros";
 import { TablaRecepciones } from "./components/tabla-recepciones";
-import { RegistroRecepcion } from "./components/registro-recepcion";
-import { ModalEstandar } from "../../../presentation/utils/modal-estandar";
-import { useState } from "react";
-import { IconPlus, IconX } from "@tabler/icons-react";
+import { ProgramarRecepcionModal } from "./components/programar-recepcion-modal";
+import { ConfirmarProgramacionModal } from "./components/confirmar-programacion-modal";
+import { useState, useEffect } from "react";
+import { IconPlus, IconX, IconCalendarTime } from "@tabler/icons-react";
+import {
+  RecepcionUnidadesService,
+} from "../service/recepcion-unidades.service";
+import type { RecepcionUnidadResponse } from "../service/recepcion-unidades.responses";
 
 export const RecepcionUnidadesPage = () => {
   useTitlePage("Recepción de Unidades", true);
@@ -24,14 +29,44 @@ export const RecepcionUnidadesPage = () => {
     clearTextFilterAndSearch,
   } = useRecepciones();
 
-  const [openRegistro, setOpenRegistro] = useState(false);
+  const { perfil } = usePerfil();
+  const puedeProgramar = Boolean(perfil?.autoriza_ingreso_unidades);
 
-  const hasActiveFilters = 
-    !!filters.fecha_inicio || 
-    !!filters.fecha_fin || 
-    !!filters.numero_placa || 
-    !!filters.serie_placa ||
-    filters.id_empresa_transporte !== undefined || 
+  const [openRegistro, setOpenRegistro] = useState(false);
+  const [openProgramar, setOpenProgramar] = useState(false);
+
+  const [programacionAConfirmar, setProgramacionAConfirmar] =
+    useState<RecepcionUnidadResponse | null>(null);
+  const [programacionConfirmadaFull, setProgramacionConfirmadaFull] =
+    useState<RecepcionUnidadResponse | null>(null);
+
+  useEffect(() => {
+    let cancelado = false;
+    const cargar = async () => {
+      if (programacionAConfirmar) {
+        try {
+          const full = await RecepcionUnidadesService.getProgramacion(
+            programacionAConfirmar.id,
+          );
+          if (!cancelado) setProgramacionConfirmadaFull(full);
+        } catch {
+          if (!cancelado) setProgramacionConfirmadaFull(programacionAConfirmar);
+        }
+      } else {
+        setProgramacionConfirmadaFull(null);
+      }
+    };
+    cargar();
+    return () => {
+      cancelado = true;
+    };
+  }, [programacionAConfirmar]);
+
+  const hasActiveFilters =
+    !!filters.fecha_inicio ||
+    !!filters.fecha_fin ||
+    !!filters.placa ||
+    filters.id_empresa_transporte !== undefined ||
     !!filters.tipo_ingreso;
 
   return (
@@ -46,8 +81,8 @@ export const RecepcionUnidadesPage = () => {
             onClearTextFilter={clearTextFilterAndSearch}
           />
         </div>
-        
-        <div className="flex items-center gap-2 shrink-0 pb-[2px]">
+
+        <div className="flex items-center gap-2 shrink-0 pb-0.5">
           {hasActiveFilters && (
             <Button
               variant="subtle"
@@ -56,18 +91,31 @@ export const RecepcionUnidadesPage = () => {
               size="sm"
               leftSection={<IconX size={16} />}
               onClick={clearFilters}
-              className="text-red-400 hover:bg-red-500/10 transition-colors h-[38px]"
+              className="text-red-400 hover:bg-red-500/10 transition-colors h-9.5"
             >
               Limpiar
             </Button>
           )}
-          
+
+          {puedeProgramar && (
+            <Button
+              radius="lg"
+              size="sm"
+              variant="default"
+              leftSection={<IconCalendarTime size={18} />}
+              onClick={() => setOpenProgramar(true)}
+              className="bg-zinc-800! text-zinc-200! border-zinc-700! hover:bg-zinc-700! shadow-md shrink-0 h-9.5 px-5 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+            >
+              Programar Recepción
+            </Button>
+          )}
+
           <Button
             radius="lg"
             size="sm"
             leftSection={<IconPlus size={18} />}
             onClick={() => setOpenRegistro(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-900/20 shrink-0 h-[38px] px-6 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-900/20 shrink-0 h-9.5 px-6 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
           >
             Nueva Recepción
           </Button>
@@ -79,24 +127,47 @@ export const RecepcionUnidadesPage = () => {
           recepciones={recepciones}
           loading={loading}
           onUpdateRecepcion={updateRecepcion}
+          onConfirmarProgramacion={(r) => setProgramacionAConfirmar(r)}
         />
       </Stack>
 
-      {/* Modal: Registrar Ingreso / Recepción */}
-      <ModalEstandar
+      {/* Modal para Registro Directo (No Programado) */}
+      <ConfirmarProgramacionModal
         opened={openRegistro}
-        close={() => setOpenRegistro(false)}
-        title="Registrar Ingreso de Unidad"
-        size="lg"
-      >
-        <RegistroRecepcion
-          onCancel={() => setOpenRegistro(false)}
-          onSuccess={(r) => {
-            insertRecepcion(r);
-            setOpenRegistro(false);
-          }}
-        />
-      </ModalEstandar>
+        programacion={null}
+        onClose={() => setOpenRegistro(false)}
+        onConfirmada={(nueva) => {
+          insertRecepcion(nueva);
+          setOpenRegistro(false);
+        }}
+      />
+
+      {/* Modal para Programar Recepción */}
+      <ProgramarRecepcionModal
+        opened={openProgramar}
+        onClose={() => setOpenProgramar(false)}
+        onSuccess={(nueva) => {
+          insertRecepcion(nueva);
+          setOpenProgramar(false);
+        }}
+      />
+
+      {/* Modal para Confirmar Programación Existente */}
+      <ConfirmarProgramacionModal
+        opened={!!programacionAConfirmar}
+        programacion={programacionConfirmadaFull ?? programacionAConfirmar}
+        onClose={() => {
+          setProgramacionAConfirmar(null);
+          setProgramacionConfirmadaFull(null);
+        }}
+        onConfirmada={(actualizada) => {
+          updateRecepcion(actualizada);
+        }}
+      />
+
+
     </div>
   );
 };
+
+export default RecepcionUnidadesPage;

@@ -9,7 +9,7 @@ interface Props {
   handleFilterChange: <K extends keyof RecepcionFilters>(key: K, value: RecepcionFilters[K]) => void;
   handleSearch: () => void;
   empresas: RES_EmpresaTransporte[];
-  onClearTextFilter: (key: "numero_placa" | "serie_placa") => void;
+  onClearTextFilter: (key: "placa") => void;
 }
 
 export const Filtros = ({
@@ -71,19 +71,19 @@ export const Filtros = ({
           />
         </Grid.Col>
 
-        {/* Serie Placa */}
+        {/* Placa */}
         <Grid.Col span={{ base: 12, sm: 4, md: 2 }}>
           <TextInput
-            label="Serie Placa"
-            placeholder="Ej: F3V"
+            label="Placa"
+            placeholder="Ej: ABC-123"
             radius="lg"
-            leftSection={<IconSearch size={16} className={filters.serie_placa ? "text-indigo-400" : "text-zinc-500"} />}
-            value={filters.serie_placa || ""}
+            leftSection={<IconSearch size={16} className={filters.placa ? "text-indigo-400" : "text-zinc-500"} />}
+            value={filters.placa || ""}
             onChange={(e) => {
               const val = e.target.value.toUpperCase();
-              handleFilterChange("serie_placa", val);
+              handleFilterChange("placa", val);
               if (val === "") {
-                onClearTextFilter("serie_placa");
+                onClearTextFilter("placa");
               }
             }}
             onKeyDown={(e) => {
@@ -91,71 +91,22 @@ export const Filtros = ({
             }}
             rightSection={
               <Group gap={4} style={{ flexWrap: "nowrap" }} mr={4}>
-                {filters.serie_placa && (
-                  <ActionIcon 
-                    size="sm" 
-                    variant="subtle" 
-                    color="gray" 
-                    onClick={() => onClearTextFilter("serie_placa")}
+                {filters.placa && (
+                  <ActionIcon
+                    size="sm"
+                    variant="subtle"
+                    color="gray"
+                    onClick={() => onClearTextFilter("placa")}
                     title="Limpiar"
                     className="text-zinc-400 hover:text-white"
                   >
                     <IconX size={14} />
                   </ActionIcon>
                 )}
-                <ActionIcon 
-                  size="sm" 
-                  variant="filled" 
-                  color="indigo" 
-                  onClick={handleSearch}
-                  title="Buscar por serie"
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors h-[26px] w-[26px]"
-                >
-                  <IconSearch size={14} />
-                </ActionIcon>
-              </Group>
-            }
-            rightSectionWidth={filters.serie_placa ? 64 : 36}
-            classNames={fieldClasses}
-          />
-        </Grid.Col>
-
-        {/* Nro. Placa */}
-        <Grid.Col span={{ base: 12, sm: 4, md: 2 }}>
-          <TextInput
-            label="Nro. Placa"
-            placeholder="Ej: 999"
-            radius="lg"
-            leftSection={<IconSearch size={16} className={filters.numero_placa ? "text-indigo-400" : "text-zinc-500"} />}
-            value={filters.numero_placa || ""}
-            onChange={(e) => {
-              const val = e.target.value.toUpperCase();
-              handleFilterChange("numero_placa", val);
-              if (val === "") {
-                onClearTextFilter("numero_placa");
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleSearch();
-            }}
-            rightSection={
-              <Group gap={4} style={{ flexWrap: "nowrap" }} mr={4}>
-                {filters.numero_placa && (
-                  <ActionIcon 
-                    size="sm" 
-                    variant="subtle" 
-                    color="gray" 
-                    onClick={() => onClearTextFilter("numero_placa")}
-                    title="Limpiar"
-                    className="text-zinc-400 hover:text-white"
-                  >
-                    <IconX size={14} />
-                  </ActionIcon>
-                )}
-                <ActionIcon 
-                  size="sm" 
-                  variant="filled" 
-                  color="indigo" 
+                <ActionIcon
+                  size="sm"
+                  variant="filled"
+                  color="indigo"
                   onClick={handleSearch}
                   title="Buscar por placa"
                   className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors h-[26px] w-[26px]"
@@ -164,7 +115,7 @@ export const Filtros = ({
                 </ActionIcon>
               </Group>
             }
-            rightSectionWidth={filters.numero_placa ? 64 : 36}
+            rightSectionWidth={filters.placa ? 64 : 36}
             classNames={fieldClasses}
           />
         </Grid.Col>

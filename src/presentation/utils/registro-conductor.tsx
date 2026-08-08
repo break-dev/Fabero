@@ -63,8 +63,12 @@ export const RegistroConductor = ({ onCancel, onSuccess }: Props) => {
         radius="lg"
         size="xs"
         required
+        maxLength={8}
         value={payload.dni}
-        onChange={(e) => handleChange("dni", e.target.value)}
+        onChange={(e) => {
+          const cleanVal = e.target.value.replace(/\D/g, "").slice(0, 8);
+          handleChange("dni", cleanVal);
+        }}
         classNames={fieldClasses}
       />
 

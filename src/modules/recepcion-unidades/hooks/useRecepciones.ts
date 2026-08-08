@@ -24,8 +24,7 @@ export const useRecepciones = () => {
   const [filters, setFilters] = useState<RecepcionFilters>({
     fecha_inicio: getTodayString(),
     fecha_fin: getTodayString(),
-    numero_placa: "",
-    serie_placa: "",
+    placa: "",
     id_empresa_transporte: undefined,
     tipo_ingreso: "",
   });
@@ -67,12 +66,12 @@ export const useRecepciones = () => {
 
   const handleFilterChange = <K extends keyof RecepcionFilters>(
     key: K,
-    value: RecepcionFilters[K]
+    value: RecepcionFilters[K],
   ) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  const clearTextFilterAndSearch = (key: "numero_placa" | "serie_placa") => {
+  const clearTextFilterAndSearch = (key: "placa") => {
     setFilters((prev) => {
       const newFilters = { ...prev, [key]: "" };
       setLoading(true);
@@ -99,8 +98,7 @@ export const useRecepciones = () => {
     const cleared: RecepcionFilters = {
       fecha_inicio: getTodayString(),
       fecha_fin: getTodayString(),
-      numero_placa: "",
-      serie_placa: "",
+      placa: "",
       id_empresa_transporte: undefined,
       tipo_ingreso: "",
     };

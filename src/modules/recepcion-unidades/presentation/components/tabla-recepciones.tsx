@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Text, Button, Select, Textarea } from "@mantine/core";
+import { Text, Button, Select, Textarea, Badge, Group } from "@mantine/core";
 import { DataTableEstandar } from "../../../../presentation/utils/datatable-estandar";
-import { IconPaperclip } from "@tabler/icons-react";
+import { IconPaperclip, IconClipboardCheck } from "@tabler/icons-react";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
 import { ArchivoCard } from "../../../../presentation/utils/archivo/archivo-card";
+import { MultiFilePicker } from "../../../../presentation/utils/archivo/multifile-picker";
 import type { RecepcionUnidadResponse } from "../../service/recepcion-unidades.responses";
 import type { IArchivo } from "../../../../shared/interfaces/archivo";
 import { RecepcionUnidadesService } from "../../service/recepcion-unidades.service";
@@ -14,15 +15,22 @@ interface Props {
   recepciones: RecepcionUnidadResponse[];
   loading: boolean;
   onUpdateRecepcion: (r: RecepcionUnidadResponse) => void;
+  onConfirmarProgramacion: (r: RecepcionUnidadResponse) => void;
 }
 
-export const TablaRecepciones = ({ recepciones, loading, onUpdateRecepcion }: Props) => {
+export const TablaRecepciones = ({
+  recepciones,
+  loading,
+  onUpdateRecepcion,
+  onConfirmarProgramacion,
+}: Props) => {
   const [selectedEvidencias, setSelectedEvidencias] = useState<IArchivo[] | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
   const [exitRecord, setExitRecord] = useState<RecepcionUnidadResponse | null>(null);
   const [estadoSalida, setEstadoSalida] = useState<EstadoSalida | null>(null);
   const [observacionSalida, setObservacionSalida] = useState("");
+  const [evidenciasSalida, setEvidenciasSalida] = useState<File[]>([]);
   const [savingExit, setSavingExit] = useState(false);
   const { notifySuccess, notifyError } = useNotify();
 
@@ -31,7 +39,8 @@ export const TablaRecepciones = ({ recepciones, loading, onUpdateRecepcion }: Pr
     setModalOpen(true);
   };
 
-  const formatFecha = (fechaStr: string) => {
+  const formatFecha = (fechaStr: string | null | undefined) => {
+    if (!fechaStr) return "—";
     try {
       const date = new Date(fechaStr.replace(" ", "T"));
       if (isNaN(date.getTime())) return fechaStr;
@@ -63,12 +72,14 @@ export const TablaRecepciones = ({ recepciones, loading, onUpdateRecepcion }: Pr
       const updated = await RecepcionUnidadesService.registrarSalida(exitRecord.id, {
         estado_salida: estadoSalida,
         observacion_salida: observacionSalida,
+        evidencias: evidenciasSalida,
       });
       notifySuccess("Salida de unidad registrada correctamente");
       onUpdateRecepcion(updated);
       setExitRecord(null);
       setEstadoSalida(null);
       setObservacionSalida("");
+      setEvidenciasSalida([]);
     } catch (err: unknown) {
       console.error(err);
       notifyError("Ocurrió un error al registrar la salida");
@@ -92,17 +103,62 @@ export const TablaRecepciones = ({ recepciones, loading, onUpdateRecepcion }: Pr
             render: (_: RecepcionUnidadResponse, index: number) => index + 1,
           },
           {
+            accessor: "tipo",
+            title: "Tipo",
+            width: 130,
+            render: (r: RecepcionUnidadResponse) => {
+              if (r.es_programacion && !r.id_empleado_recepcion) {
+                return (
+                  <Badge color="yellow" variant="light" radius="md" size="sm">
+                    Programación
+                  </Badge>
+                );
+              }
+              if (r.es_programacion && r.id_empleado_recepcion) {
+                return (
+                  <Badge color="indigo" variant="light" radius="md" size="sm">
+                    Confirmada
+                  </Badge>
+                );
+              }
+              return (
+                <Badge color="gray" variant="light" radius="md" size="sm">
+                  Directa
+                </Badge>
+              );
+            },
+          },
+          {
             accessor: "fecha_hora_ingreso",
-            title: "Ingreso / Registrado Por",
+            title: "Fecha Ingreso",
             width: 180,
             render: (r: RecepcionUnidadResponse) => (
               <div>
                 <Text size="sm" className="text-zinc-200" fw={500}>
                   {formatFecha(r.fecha_hora_ingreso)}
                 </Text>
-                <Text size="xs" className="text-zinc-500">
-                  {r.empleado_registro_nombre}
+                {r.fecha_hora_ingreso && (
+                  <Text size="xs" className="text-zinc-500">
+                    Por: {r.empleado_recepcion_nombre ?? r.empleado_registro_nombre ?? "—"}
+                  </Text>
+                )}
+              </div>
+            ),
+          },
+          {
+            accessor: "fecha_estimada_llegada",
+            title: "F. Est. Llegada",
+            width: 180,
+            render: (r: RecepcionUnidadResponse) => (
+              <div>
+                <Text size="sm" className="text-zinc-200" fw={500}>
+                  {formatFecha(r.fecha_estimada_llegada)}
                 </Text>
+                {r.fecha_estimada_llegada && (
+                  <Text size="xs" className="text-zinc-500">
+                    Autorizó: {r.empleado_autoriza_nombre ?? "—"}
+                  </Text>
+                )}
               </div>
             ),
           },
@@ -111,16 +167,20 @@ export const TablaRecepciones = ({ recepciones, loading, onUpdateRecepcion }: Pr
             title: "Vehículo",
             width: 170,
             render: (r: RecepcionUnidadResponse) => {
-              const fullPlaca = r.vehiculo_serie
-                ? `${r.vehiculo_serie}-${r.vehiculo_placa}`
-                : r.vehiculo_placa;
+              if (!r.vehiculo_placa) {
+                return (
+                  <Text size="xs" className="text-zinc-500 italic">
+                    (sin asignar)
+                  </Text>
+                );
+              }
               return (
                 <div className="flex flex-col gap-1.5 items-start">
                   <div className="inline-flex items-center justify-center bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-0.5 rounded-md font-bold text-xs tracking-wider uppercase font-mono">
-                    {fullPlaca}
+                    {r.vehiculo_placa}
                   </div>
                   <Text size="xs" className="text-zinc-500 italic">
-                    {r.tipo_vehiculo_nombre}
+                    {r.tipo_vehiculo_nombre ?? ""}
                   </Text>
                 </div>
               );
@@ -132,7 +192,7 @@ export const TablaRecepciones = ({ recepciones, loading, onUpdateRecepcion }: Pr
             width: 200,
             render: (r: RecepcionUnidadResponse) => (
               <div>
-                <Text size="sm" className="text-zinc-200 max-w-[190px]" truncate title={r.empresa_transporte_razon_social}>
+                <Text size="sm" className="text-zinc-200 max-w-47.5" truncate title={r.empresa_transporte_razon_social}>
                   {r.empresa_transporte_razon_social}
                 </Text>
               </div>
@@ -145,10 +205,10 @@ export const TablaRecepciones = ({ recepciones, loading, onUpdateRecepcion }: Pr
             render: (r: RecepcionUnidadResponse) => (
               <div>
                 <Text size="sm" className="text-zinc-200" fw={500}>
-                  {r.conductor_nombre_completo}
+                  {r.conductor_nombre_completo ?? "—"}
                 </Text>
                 <Text size="xs" className="text-zinc-500">
-                  Licencia: {r.conductor_numero_licencia}
+                  Licencia: {r.conductor_numero_licencia ?? "—"}
                 </Text>
               </div>
             ),
@@ -160,10 +220,10 @@ export const TablaRecepciones = ({ recepciones, loading, onUpdateRecepcion }: Pr
             render: (r: RecepcionUnidadResponse) => (
               <div>
                 <Text size="xs" className="text-zinc-300">
-                  Ingreso: <strong className="text-indigo-400">{r.tipo_ingreso}</strong>
+                  Ingreso: <strong className="text-indigo-400">{r.tipo_ingreso ?? "—"}</strong>
                 </Text>
                 <Text size="xs" className="text-zinc-500">
-                  Carga: {r.tipo_carga} {r.segunda_placa ? `(Acople: ${r.segunda_placa})` : ""}
+                  Carga: {r.tipo_carga ?? "—"} {r.segunda_placa ? `(Acople: ${r.segunda_placa})` : ""}
                 </Text>
               </div>
             ),
@@ -173,48 +233,73 @@ export const TablaRecepciones = ({ recepciones, loading, onUpdateRecepcion }: Pr
             title: "Observación",
             width: 200,
             render: (r: RecepcionUnidadResponse) => (
-              <Text size="xs" className="text-zinc-400 italic max-w-[180px]" truncate title={r.observacion || ""}>
+              <Text size="xs" className="text-zinc-400 italic max-w-45" truncate title={r.observacion || ""}>
                 {r.observacion || "—"}
               </Text>
             ),
           },
           {
-            accessor: "fecha_hora_salida",
-            title: "Fecha / Hora de Salida",
-            width: 180,
+            accessor: "acciones",
+            title: "Acciones",
+            width: 200,
             render: (r: RecepcionUnidadResponse) => {
-              if (r.fecha_hora_salida) {
+              // Programación sin confirmar → mostrar botón "Confirmar información"
+              if (r.es_programacion && !r.id_empleado_recepcion) {
                 return (
-                  <Text size="sm" className="text-zinc-200" fw={500}>
-                    {formatFecha(r.fecha_hora_salida)}
-                  </Text>
+                  <Button
+                    size="xs"
+                    color="indigo"
+                    radius="xl"
+                    leftSection={<IconClipboardCheck size={14} />}
+                    onClick={() => onConfirmarProgramacion(r)}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all duration-200 h-7 px-3.5"
+                  >
+                    Confirmar información
+                  </Button>
                 );
               }
-              return (
-                <Button
-                  size="xs"
-                  color="red"
-                  radius="lg"
-                  onClick={() => {
-                    setExitRecord(r);
-                    setEstadoSalida(null);
-                    setObservacionSalida("");
-                  }}
-                  className="bg-red-600 hover:bg-red-700 text-white font-semibold transition-all duration-200 h-[28px] px-3.5"
-                >
-                  Registrar Salida
-                </Button>
-              );
+              // Recepción normal → botón "Registrar Salida" si no tiene fecha de salida
+              if (!r.fecha_hora_salida) {
+                return (
+                  <Button
+                    size="xs"
+                    color="red"
+                    radius="lg"
+                    onClick={() => {
+                      setExitRecord(r);
+                      setEstadoSalida(null);
+                      setObservacionSalida("");
+                      setEvidenciasSalida([]);
+                    }}
+                    className="bg-red-600 hover:bg-red-700 text-white font-semibold transition-all duration-200 h-7 px-3.5"
+                  >
+                    Registrar Salida
+                  </Button>
+                );
+              }
+              return <Text size="xs" className="text-zinc-500 italic">—</Text>;
             },
+          },
+          {
+            accessor: "fecha_hora_salida",
+            title: "Salida",
+            width: 170,
+            render: (r: RecepcionUnidadResponse) => (
+              <Text size="sm" className="text-zinc-200" fw={500}>
+                {formatFecha(r.fecha_hora_salida)}
+              </Text>
+            ),
           },
           {
             accessor: "estado_salida",
             title: "Estado Unidad",
             width: 150,
             render: (r: RecepcionUnidadResponse) => (
-              <Text size="sm" className="text-zinc-200">
-                {r.estado_salida || "—"}
-              </Text>
+              <Group gap="xs">
+                <Text size="sm" className="text-zinc-200">
+                  {r.estado_salida ?? r.estado ?? "—"}
+                </Text>
+              </Group>
             ),
           },
           {
@@ -222,7 +307,7 @@ export const TablaRecepciones = ({ recepciones, loading, onUpdateRecepcion }: Pr
             title: "Observación Salida",
             width: 200,
             render: (r: RecepcionUnidadResponse) => (
-              <Text size="xs" className="text-zinc-400 italic max-w-[180px]" truncate title={r.observacion_salida || ""}>
+              <Text size="xs" className="text-zinc-400 italic max-w-45" truncate title={r.observacion_salida || ""}>
                 {r.observacion_salida || "—"}
               </Text>
             ),
@@ -270,7 +355,6 @@ export const TablaRecepciones = ({ recepciones, loading, onUpdateRecepcion }: Pr
         </div>
       </ModalEstandar>
 
-      {/* Modal: Registro de Salida */}
       <ModalEstandar
         opened={!!exitRecord}
         close={() => setExitRecord(null)}
@@ -303,6 +387,11 @@ export const TablaRecepciones = ({ recepciones, loading, onUpdateRecepcion }: Pr
               input: "bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all",
               label: "text-zinc-400 mb-1 font-medium text-xs ml-1",
             }}
+          />
+          <MultiFilePicker
+            label="Evidencias de Salida"
+            files={evidenciasSalida}
+            onFilesChange={setEvidenciasSalida}
           />
           <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-zinc-800">
             <Button

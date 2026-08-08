@@ -1,6 +1,7 @@
 export interface RES_Perfil {
   id_usuario: number;
   username: string;
+  id_empleado: number;
   nombre: string;
   apellido: string;
   dni: string;
@@ -13,4 +14,5 @@ export interface RES_Perfil {
   nombre_cargo: string | null;
   nombre_area: string | null;
   empresa_nombre: string | null;
+  autoriza_ingreso_unidades: boolean;
 }

@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Text, Button, Textarea } from "@mantine/core";
+import { Text, Button, Textarea, Badge } from "@mantine/core";
 import { DataTableEstandar } from "../../../../presentation/utils/datatable-estandar";
 import { IconPaperclip, IconCar } from "@tabler/icons-react";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
 import { ArchivoCard } from "../../../../presentation/utils/archivo/archivo-card";
+import { MultiFilePicker } from "../../../../presentation/utils/archivo/multifile-picker";
 import type { RecepcionVisitaResponse } from "../../service/recepcion-visitas.responses";
 import type { IArchivo } from "../../../../shared/interfaces/archivo";
 import { RecepcionVisitasService } from "../../service/recepcion-visitas.service";
@@ -21,6 +22,7 @@ export const TablaVisitas = ({ recepciones, loading, onUpdateRecepcion }: Props)
 
   const [exitRecord, setExitRecord] = useState<{ idDetalle: number; visitanteNombre: string } | null>(null);
   const [observacionSalida, setObservacionSalida] = useState("");
+  const [evidenciasSalida, setEvidenciasSalida] = useState<File[]>([]);
   const [savingExit, setSavingExit] = useState(false);
   const { notifySuccess, notifyError } = useNotify();
 
@@ -56,11 +58,13 @@ export const TablaVisitas = ({ recepciones, loading, onUpdateRecepcion }: Props)
     try {
       const updated = await RecepcionVisitasService.registrarSalida(exitRecord.idDetalle, {
         observacion_salida: observacionSalida,
+        evidencias: evidenciasSalida,
       });
       notifySuccess("Salida de visitante registrada correctamente");
       onUpdateRecepcion(updated);
       setExitRecord(null);
       setObservacionSalida("");
+      setEvidenciasSalida([]);
     } catch (err: unknown) {
       console.error(err);
       notifyError("Ocurrió un error al registrar la salida");
@@ -126,20 +130,41 @@ export const TablaVisitas = ({ recepciones, loading, onUpdateRecepcion }: Props)
           {
             accessor: "vehiculo",
             title: "Vehículo Particular",
-            width: 110,
+            width: 130,
             textAlign: "center",
             render: (r: RecepcionVisitaResponse) => {
-              if (r.con_vehiculo) {
-                return (
-                  <div className="flex items-center justify-center gap-1.5 text-zinc-300 w-full">
-                    <IconCar size={16} className="text-indigo-400" />
-                    <span className="font-mono text-xs font-bold bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-md uppercase">
-                      {r.serie_placa}-{r.numero_placa}
-                    </span>
-                  </div>
-                );
+              const tienePlacaHeader = Boolean(r.serie_placa || r.numero_placa);
+              const tieneVehiculos = Boolean(r.vehiculos && r.vehiculos.length > 0);
+
+              if (!r.con_vehiculo && !tienePlacaHeader && !tieneVehiculos) {
+                return <Text size="xs" className="text-zinc-500 italic text-center w-full">No</Text>;
               }
-              return <Text size="xs" className="text-zinc-500 italic text-center w-full">No</Text>;
+
+              return (
+                <div className="flex flex-col items-center justify-center gap-1 w-full">
+                  {tienePlacaHeader && (
+                    <div className="flex items-center gap-1.5 text-zinc-300">
+                      <IconCar size={14} className="text-indigo-400" />
+                      <span className="font-mono text-xs font-bold bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-md uppercase">
+                        {r.serie_placa ? `${r.serie_placa}-` : ""}{r.numero_placa}
+                      </span>
+                    </div>
+                  )}
+                  {r.vehiculos?.map((veh, vIdx) => (
+                    <div key={vIdx} className="flex items-center gap-1.5 text-zinc-300">
+                      <IconCar size={14} className="text-blue-400" />
+                      <span className="font-mono text-xs font-bold bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-md uppercase">
+                        {veh.placa}
+                      </span>
+                    </div>
+                  ))}
+                  {!tienePlacaHeader && !tieneVehiculos && (
+                    <div className="flex items-center gap-1 text-zinc-400 text-xs italic">
+                      <IconCar size={14} className="text-zinc-500" /> Con vehículo
+                    </div>
+                  )}
+                </div>
+              );
             },
           },
           {
@@ -148,7 +173,7 @@ export const TablaVisitas = ({ recepciones, loading, onUpdateRecepcion }: Props)
             width: 130,
             textAlign: "center",
             render: (r: RecepcionVisitaResponse) => (
-              <Text size="xs" className="text-zinc-400 italic max-w-[130px] mx-auto text-center" truncate title={r.observacion || ""}>
+              <Text size="xs" className="text-zinc-400 italic max-w-32.5 mx-auto text-center" truncate title={r.observacion || ""}>
                 {r.observacion || "—"}
               </Text>
             ),
@@ -167,14 +192,19 @@ export const TablaVisitas = ({ recepciones, loading, onUpdateRecepcion }: Props)
                     {/* Fila Principal */}
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <Text size="xs" className="text-zinc-200" fw={700}>
                             {v.visitante_nombre} {v.visitante_apellido}
                           </Text>
+                          {v.es_conductor && (
+                            <Badge size="xs" color="blue" variant="filled">
+                              Conductor
+                            </Badge>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                           <Text size="10px" className="text-zinc-500 font-mono">
-                            DNI: {v.visitante_dni} {v.visitante_telefono ? `| Tel: ${v.visitante_telefono}` : ""}
+                            DNI: {v.visitante_dni || "Sin DNI"} {v.visitante_telefono ? `| Tel: ${v.visitante_telefono}` : ""}
                           </Text>
                           {v.url_foto_documento && v.url_foto_documento.length > 0 && (
                             <Button
@@ -196,7 +226,7 @@ export const TablaVisitas = ({ recepciones, loading, onUpdateRecepcion }: Props)
                                 });
                                 handleOpenEvidencias(mapped);
                               }}
-                              className="bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/10 h-[18px] px-1.5 text-[9px] font-bold"
+                              className="bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/10 h-4.5 px-1.5 text-[9px] font-bold"
                             >
                               Ver ({v.url_foto_documento.length})
                             </Button>
@@ -227,8 +257,9 @@ export const TablaVisitas = ({ recepciones, loading, onUpdateRecepcion }: Props)
                                 visitanteNombre: `${v.visitante_nombre} ${v.visitante_apellido}`,
                               });
                               setObservacionSalida("");
+                              setEvidenciasSalida([]);
                             }}
-                            className="bg-red-500/10 hover:bg-red-500/25 text-red-400 font-bold h-[20px] px-2 text-[9px]"
+                            className="bg-red-500/10 hover:bg-red-500/25 text-red-400 font-bold h-5 px-2 text-[9px]"
                           >
                             Salida
                           </Button>
@@ -297,6 +328,11 @@ export const TablaVisitas = ({ recepciones, loading, onUpdateRecepcion }: Props)
               input: "bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all",
               label: "text-zinc-400 mb-1 font-medium text-xs ml-1",
             }}
+          />
+          <MultiFilePicker
+            label="Evidencias de Salida"
+            files={evidenciasSalida}
+            onFilesChange={setEvidenciasSalida}
           />
           <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-zinc-800">
             <Button

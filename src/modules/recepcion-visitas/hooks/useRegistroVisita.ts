@@ -1,36 +1,51 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AuxService } from "../../../service/auxiliar.service";
 import { RecepcionVisitasService } from "../service/recepcion-visitas.service";
-import type { CrearRecepcionVisitaRequest } from "../service/recepcion-visitas.requests";
+import type { CrearRecepcionVisitaRequest, VisitorPayload, VehiculoAcompananteRequest } from "../service/recepcion-visitas.requests";
 import type { RecepcionVisitaResponse } from "../service/recepcion-visitas.responses";
 import type { RES_Empleado } from "../../../service/responses/empleado";
 import type { RES_MotivoIngreso } from "../../../service/responses/auxiliar-visitas";
 import { useNotify } from "../../../hooks/useNotify";
 import { EstadoBase } from "../../../shared/enums/_generic/estado-base";
 
-export interface VisitanteLocal {
+export interface VehiculoAcompananteItem {
+  id: number;
+  id_recepcion_visita?: number;
+  placa: string;
+  cantidad_personas: number;
+  url_foto?: string[];
+  archivos?: File[];
+}
+
+export interface VisitanteFormItem {
   id_visitante?: number;
+  id_visita_vehiculo?: number | null;
   nombre: string;
   apellido: string;
   dni: string;
   telefono: string;
+  es_conductor?: boolean;
   foto_documento: File[];
+  foto_documento_existente?: string[] | null;
 }
 
 export const useRegistroVisita = (onSuccess: (r: RecepcionVisitaResponse) => void) => {
   const { notifyError, notifySuccess } = useNotify();
 
-  const [payload, setPayload] = useState<Omit<CrearRecepcionVisitaRequest, "visitantes">>({
+  const [payload, setPayload] = useState<Omit<CrearRecepcionVisitaRequest, "visitantes" | "vehiculos" | "con_vehiculo">>({
     id_empleado_contacto: 0,
     id_motivo_ingreso: 0,
     observacion: "",
-    con_vehiculo: false,
     serie_placa: "",
     numero_placa: "",
   });
 
-  const [visitantes, setVisitantes] = useState<VisitanteLocal[]>([]);
+  const [vehiculos, setVehiculos] = useState<VehiculoAcompananteItem[]>([]);
+  const [visitantes, setVisitantes] = useState<VisitanteFormItem[]>([]);
+  const [evidencias, setEvidencias] = useState<File[]>([]);
+
   const [loading, setLoading] = useState(false);
+  const [loadingVehiculo, setLoadingVehiculo] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Catálogos
@@ -59,30 +74,181 @@ export const useRegistroVisita = (onSuccess: (r: RecepcionVisitaResponse) => voi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleChange = <K extends keyof Omit<CrearRecepcionVisitaRequest, "visitantes">>(
+  const handleChange = <K extends keyof Omit<CrearRecepcionVisitaRequest, "visitantes" | "vehiculos" | "con_vehiculo">>(
     field: K,
-    value: Omit<CrearRecepcionVisitaRequest, "visitantes">[K]
+    value: Omit<CrearRecepcionVisitaRequest, "visitantes" | "vehiculos" | "con_vehiculo">[K]
   ) => {
     setPayload((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleAgregarVisitante = (nuevoVisitante: VisitanteLocal): boolean => {
-    // Evitar DNI duplicado en la lista actual
-    if (visitantes.some((v) => v.dni === nuevoVisitante.dni)) {
+  // --- Manejo de Vehículos Acompañantes y Slots ---
+  const agregarVehiculoConSlots = useCallback(
+    async (placa: string, archivosVehiculo: File[], cantidadPersonas: number) => {
+      setLoadingVehiculo(true);
+      try {
+        const vehiculoObj: VehiculoAcompananteItem = {
+          id: Date.now(),
+          placa,
+          cantidad_personas: Math.max(1, cantidadPersonas),
+          url_foto: [],
+          archivos: archivosVehiculo,
+        };
+
+        setVehiculos((prev) => [...prev, vehiculoObj]);
+
+        const nuevosVisitantes: VisitanteFormItem[] = Array.from(
+          { length: Math.max(1, cantidadPersonas) },
+          (_, i) => ({
+            id_visita_vehiculo: vehiculoObj.id,
+            nombre: "",
+            apellido: "",
+            dni: "",
+            telefono: "",
+            es_conductor: i === 0,
+            foto_documento: [],
+            foto_documento_existente: null,
+          }),
+        );
+
+        setVisitantes((prev) => [...prev, ...nuevosVisitantes]);
+        notifySuccess(`Vehículo ${placa} agregado con ${cantidadPersonas} ocupante(s)`);
+        return true;
+      } catch (e) {
+        console.error(e);
+        notifyError("Error al agregar el vehículo");
+        return false;
+      } finally {
+        setLoadingVehiculo(false);
+      }
+    },
+    [notifyError, notifySuccess],
+  );
+
+  const editarVehiculoConSlots = useCallback(
+    async (vehiculoId: number, nuevaPlaca: string, nuevosArchivos: File[], nuevaCantidad: number) => {
+      setLoadingVehiculo(true);
+      try {
+        setVehiculos((prev) =>
+          prev.map((v) =>
+            v.id === vehiculoId
+              ? {
+                  ...v,
+                  placa: nuevaPlaca,
+                  cantidad_personas: nuevaCantidad,
+                  archivos: nuevosArchivos.length > 0 ? nuevosArchivos : v.archivos,
+                }
+              : v,
+          ),
+        );
+
+        setVisitantes((prev) => {
+          const actualesDelVehiculo = prev.filter((vis) => vis.id_visita_vehiculo === vehiculoId);
+          const otrosVisitantes = prev.filter((vis) => vis.id_visita_vehiculo !== vehiculoId);
+
+          let ajustados = [...actualesDelVehiculo];
+          if (nuevaCantidad > actualesDelVehiculo.length) {
+            const extraCount = nuevaCantidad - actualesDelVehiculo.length;
+            const extras: VisitanteFormItem[] = Array.from({ length: extraCount }, (_, i) => ({
+              id_visita_vehiculo: vehiculoId,
+              nombre: "",
+              apellido: "",
+              dni: "",
+              telefono: "",
+              es_conductor: actualesDelVehiculo.length === 0 && i === 0,
+              foto_documento: [],
+              foto_documento_existente: null,
+            }));
+            ajustados = [...ajustados, ...extras];
+          } else if (nuevaCantidad < actualesDelVehiculo.length) {
+            ajustados = ajustados.slice(0, nuevaCantidad);
+          }
+
+          if (ajustados.length > 0 && !ajustados.some((vis) => vis.es_conductor)) {
+            ajustados[0].es_conductor = true;
+          }
+
+          return [...otrosVisitantes, ...ajustados];
+        });
+
+        notifySuccess("Vehículo actualizado");
+        return true;
+      } catch (e) {
+        console.error(e);
+        notifyError("Error al editar el vehículo");
+        return false;
+      } finally {
+        setLoadingVehiculo(false);
+      }
+    },
+    [notifyError, notifySuccess],
+  );
+
+  const eliminarVehiculo = useCallback(
+    (vehiculoId: number) => {
+      setVehiculos((prev) => prev.filter((v) => v.id !== vehiculoId));
+      setVisitantes((prev) => prev.filter((v) => v.id_visita_vehiculo !== vehiculoId));
+      notifySuccess("Vehículo y sus ocupantes eliminados");
+    },
+    [notifySuccess],
+  );
+
+  const agregarOcupanteAVehiculo = useCallback(
+    (vehiculoId: number) => {
+      setVehiculos((prev) =>
+        prev.map((v) => (v.id === vehiculoId ? { ...v, cantidad_personas: v.cantidad_personas + 1 } : v)),
+      );
+
+      setVisitantes((prev) => {
+        const ocupantesExistentes = prev.filter((vis) => vis.id_visita_vehiculo === vehiculoId);
+        const nuevoSlot: VisitanteFormItem = {
+          id_visita_vehiculo: vehiculoId,
+          nombre: "",
+          apellido: "",
+          dni: "",
+          telefono: "",
+          es_conductor: ocupantesExistentes.length === 0,
+          foto_documento: [],
+          foto_documento_existente: null,
+        };
+        return [...prev, nuevoSlot];
+      });
+
+      notifySuccess("Nuevo slot de ocupante agregado al vehículo");
+    },
+    [notifySuccess],
+  );
+
+  const marcarConductorVehiculo = useCallback(
+    (vehiculoId: number, targetIndex: number) => {
+      setVisitantes((prev) =>
+        prev.map((vis, idx) => {
+          if (vis.id_visita_vehiculo !== vehiculoId) return vis;
+          return {
+            ...vis,
+            es_conductor: idx === targetIndex,
+          };
+        }),
+      );
+    },
+    [],
+  );
+
+  // --- Manejo de Visitantes Peatonales / Individuales ---
+  const handleAgregarVisitanteIndividual = (nuevoVisitante: VisitanteFormItem): boolean => {
+    if (nuevoVisitante.dni && visitantes.some((v) => v.dni && v.dni === nuevoVisitante.dni)) {
       notifyError("Este visitante ya ha sido agregado a la lista.");
       return false;
     }
-    setVisitantes((prev) => [...prev, nuevoVisitante]);
+    setVisitantes((prev) => [...prev, { ...nuevoVisitante, id_visita_vehiculo: null, es_conductor: false }]);
     return true;
   };
 
-  const handleActualizarVisitante = (index: number, visitanteActualizado: VisitanteLocal): boolean => {
-    // Evitar DNI duplicado en los demás visitantes de la lista
-    if (visitantes.some((v, i) => i !== index && v.dni === visitanteActualizado.dni)) {
+  const handleActualizarVisitante = (index: number, visitanteActualizado: VisitanteFormItem): boolean => {
+    if (visitanteActualizado.dni && visitantes.some((v, i) => i !== index && v.dni && v.dni === visitanteActualizado.dni)) {
       notifyError("Este DNI ya pertenece a otro visitante en la lista.");
       return false;
     }
-    setVisitantes((prev) => prev.map((v, i) => i === index ? visitanteActualizado : v));
+    setVisitantes((prev) => prev.map((v, i) => (i === index ? visitanteActualizado : v)));
     return true;
   };
 
@@ -90,59 +256,89 @@ export const useRegistroVisita = (onSuccess: (r: RecepcionVisitaResponse) => voi
     setVisitantes((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const submit = async (e: React.FormEvent) => {
+  const resetForm = useCallback(() => {
+    setPayload({
+      id_empleado_contacto: 0,
+      id_empleado_autoriza: 0,
+      id_motivo_ingreso: 0,
+      observacion: "",
+      serie_placa: "",
+      numero_placa: "",
+    });
+    setVisitantes([]);
+    setVehiculos([]);
+    setEvidencias([]);
+    setError(null);
+  }, []);
+
+  // --- Envío del Formulario ---
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
 
-    if (!payload.id_empleado_contacto) {
-      setError("Debe seleccionar el personal de contacto.");
-      return;
-    }
-    if (!payload.id_motivo_ingreso) {
-      setError("Debe seleccionar el motivo de la visita.");
-      return;
-    }
-    if (payload.con_vehiculo) {
-      if (!payload.serie_placa?.trim() || !payload.numero_placa?.trim()) {
-        setError("Debe completar la serie y número de placa del vehículo.");
-        return;
-      }
-    }
-    if (visitantes.length === 0) {
-      setError("Debe agregar al menos un visitante.");
+    if (!payload.id_motivo_ingreso || payload.id_motivo_ingreso <= 0) {
+      setError("Debe seleccionar el motivo de ingreso.");
       return;
     }
 
-    // Validar foto documento
-    const faltanFotos = visitantes.some((v) => !v.foto_documento || v.foto_documento.length === 0);
-    if (faltanFotos) {
-      setError("Todos los visitantes de la lista deben tener al menos un documento cargado.");
-      return;
-    }
+    // Si la lista de visitantes viene vacía, instanciar al menos 1 por defecto
+    const listaAEnviar =
+      visitantes.length > 0
+        ? visitantes
+        : [
+            {
+              nombre: "VISITANTE",
+              apellido: "",
+              dni: "",
+              telefono: "",
+              foto_documento: [],
+            },
+          ];
+
+    const conVehiculo = vehiculos.length > 0 || Boolean(payload.serie_placa || payload.numero_placa);
 
     setLoading(true);
 
     try {
+      const vehiculosPayload: VehiculoAcompananteRequest[] = vehiculos.map((veh) => ({
+        temp_id: veh.id,
+        placa: veh.placa,
+        cantidad_personas: veh.cantidad_personas,
+        archivos: veh.archivos,
+      }));
+
+      const visitantesPayload: VisitorPayload[] = listaAEnviar.map((v) => ({
+        id_visitante: v.id_visitante,
+        id_visita_vehiculo: v.id_visita_vehiculo ?? undefined,
+        es_conductor: v.es_conductor,
+        nombre: v.nombre,
+        apellido: v.apellido,
+        dni: v.dni,
+        telefono: v.telefono,
+        foto_documento: v.foto_documento,
+      }));
+
       const requestPayload: CrearRecepcionVisitaRequest = {
-        ...payload,
-        visitantes: visitantes.map((v) => ({
-          id_visitante: v.id_visitante,
-          nombre: v.nombre,
-          apellido: v.apellido,
-          dni: v.dni,
-          telefono: v.telefono,
-          foto_documento: v.foto_documento,
-        })),
+        id_empleado_contacto: payload.id_empleado_contacto,
+        id_empleado_autoriza: payload.id_empleado_contacto,
+        id_motivo_ingreso: payload.id_motivo_ingreso,
+        observacion: payload.observacion,
+        con_vehiculo: conVehiculo,
+        serie_placa: payload.serie_placa,
+        numero_placa: payload.numero_placa,
+        evidencias,
+        vehiculos: vehiculosPayload,
+        visitantes: visitantesPayload,
       };
 
       const response = await RecepcionVisitasService.crearRecepcion(requestPayload);
       notifySuccess("Visita registrada correctamente");
+      resetForm();
       onSuccess(response);
     } catch (err: unknown) {
       console.error(err);
-      
+
       const errorWithResponse = err as { response?: { data?: { message?: string } }; message?: string };
-      // Extraer el mensaje del error
       let rawMsg = "Ocurrió un error inesperado al registrar la visita.";
       if (errorWithResponse.response?.data?.message) {
         rawMsg = errorWithResponse.response.data.message;
@@ -150,7 +346,6 @@ export const useRegistroVisita = (onSuccess: (r: RecepcionVisitaResponse) => voi
         rawMsg = errorWithResponse.message;
       }
 
-      // Sanitizar el mensaje para la alerta de la interfaz
       let sanitizedMsg = rawMsg;
       const lower = rawMsg ? rawMsg.toLowerCase() : "";
       if (
@@ -164,7 +359,7 @@ export const useRegistroVisita = (onSuccess: (r: RecepcionVisitaResponse) => voi
       ) {
         sanitizedMsg = "Ocurrió un error interno en el servidor.";
       }
-      
+
       setError(sanitizedMsg);
     } finally {
       setLoading(false);
@@ -174,10 +369,21 @@ export const useRegistroVisita = (onSuccess: (r: RecepcionVisitaResponse) => voi
   return {
     payload,
     handleChange,
+    vehiculos,
     visitantes,
-    handleAgregarVisitante,
+    setVisitantes,
+    evidencias,
+    setEvidencias,
+    loadingVehiculo,
+    agregarVehiculoConSlots,
+    editarVehiculoConSlots,
+    eliminarVehiculo,
+    agregarOcupanteAVehiculo,
+    marcarConductorVehiculo,
+    handleAgregarVisitanteIndividual,
     handleActualizarVisitante,
     handleRemoverVisitante,
+    resetForm,
     submit,
     loading,
     error,

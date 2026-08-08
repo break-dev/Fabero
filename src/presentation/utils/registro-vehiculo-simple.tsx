@@ -1,4 +1,4 @@
-import { TextInput, Button, Alert, SimpleGrid } from "@mantine/core";
+import { TextInput, Button, Alert } from "@mantine/core";
 import { IconTruck, IconExclamationCircle } from "@tabler/icons-react";
 import { useRegistroVehiculoSimple } from "../../hooks/useRegistroVehiculoSimple";
 import type { RES_Vehiculo } from "../../service/responses/vehiculo";
@@ -19,6 +19,12 @@ interface Props {
  * Las FKs (id_empresa_transporte, id_tipo_vehiculo) deben provenir del
  * contexto del modal padre.
  */
+const formatPlaca = (raw: string): string => {
+  const cleaned = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (cleaned.length <= 3) return cleaned;
+  return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 6)}`.slice(0, 7);
+};
+
 export const RegistroVehiculoSimple = ({
   idEmpresaTransporte,
   idTipoVehiculo,
@@ -52,27 +58,17 @@ export const RegistroVehiculoSimple = ({
         </Alert>
       )}
 
-      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-        <TextInput
-          label="Serie de Placa"
-          placeholder="Ej. ASD"
-          radius="lg"
-          size="xs"
-          value={payload.serie_placa}
-          onChange={(e) => handleChange("serie_placa", e.currentTarget.value)}
-          classNames={fieldClasses}
-        />
-        <TextInput
-          label="N° de Placa"
-          placeholder="Ej. 890"
-          radius="lg"
-          size="xs"
-          required
-          value={payload.numero_placa}
-          onChange={(e) => handleChange("numero_placa", e.currentTarget.value)}
-          classNames={fieldClasses}
-        />
-      </SimpleGrid>
+      <TextInput
+        label="Placa del Vehículo"
+        placeholder="Ej. F1B-890"
+        radius="lg"
+        size="xs"
+        required
+        maxLength={7}
+        value={payload.placa}
+        onChange={(e) => handleChange("placa", formatPlaca(e.currentTarget.value))}
+        classNames={fieldClasses}
+      />
 
       <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-zinc-800">
         <Button
