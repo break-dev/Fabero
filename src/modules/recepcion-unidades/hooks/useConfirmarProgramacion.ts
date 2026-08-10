@@ -500,7 +500,7 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
             foto_documento: v.foto_documento,
           }));
 
-        let visita = null;
+        let visita: ProgramacionVisitaPayload | undefined = undefined;
         if (visitantesValidos.length > 0 || vehiculos.length > 0) {
           const payload: ConfirmarVisitaPayload = {
             id_recepcion_unidad: programacion.id,

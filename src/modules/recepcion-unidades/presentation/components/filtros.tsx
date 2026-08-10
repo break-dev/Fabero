@@ -1,5 +1,5 @@
 import { IconSearch, IconCalendar, IconTruck, IconArrowsUpDown, IconX } from "@tabler/icons-react";
-import { TextInput, Select, Grid, Group, ActionIcon } from "@mantine/core";
+import { TextInput, Select, Grid, ActionIcon } from "@mantine/core";
 import type { RecepcionFilters } from "../../service/recepcion-unidades.requests";
 import type { RES_EmpresaTransporte } from "../../../../service/responses/empresa-transporte";
 import { TipoIngreso } from "../../../../shared/enums/_generic/tipo-ingreso";
@@ -7,7 +7,7 @@ import { TipoIngreso } from "../../../../shared/enums/_generic/tipo-ingreso";
 interface Props {
   filters: RecepcionFilters;
   handleFilterChange: <K extends keyof RecepcionFilters>(key: K, value: RecepcionFilters[K]) => void;
-  handleSearch: () => void;
+  handleSearch?: () => void;
   empresas: RES_EmpresaTransporte[];
   onClearTextFilter: (key: "placa") => void;
 }
@@ -15,7 +15,6 @@ interface Props {
 export const Filtros = ({
   filters,
   handleFilterChange,
-  handleSearch,
   empresas,
   onClearTextFilter,
 }: Props) => {

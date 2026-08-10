@@ -755,7 +755,7 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
                 clearable
                 data={vehiculos.map((v) => ({
                   value: String(v.id_vehiculo),
-                  label: v.placa || (v.serie_placa ? `${v.serie_placa}-${v.numero_placa}` : v.numero_placa),
+                  label: String(v.placa || (v.serie_placa ? `${v.serie_placa}-${v.numero_placa}` : v.numero_placa) || `Vehículo #${v.id_vehiculo}`),
                 }))}
                 value={idVehiculo}
                 onChange={setIdVehiculo}
@@ -791,7 +791,7 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
                 clearable
                 data={carretas.map((v) => ({
                   value: String(v.id_vehiculo),
-                  label: v.placa || (v.serie_placa ? `${v.serie_placa}-${v.numero_placa}` : v.numero_placa),
+                  label: String(v.placa || (v.serie_placa ? `${v.serie_placa}-${v.numero_placa}` : v.numero_placa) || `Vehículo #${v.id_vehiculo}`),
                 }))}
                 value={idVehiculoCarreta}
                 onChange={setIdVehiculoCarreta}

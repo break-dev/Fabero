@@ -31,7 +31,8 @@ export const useRegistroRecepcion = (
   const [motivos, setMotivos] = useState<RES_MotivoIngreso[]>([]);
   const [loadingCatalogos, setLoadingCatalogos] = useState(false);
 
-  // Búsqueda de placa (Serie y Número)
+  // Búsqueda de placa (Serie y Número o Placa Única)
+  const [placaBusqueda, setPlacaBusqueda] = useState("");
   const [serieBusqueda, setSerieBusqueda] = useState("");
   const [numeroBusqueda, setNumeroBusqueda] = useState("");
   const [vehiculoEncontrado, setVehiculoEncontrado] = useState(false);
@@ -399,6 +400,8 @@ export const useRegistroRecepcion = (
     proveedores,
     motivos,
     loadingCatalogos,
+    placaBusqueda,
+    setPlacaBusqueda,
     serieBusqueda,
     setSerieBusqueda,
     numeroBusqueda,
