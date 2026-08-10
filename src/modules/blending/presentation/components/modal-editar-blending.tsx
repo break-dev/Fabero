@@ -50,10 +50,14 @@ export const ModalEditarBlending: React.FC<ModalEditarBlendingProps> = ({
   const {
     disponibles,
     proveedores,
+    empresas,
     idProveedorSeleccionado,
     setIdProveedorSeleccionado,
+    idEmpresaSeleccionada,
+    setIdEmpresaSeleccionada,
     loadingDisponibles,
     loadingProveedores,
+    loadingEmpresas,
     refetchDisponibles,
   } = useBlendingDisponibles();
 
@@ -133,7 +137,7 @@ export const ModalEditarBlending: React.FC<ModalEditarBlendingProps> = ({
         }
         rightSection={
           <Group gap="xs" align="center">
-            <Box w={180}>
+            <Box w={160}>
               <DateTimePicker
                 placeholder="Fecha y Hora"
                 value={fechaHora}
@@ -144,6 +148,24 @@ export const ModalEditarBlending: React.FC<ModalEditarBlendingProps> = ({
                 classNames={fieldClasses}
               />
             </Box>
+            <Select
+              placeholder={loadingEmpresas ? "Cargando..." : "Filtrar por Empresa"}
+              disabled={loadingEmpresas}
+              rightSection={loadingEmpresas ? <Loader size={14} /> : undefined}
+              clearable
+              searchable
+              comboboxProps={{ withinPortal: true }}
+              data={empresas.map((e) => ({
+                value: String(e.id_empresa),
+                label: e.razon_social,
+              }))}
+              value={idEmpresaSeleccionada ? String(idEmpresaSeleccionada) : null}
+              onChange={(val) => setIdEmpresaSeleccionada(val ? Number(val) : null)}
+              size="xs"
+              radius="lg"
+              w={200}
+              classNames={fieldClasses}
+            />
             <Select
               placeholder={loadingProveedores ? "Cargando..." : "Filtrar por Proveedor (Opcional)"}
               disabled={loadingProveedores}
@@ -159,7 +181,7 @@ export const ModalEditarBlending: React.FC<ModalEditarBlendingProps> = ({
               onChange={(val) => setIdProveedorSeleccionado(val ? Number(val) : null)}
               size="xs"
               radius="lg"
-              w={240}
+              w={220}
               classNames={fieldClasses}
             />
             <Button
@@ -176,7 +198,7 @@ export const ModalEditarBlending: React.FC<ModalEditarBlendingProps> = ({
         }
         size="75rem"
         validateClose={hayCambios}
-        closeConfirmationTitle="¿Descartar cambios del blending?"
+        closeConfirmationTitle="¿Descartar cambios en blending?"
         closeConfirmationMessage="Tienes modificaciones pendientes. Si cierras, se perderán los cambios no guardados."
       >
         <Stack gap="lg" p="xs">
@@ -195,6 +217,7 @@ export const ModalEditarBlending: React.FC<ModalEditarBlendingProps> = ({
               <Table striped highlightOnHover verticalSpacing="xs" horizontalSpacing="sm">
                 <Table.Thead className="bg-zinc-900/90 text-zinc-300">
                   <Table.Tr>
+                    <Table.Th className="text-left">Empresa</Table.Th>
                     <Table.Th className="text-left">Proveedor</Table.Th>
                     <Table.Th className="text-center">Código</Table.Th>
                     <Table.Th className="text-right">TMH (Peso Húmedo)</Table.Th>
@@ -210,7 +233,7 @@ export const ModalEditarBlending: React.FC<ModalEditarBlendingProps> = ({
                 <Table.Tbody>
                   {loadingDisponibles ? (
                     <Table.Tr>
-                      <Table.Td colSpan={8} className="text-center py-6 text-zinc-400">
+                      <Table.Td colSpan={9} className="text-center py-6 text-zinc-400">
                         <Group justify="center" gap="xs">
                           <Loader size={18} />
                           <Text fz="xs">Cargando lotes disponibles...</Text>
@@ -219,20 +242,23 @@ export const ModalEditarBlending: React.FC<ModalEditarBlendingProps> = ({
                     </Table.Tr>
                   ) : disponiblesParaAgregar.length === 0 ? (
                     <Table.Tr>
-                      <Table.Td colSpan={8} className="text-center py-6 text-zinc-500">
-                        No hay lotes disponibles para agregar al blending.
+                      <Table.Td colSpan={9} className="text-center py-6 text-zinc-500">
+                        No hay lotes ni blendings disponibles con stock actual.
                       </Table.Td>
                     </Table.Tr>
                   ) : (
                     disponiblesParaAgregar.map((item, idx) => {
-                      const yaEnPendientes = nuevosPendientes.some((p) =>
-                        item.tipo_origen === "lote"
-                          ? p.id_lote_guia === item.id_lote_guia
-                          : p.id_reblending === item.id_reblending
+                      const yaEnPendientes = nuevosPendientes.some(
+                        (p) =>
+                          (item.tipo_origen === "lote" && p.id_lote_guia === item.id_lote_guia) ||
+                          (item.tipo_origen === "blending" && p.id_reblending === item.id_reblending)
                       );
 
                       return (
-                        <Table.Tr key={`disp-${item.tipo_origen}-${item.codigo}-${idx}`}>
+                        <Table.Tr key={`${item.tipo_origen}-${item.codigo}-${idx}`}>
+                          <Table.Td className="font-medium text-zinc-300">
+                            {item.empresa_nombre || "-"}
+                          </Table.Td>
                           <Table.Td className="font-medium text-zinc-200">
                             {item.tipo_origen === "blending" ? "Blending" : item.proveedor_nombre}
                           </Table.Td>

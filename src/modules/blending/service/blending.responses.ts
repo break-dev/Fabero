@@ -6,6 +6,8 @@ export interface ItemDisponibleResponse {
   tipo_origen: "lote" | "blending";
   codigo: string;
   correlativo_origen: string;
+  id_empresa?: number | null;
+  empresa_nombre?: string | null;
   id_proveedor: number | null;
   proveedor_nombre: string;
   tmh_disponible: number;

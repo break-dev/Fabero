@@ -73,7 +73,7 @@ export const EmpresasPage = () => {
           onClick={openCreate}
           radius="lg"
           size="sm"
-          className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-900/20 shrink-0 px-6 font-semibold h-[38px]"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-900/20 shrink-0 px-6 font-semibold h-9.5"
         >
           Nueva Empresa
         </Button>
@@ -85,7 +85,7 @@ export const EmpresasPage = () => {
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="bg-zinc-900/40 border border-zinc-800/60 rounded-[32px] p-5 space-y-4"
+              className="bg-zinc-900/40 border border-zinc-800/60 rounded-4xl p-5 space-y-4"
             >
               {/* Badge Skeleton */}
               <div className="flex justify-start">
@@ -142,8 +142,8 @@ export const EmpresasPage = () => {
           setRazonSocial={registro.setRazonSocial}
           nombreComercial={registro.nombreComercial}
           setNombreComercial={registro.setNombreComercial}
-          abreviatura={registro.abreviatura}
-          setAbreviatura={registro.setAbreviatura}
+          prefijo={registro.prefijo}
+          setPrefijo={registro.setPrefijo}
           logoFile={registro.logoFile}
           setLogoFile={registro.setLogoFile}
           error={registro.error}

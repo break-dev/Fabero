@@ -76,46 +76,32 @@ export const Filtros = ({
           <TextInput
             label="Placa"
             placeholder="Ej: ABC-123"
+            maxLength={8}
             radius="lg"
             leftSection={<IconSearch size={16} className={filters.placa ? "text-indigo-400" : "text-zinc-500"} />}
             value={filters.placa || ""}
             onChange={(e) => {
-              const val = e.target.value.toUpperCase();
-              handleFilterChange("placa", val);
-              if (val === "") {
+              const raw = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+              const formatted = raw.length <= 3 ? raw : `${raw.slice(0, 3)}-${raw.slice(3, 7)}`;
+              handleFilterChange("placa", formatted);
+              if (formatted === "") {
                 onClearTextFilter("placa");
               }
             }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleSearch();
-            }}
             rightSection={
-              <Group gap={4} style={{ flexWrap: "nowrap" }} mr={4}>
-                {filters.placa && (
-                  <ActionIcon
-                    size="sm"
-                    variant="subtle"
-                    color="gray"
-                    onClick={() => onClearTextFilter("placa")}
-                    title="Limpiar"
-                    className="text-zinc-400 hover:text-white"
-                  >
-                    <IconX size={14} />
-                  </ActionIcon>
-                )}
+              filters.placa ? (
                 <ActionIcon
                   size="sm"
-                  variant="filled"
-                  color="indigo"
-                  onClick={handleSearch}
-                  title="Buscar por placa"
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors h-[26px] w-[26px]"
+                  variant="subtle"
+                  color="gray"
+                  onClick={() => onClearTextFilter("placa")}
+                  title="Limpiar"
+                  className="text-zinc-400 hover:text-white mr-1"
                 >
-                  <IconSearch size={14} />
+                  <IconX size={14} />
                 </ActionIcon>
-              </Group>
+              ) : null
             }
-            rightSectionWidth={filters.placa ? 64 : 36}
             classNames={fieldClasses}
           />
         </Grid.Col>

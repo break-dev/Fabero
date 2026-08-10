@@ -89,7 +89,7 @@ export const ResumenBalanzaPage = () => {
   }));
 
   const placasData = metadata.vehiculos.map((v) => {
-    const label = v.serie_placa ? `${v.serie_placa}-${v.numero_placa}` : v.numero_placa;
+    const label = v.placa || (v.serie_placa ? `${v.serie_placa}-${v.numero_placa}` : v.numero_placa || `Vehículo #${v.id}`);
     return { value: label, label };
   });
 

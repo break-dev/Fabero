@@ -3,6 +3,9 @@ import type { RES_CambiosLog } from "../../../service/responses/_generic/cambios
 export interface RES_LoteMineral {
   id: number;
   id_recepcion_unidad: number;
+  id_empresa?: number | null;
+  empresa_nombre?: string;
+  empresa_prefijo?: string;
   id_proveedor_minero: number | null;
   proveedor_nombre?: string;
   proveedor_telefono?: string;
@@ -79,6 +82,7 @@ export interface RecepcionMineralResponse {
   estado_pesaje: string | null;
   validacion_datos: {
     condicion_ingreso: boolean;
+    tipo_carga: boolean;
     placa: boolean;
     empresa_transporte: boolean;
     tipo_vehiculo: boolean;

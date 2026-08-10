@@ -467,7 +467,7 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
                   rightSection={loadingCatalogos ? <Loader size={16} /> : undefined}
                   data={vehiculos.map((v) => ({
                     value: String(v.id_vehiculo),
-                    label: v.serie_placa ? `${v.serie_placa}-${v.numero_placa}` : v.numero_placa,
+                    label: v.placa || (v.serie_placa ? `${v.serie_placa}-${v.numero_placa}` : v.numero_placa),
                   }))}
                   value={idVehiculo}
                   onChange={setIdVehiculo}

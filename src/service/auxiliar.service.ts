@@ -219,6 +219,7 @@ export const AuxService = {
    * Obtener lista simplificada de vehículos (para dropdowns y búsquedas rápidas)
    */
   get_vehiculos: async (filters?: {
+    placa?: string;
     serie?: string;
     numero_placa?: string;
   }): Promise<RES_Vehiculo[]> => {
@@ -232,9 +233,7 @@ export const AuxService = {
    * Registrar un vehículo de forma simplificada
    */
   crear_vehiculo: async (payload: {
-    serie_placa?: string | null;
-    numero_placa?: string | null;
-    placa?: string | null;
+    placa: string;
     id_empresa_transporte?: number | null;
     id_tipo_vehiculo?: number | null;
   }): Promise<RES_Vehiculo> => {
@@ -269,6 +268,20 @@ export const AuxService = {
     const { data } = await api.get<IRespuesta<RES_MotivoIngreso[]>>(
       `${path}/motivos-ingreso`,
       { params },
+    );
+    return data;
+  },
+
+  /**
+   * Registrar un nuevo motivo de ingreso.
+   */
+  crear_motivo_ingreso: async (payload: {
+    nombre: string;
+    es_recepcion_unidad?: boolean;
+  }): Promise<IRespuesta<RES_MotivoIngreso>> => {
+    const { data } = await api.post<IRespuesta<RES_MotivoIngreso>>(
+      `${path}/motivos-ingreso`,
+      payload,
     );
     return data;
   },

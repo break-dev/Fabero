@@ -8,10 +8,11 @@ export const BlendingService = {
   /**
    * Obtener lotes y blendings disponibles para mezclar.
    */
-  get_disponibles: async (idProveedor?: number): Promise<ItemDisponibleResponse[]> => {
-    const { data } = await api.get(`${PATH}/disponibles`, {
-      params: idProveedor ? { id_proveedor: idProveedor } : {},
-    });
+  get_disponibles: async (idProveedor?: number, idEmpresa?: number): Promise<ItemDisponibleResponse[]> => {
+    const params: Record<string, number> = {};
+    if (idProveedor) params.id_proveedor = idProveedor;
+    if (idEmpresa) params.id_empresa = idEmpresa;
+    const { data } = await api.get(`${PATH}/disponibles`, { params });
     return data.data;
   },
 

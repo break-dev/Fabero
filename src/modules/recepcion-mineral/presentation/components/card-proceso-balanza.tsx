@@ -43,10 +43,6 @@ interface CardProcesoBalanzaProps {
   setOpenedPopover: (val: string | null) => void;
   tempValue: string;
   setTempValue: (val: string) => void;
-  tempSerie: string;
-  setTempSerie: (val: string) => void;
-  tempPlaca: string;
-  setTempPlaca: (val: string) => void;
   setOpenNewConductorModal: (val: boolean) => void;
   setSelectedRecepcionIdForLote: (id: number) => void;
   setCondicionModalOpen: (val: boolean) => void;
@@ -73,10 +69,6 @@ export const CardProcesoBalanza = ({
   setOpenedPopover,
   tempValue,
   setTempValue,
-  tempSerie,
-  setTempSerie,
-  tempPlaca,
-  setTempPlaca,
   setOpenNewConductorModal,
   setSelectedRecepcionIdForLote,
   setCondicionModalOpen,
@@ -90,6 +82,12 @@ export const CardProcesoBalanza = ({
   closingProcesoId,
   cerrarProceso,
 }: CardProcesoBalanzaProps) => {
+  const formatPlacaInput = (val: string): string => {
+    const clean = val.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (clean.length <= 3) return clean;
+    return `${clean.slice(0, 3)}-${clean.slice(3, 6)}`;
+  };
+
   const getFullPlaca = (serie: string | null, placa: string | null) => {
     if (!placa) return "SIN PLACA";
     return serie ? `${serie}-${placa}` : placa;
@@ -118,6 +116,7 @@ export const CardProcesoBalanza = ({
     if (!val) return false;
     return (
       val.condicion_ingreso &&
+      val.tipo_carga &&
       val.placa &&
       val.empresa_transporte &&
       val.tipo_vehiculo &&
@@ -131,6 +130,7 @@ export const CardProcesoBalanza = ({
     if (!val) return 0;
     let count = 0;
     if (val.condicion_ingreso) count++;
+    if (val.tipo_carga) count++;
     if (val.placa) count++;
     if (val.empresa_transporte) count++;
     if (val.tipo_vehiculo) count++;
@@ -206,16 +206,16 @@ export const CardProcesoBalanza = ({
           <Badge
             variant="filled"
             color={
-              valCount === 6 ? "emerald" : valCount > 0 ? "amber" : "gray"
+              valCount === 7 ? "emerald" : valCount > 0 ? "amber" : "gray"
             }
             size="sm"
             radius="lg"
-            leftSection={valCount === 6 ? <IconCheck size={12} /> : undefined}
+            leftSection={valCount === 7 ? <IconCheck size={12} /> : undefined}
             className="font-semibold"
           >
-            {valCount === 6
+            {valCount === 7
               ? "Vigilancia 100% Validada"
-              : `Vigilancia: ${valCount}/6 Validado${
+              : `Vigilancia: ${valCount}/7 Validado${
                   valCount === 1 ? "" : "s"
                 }`}
           </Badge>
@@ -326,7 +326,92 @@ export const CardProcesoBalanza = ({
             </Popover>
           </Grid.Col>
 
-          {/* 2. Placa 1 */}
+          {/* 2. Tipo Carga */}
+          <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
+            <Popover
+              opened={openedPopover === `${ru.id}-tipo_carga`}
+              onChange={() => setOpenedPopover(null)}
+              position="bottom"
+              withArrow
+              radius="lg"
+              styles={{
+                dropdown: {
+                  backgroundColor: "#18181b",
+                  borderColor: "#27272a",
+                },
+              }}
+            >
+              <Popover.Target>
+                <Paper
+                  onClick={() =>
+                    handleOpenPopover(
+                      ru.id,
+                      "tipo_carga",
+                      ru.tipo_carga || "Granel"
+                    )
+                  }
+                  className={`px-3 py-2 cursor-pointer border rounded-xl flex flex-col justify-between h-14 transition-all duration-200 ${
+                    ru.validacion_datos.tipo_carga
+                      ? "bg-emerald-950/20 border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-950/30"
+                      : "bg-zinc-900/40 border-zinc-800/90 hover:border-amber-500/50 hover:bg-zinc-900/70"
+                  }`}
+                >
+                  <div className="flex justify-between items-center w-full">
+                    <Text
+                      size="9px"
+                      fw={700}
+                      c="dimmed"
+                      className="uppercase truncate tracking-wide"
+                    >
+                      CARGA
+                    </Text>
+                    {ru.validacion_datos.tipo_carga ? (
+                      <IconCheck size={12} className="text-emerald-400 shrink-0" />
+                    ) : (
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                    )}
+                  </div>
+                  <Text
+                    size="xs"
+                    fw={700}
+                    className="truncate text-zinc-100 font-mono -mt-0.5"
+                  >
+                    {ru.tipo_carga || "Sin especificar"}
+                  </Text>
+                </Paper>
+              </Popover.Target>
+              <Popover.Dropdown
+                className="w-56 p-3"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Select
+                  label="Tipo de Carga"
+                  data={["Granel", "Sacos", "Mixto"]}
+                  value={tempValue}
+                  onChange={(val) => setTempValue(val || "Granel")}
+                  classNames={fieldClasses}
+                  radius="md"
+                  comboboxProps={{ withinPortal: false }}
+                />
+                <Button
+                  fullWidth
+                  size="xs"
+                  color="indigo"
+                  radius="md"
+                  mt="sm"
+                  loading={
+                    validatingField?.id === ru.id &&
+                    validatingField?.field === "tipo_carga"
+                  }
+                  onClick={() => handleSaveField(ru.id, "tipo_carga")}
+                >
+                  Validar
+                </Button>
+              </Popover.Dropdown>
+            </Popover>
+          </Grid.Col>
+
+          {/* 3. Placa 1 */}
           <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
             <Popover
               opened={openedPopover === `${ru.id}-placa`}
@@ -347,8 +432,7 @@ export const CardProcesoBalanza = ({
                     handleOpenPopover(
                       ru.id,
                       "placa",
-                      ru.vehiculo_placa || "",
-                      ru.vehiculo_serie
+                      ru.vehiculo_placa || ""
                     )
                   }
                   className={`px-3 py-2 cursor-pointer border rounded-xl flex flex-col justify-between h-14 transition-all duration-200 ${
@@ -377,52 +461,39 @@ export const CardProcesoBalanza = ({
                     fw={700}
                     className="truncate text-zinc-100 font-mono -mt-0.5"
                   >
-                    {ru.vehiculo_placa
-                      ? getFullPlaca(ru.vehiculo_serie, ru.vehiculo_placa)
-                      : "Sin placa"}
+                    {ru.vehiculo_placa || "Sin placa"}
                   </Text>
                 </Paper>
               </Popover.Target>
               <Popover.Dropdown
-                className="w-64 p-3"
+                className="w-56 p-3"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="flex flex-col gap-2">
-                  <TextInput
-                    label="Serie"
-                    placeholder="Ej: ASD"
-                    value={tempSerie}
-                    onChange={(e) =>
-                      setTempSerie(e.currentTarget.value.toUpperCase())
-                    }
-                    classNames={fieldClasses}
-                    radius="md"
-                  />
-                  <TextInput
-                    label="Número Placa"
-                    placeholder="Ej: 125"
-                    value={tempPlaca}
-                    onChange={(e) =>
-                      setTempPlaca(e.currentTarget.value.toUpperCase())
-                    }
-                    classNames={fieldClasses}
-                    radius="md"
-                  />
-                  <Button
-                    fullWidth
-                    size="xs"
-                    color="indigo"
-                    radius="md"
-                    mt="xs"
-                    loading={
-                      validatingField?.id === ru.id &&
-                      validatingField?.field === "placa"
-                    }
-                    onClick={() => handleSaveField(ru.id, "placa")}
-                  >
-                    Validar
-                  </Button>
-                </div>
+                <TextInput
+                  label="Placa 1"
+                  placeholder="Ej: ABC-123"
+                  maxLength={7}
+                  value={tempValue}
+                  onChange={(e) =>
+                    setTempValue(formatPlacaInput(e.currentTarget.value))
+                  }
+                  classNames={fieldClasses}
+                  radius="md"
+                />
+                <Button
+                  fullWidth
+                  size="xs"
+                  color="indigo"
+                  radius="md"
+                  mt="sm"
+                  loading={
+                    validatingField?.id === ru.id &&
+                    validatingField?.field === "placa"
+                  }
+                  onClick={() => handleSaveField(ru.id, "placa")}
+                >
+                  Validar
+                </Button>
               </Popover.Dropdown>
             </Popover>
           </Grid.Col>
@@ -667,10 +738,11 @@ export const CardProcesoBalanza = ({
               >
                 <TextInput
                   label="Segunda Placa (Acople)"
-                  placeholder="Vacío o Placa"
+                  placeholder="Ej: ABC-123"
+                  maxLength={7}
                   value={tempValue}
                   onChange={(e) =>
-                    setTempValue(e.currentTarget.value.toUpperCase())
+                    setTempValue(formatPlacaInput(e.currentTarget.value))
                   }
                   classNames={fieldClasses}
                   radius="md"

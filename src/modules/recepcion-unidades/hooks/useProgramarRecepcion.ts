@@ -6,6 +6,8 @@ import type { RecepcionUnidadResponse } from "../service/recepcion-unidades.resp
 import type { RES_EmpresaTransporte } from "../../../service/responses/empresa-transporte";
 import type { RES_Vehiculo } from "../../../service/responses/vehiculo";
 import type { RES_Proveedor } from "../../../service/responses/proveedor";
+import type { EmpresaTransporteResponse } from "../../empresas-transporte/service/empresas-transporte.responses";
+import type { ProveedorResponse } from "../../proveedores-mineros/service/proveedores.responses";
 import { useNotify } from "../../../hooks/useNotify";
 
 import { TipoIngreso } from "../../../shared/enums/_generic/tipo-ingreso";
@@ -71,12 +73,24 @@ export const useProgramarRecepcion = (
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const setField = <K extends keyof ProgramarRecepcionRequest>(
-    key: K,
-    value: ProgramarRecepcionRequest[K],
-  ) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  };
+  const setField = useCallback(
+    <K extends keyof ProgramarRecepcionRequest>(
+      key: K,
+      value: ProgramarRecepcionRequest[K],
+    ) => {
+      setForm((prev) => {
+        const next = { ...prev, [key]: value };
+        if (key === "id_vehiculo" && value) {
+          const vFound = vehiculos.find((v) => v.id_vehiculo === Number(value));
+          if (vFound?.id_tipo_vehiculo) {
+            next.id_tipo_vehiculo = vFound.id_tipo_vehiculo;
+          }
+        }
+        return next;
+      });
+    },
+    [vehiculos],
+  );
 
   const reset = useCallback(() => {
     setForm(INITIAL_FORM);
@@ -112,6 +126,43 @@ export const useProgramarRecepcion = (
     }
   };
 
+  const handleEmpresaCreada = useCallback(
+    (nueva: EmpresaTransporteResponse) => {
+      const resEmp: RES_EmpresaTransporte = {
+        id_empresa_transporte: nueva.id,
+        ruc: nueva.ruc,
+        razon_social: nueva.razon_social,
+        estado: nueva.estado,
+      };
+      setEmpresas((prev) => [resEmp, ...prev.filter((e) => e.id_empresa_transporte !== nueva.id)]);
+      setField("id_empresa_transporte", nueva.id);
+    },
+    [setField],
+  );
+
+  const handleVehiculoCreado = useCallback(
+    (nuevo: RES_Vehiculo) => {
+      setVehiculos((prev) => [nuevo, ...prev.filter((v) => v.id_vehiculo !== nuevo.id_vehiculo)]);
+      setField("id_vehiculo", nuevo.id_vehiculo);
+    },
+    [setField],
+  );
+
+  const handleProveedorCreado = useCallback(
+    (nuevo: ProveedorResponse) => {
+      const resProv: RES_Proveedor = {
+        id_proveedor: nuevo.id_proveedor,
+        razon_social: nuevo.razon_social,
+        direccion: nuevo.direccion,
+        documento: nuevo.ruc || nuevo.dni || null,
+        telefono: nuevo.telefono,
+      };
+      setProveedores((prev) => [resProv, ...prev.filter((p) => p.id_proveedor !== nuevo.id_proveedor)]);
+      setField("id_proveedor_minero", nuevo.id_proveedor);
+    },
+    [setField],
+  );
+
   return {
     form,
     setField,
@@ -125,5 +176,8 @@ export const useProgramarRecepcion = (
     loadingVehiculos,
     loadingProveedores,
     cargarCatalogos,
+    handleEmpresaCreada,
+    handleVehiculoCreado,
+    handleProveedorCreado,
   };
 };

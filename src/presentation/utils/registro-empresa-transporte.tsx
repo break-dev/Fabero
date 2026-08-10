@@ -1,8 +1,8 @@
 import { IconDeviceFloppy, IconExclamationCircle } from "@tabler/icons-react";
 import { Button, Grid, Select, TextInput, Alert } from "@mantine/core";
-import { useRegistroEmpresaTransporte } from "../../hooks/useRegistroEmpresaTransporte";
-import { TipoEntidad } from "../../../../shared/enums/_generic/tipo-entidad";
-import type { EmpresaTransporteResponse } from "../../service/empresas-transporte.responses";
+import { useRegistroEmpresaTransporte } from "../../modules/empresas-transporte/hooks/useRegistroEmpresaTransporte";
+import { TipoEntidad } from "../../shared/enums/_generic/tipo-entidad";
+import type { EmpresaTransporteResponse } from "../../modules/empresas-transporte/service/empresas-transporte.responses";
 
 interface Props {
   empresa?: EmpresaTransporteResponse | null;

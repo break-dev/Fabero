@@ -55,15 +55,28 @@ export const EmpresaCard = ({
 
       {/* Header: RUC + Cuentas badge */}
       <div className="flex items-center justify-between relative z-10 gap-2">
-        <Badge
-          variant="filled"
-          color="indigo"
-          size="xs"
-          radius="md"
-          className="font-bold tracking-tight px-3"
-        >
-          RUC: {empresa.ruc}
-        </Badge>
+        <Group gap="xs">
+          <Badge
+            variant="filled"
+            color="indigo"
+            size="xs"
+            radius="md"
+            className="font-bold tracking-tight px-3"
+          >
+            RUC: {empresa.ruc}
+          </Badge>
+          {empresa.prefijo && (
+            <Badge
+              variant="outline"
+              color="violet"
+              size="xs"
+              radius="md"
+              className="font-bold tracking-tight px-2 text-violet-300 border-violet-500/30"
+            >
+              PREFIJO: {empresa.prefijo}
+            </Badge>
+          )}
+        </Group>
         <Group gap="xs" wrap="nowrap">
           <Badge
             color={cantidad > 0 ? "blue" : "gray"}

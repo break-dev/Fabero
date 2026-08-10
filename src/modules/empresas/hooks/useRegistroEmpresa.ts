@@ -18,7 +18,7 @@ export const useRegistroEmpresa = ({
   const [ruc, setRuc] = useState("");
   const [razonSocial, setRazonSocial] = useState("");
   const [nombreComercial, setNombreComercial] = useState("");
-  const [abreviatura, setAbreviatura] = useState("");
+  const [prefijo, setPrefijo] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
 
   const [error, setError] = useState("");
@@ -28,7 +28,7 @@ export const useRegistroEmpresa = ({
     setRuc("");
     setRazonSocial("");
     setNombreComercial("");
-    setAbreviatura("");
+    setPrefijo("");
     setLogoFile(null);
     setError("");
   }, []);
@@ -55,7 +55,7 @@ export const useRegistroEmpresa = ({
     formData.append("ruc", ruc);
     formData.append("razon_social", razonSocial);
     formData.append("nombre_comercial", nombreComercial);
-    formData.append("abreviatura", abreviatura);
+    formData.append("prefijo", prefijo);
 
     if (logoFile) {
       formData.append("path_logo", logoFile);
@@ -90,8 +90,8 @@ export const useRegistroEmpresa = ({
     setRazonSocial,
     nombreComercial,
     setNombreComercial,
-    abreviatura,
-    setAbreviatura,
+    prefijo,
+    setPrefijo,
     logoFile,
     setLogoFile,
     error,

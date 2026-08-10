@@ -15,6 +15,7 @@ import { CardProcesoBalanza } from "./components/card-proceso-balanza";
 import type { RES_EmpresaTransporte } from "../../../service/responses/empresa-transporte";
 import type { RES_TipoVehiculo } from "../../../service/responses/tipo-vehiculo";
 import type { RES_Conductor } from "../../../service/responses/conductor";
+import type { RES_Empresa } from "../../../service/responses/empresa";
 import type { RES_LoteMineral, RecepcionMineralResponse } from "../service/recepcion-mineral.responses";
 import { useUIStore } from "../../../stores/ui.store";
 import { useTicketLote } from "../hooks/useTicketLote";
@@ -56,6 +57,7 @@ export const RecepcionMineralPage = () => {
   const [empresas, setEmpresas] = useState<RES_EmpresaTransporte[]>([]);
   const [tiposVehiculo, setTiposVehiculo] = useState<RES_TipoVehiculo[]>([]);
   const [conductores, setConductores] = useState<RES_Conductor[]>([]);
+  const [empresasTitulares, setEmpresasTitulares] = useState<RES_Empresa[]>([]);
 
 
   // Modales
@@ -72,8 +74,6 @@ export const RecepcionMineralPage = () => {
   // Popovers abiertos (estado de ID de recepción + clave del campo)
   const [openedPopover, setOpenedPopover] = useState<string | null>(null);
   const [tempValue, setTempValue] = useState<string>("");
-  const [tempSerie, setTempSerie] = useState<string>("");
-  const [tempPlaca, setTempPlaca] = useState<string>("");
 
 
 
@@ -81,15 +81,19 @@ export const RecepcionMineralPage = () => {
     let isMounted = true;
     const load = async () => {
       try {
-        const [resEmp, resTipos, resCond] = await Promise.all([
+        const [resEmp, resTipos, resCond, resEmpTit] = await Promise.all([
           AuxService.get_empresas_transporte(),
           AuxService.get_tipos_vehiculo(),
           AuxService.get_conductores(),
+          AuxService.get_empresas(),
         ]);
         if (isMounted) {
           setEmpresas(resEmp);
           setTiposVehiculo(resTipos);
           setConductores(resCond);
+          if (resEmpTit?.data) {
+            setEmpresasTitulares(resEmpTit.data);
+          }
         }
       } catch (e) {
         console.error("Error al cargar catálogos para validación", e);
@@ -101,21 +105,13 @@ export const RecepcionMineralPage = () => {
     };
   }, []);
 
-  const handleOpenPopover = (recepcionId: number, field: string, currentValue: string, extraValue?: string | null) => {
+  const handleOpenPopover = (recepcionId: number, field: string, currentValue: string) => {
     setOpenedPopover(`${recepcionId}-${field}`);
-    if (field === "placa") {
-      setTempSerie(extraValue || "");
-      setTempPlaca(currentValue || "");
-    } else {
-      setTempValue(currentValue);
-    }
+    setTempValue(currentValue);
   };
 
   const handleSaveField = async (recepcionId: number, field: string) => {
-    const finalValue = field === "placa"
-      ? tempSerie ? `${tempSerie.trim()}-${tempPlaca.trim()}` : tempPlaca.trim()
-      : tempValue;
-    await validarCampo(recepcionId, field, finalValue);
+    await validarCampo(recepcionId, field, tempValue);
     setOpenedPopover(null);
     // Recargar conductores si se creó uno nuevo
     if (field === "conductor") {
@@ -314,10 +310,6 @@ export const RecepcionMineralPage = () => {
                       setOpenedPopover={setOpenedPopover}
                       tempValue={tempValue}
                       setTempValue={setTempValue}
-                      tempSerie={tempSerie}
-                      setTempSerie={setTempSerie}
-                      tempPlaca={tempPlaca}
-                      setTempPlaca={setTempPlaca}
                       setOpenNewConductorModal={setOpenNewConductorModal}
                       setSelectedRecepcionIdForLote={setSelectedRecepcionIdForLote}
                       setCondicionModalOpen={setCondicionModalOpen}
@@ -429,16 +421,17 @@ export const RecepcionMineralPage = () => {
         }}
       />
 
-      {/* Modal: Seleccionar Condición de Ingreso */}
+      {/* Modal: Seleccionar Condición de Ingreso y Empresa */}
       <ModalCondicionIngreso
         opened={condicionModalOpen}
         onClose={() => {
           setCondicionModalOpen(false);
           setSelectedRecepcionIdForLote(null);
         }}
-        onConfirm={(condicion) => {
+        empresasTitulares={empresasTitulares}
+        onConfirm={(condicion, idEmpresa) => {
           if (selectedRecepcionIdForLote) {
-            crearLote(selectedRecepcionIdForLote, condicion);
+            crearLote(selectedRecepcionIdForLote, condicion, idEmpresa);
           }
           setCondicionModalOpen(false);
           setSelectedRecepcionIdForLote(null);

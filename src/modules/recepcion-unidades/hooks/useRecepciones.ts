@@ -52,9 +52,18 @@ export const useRecepciones = () => {
   };
 
   useEffect(() => {
-    fetchRecepciones();
+    const timer = setTimeout(() => {
+      fetchRecepciones();
+    }, 300);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.fecha_inicio, filters.fecha_fin, filters.id_empresa_transporte, filters.tipo_ingreso]);
+  }, [
+    filters.fecha_inicio,
+    filters.fecha_fin,
+    filters.placa,
+    filters.id_empresa_transporte,
+    filters.tipo_ingreso,
+  ]);
 
   useEffect(() => {
     fetchEmpresas();

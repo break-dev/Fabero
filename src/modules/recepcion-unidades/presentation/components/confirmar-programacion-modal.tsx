@@ -38,6 +38,8 @@ import { VerFotosModal } from "./ver-fotos-modal";
 import { RegistroConductor } from "../../../../presentation/utils/registro-conductor";
 import { RegistroVehiculoSimple } from "../../../../presentation/utils/registro-vehiculo-simple";
 import { RegistroTipoVehiculoSimple } from "../../../../presentation/utils/registro-tipo-vehiculo-simple";
+import { RegistroEmpresaTransporte } from "../../../../presentation/utils/registro-empresa-transporte";
+import { ModalRegistroProveedor } from "../../../../presentation/utils/modal-registro-proveedor";
 import { MultiFilePicker } from "../../../../presentation/utils/archivo/multifile-picker";
 
 interface Props {
@@ -66,6 +68,8 @@ export const ConfirmarProgramacionModal = ({
   const [openConductorModal, setOpenConductorModal] = useState(false);
   const [openVehiculoSimpleModal, setOpenVehiculoSimpleModal] = useState(false);
   const [openTipoVehiculoModal, setOpenTipoVehiculoModal] = useState(false);
+  const [openEmpresaModal, setOpenEmpresaModal] = useState(false);
+  const [openProveedorModal, setOpenProveedorModal] = useState(false);
 
   const [editingAcompanante, setEditingAcompanante] = useState<{
     index: number;
@@ -95,9 +99,7 @@ export const ConfirmarProgramacionModal = ({
 
   const vehiculosOptions = (ctrl.vehiculosCatalog ?? []).map((v) => ({
     value: String(v.id_vehiculo),
-    label:
-      v.placa ??
-      (v.serie_placa ? `${v.serie_placa}-${v.numero_placa}` : v.numero_placa ?? `Vehículo #${v.id_vehiculo}`),
+    label: v.placa || `Vehículo #${v.id_vehiculo}`,
   }));
 
   const conductoresOptions = (ctrl.conductoresCatalog ?? []).map((c) => ({
@@ -164,27 +166,46 @@ export const ConfirmarProgramacionModal = ({
 
           <Grid gutter="sm">
             <Grid.Col span={{ base: 12, sm: 6 }}>
-              <Select
-                label="Empresa de Transporte"
-                placeholder={ctrl.loadingCatalogos ? "Cargando..." : "Seleccione la empresa"}
-                data={empresasOptions}
-                value={ctrl.idEmpresaTransporte ? String(ctrl.idEmpresaTransporte) : null}
-                onChange={(val) => ctrl.setIdEmpresaTransporte(val ? Number(val) : null)}
-                leftSection={<IconBuildingFactory className="w-4 h-4 text-zinc-500" />}
-                searchable
-                withAsterisk
-                required
-                radius="xl"
-                disabled={ctrl.lockedEmpresa || ctrl.loadingCatalogos || confirmando}
-                rightSection={
-                  ctrl.lockedEmpresa ? (
-                    <IconLock size={14} className="text-zinc-500" />
-                  ) : ctrl.loadingCatalogos ? (
-                    <Loader size={16} />
-                  ) : undefined
-                }
-                classNames={fieldClasses}
-              />
+              <div className="flex gap-2 items-end">
+                <Select
+                  label="Empresa de Transporte"
+                  placeholder={ctrl.loadingCatalogos ? "Cargando..." : "Seleccione la empresa"}
+                  data={empresasOptions}
+                  value={ctrl.idEmpresaTransporte ? String(ctrl.idEmpresaTransporte) : null}
+                  onChange={(val) => ctrl.setIdEmpresaTransporte(val ? Number(val) : null)}
+                  leftSection={<IconBuildingFactory className="w-4 h-4 text-zinc-500" />}
+                  searchable
+                  withAsterisk
+                  required
+                  radius="xl"
+                  className="flex-1"
+                  disabled={ctrl.lockedEmpresa || ctrl.loadingCatalogos || confirmando}
+                  rightSection={
+                    ctrl.lockedEmpresa ? (
+                      <IconLock size={14} className="text-zinc-500" />
+                    ) : ctrl.loadingCatalogos ? (
+                      <Loader size={16} />
+                    ) : undefined
+                  }
+                  classNames={fieldClasses}
+                />
+                {!ctrl.lockedEmpresa && (
+                  <Tooltip label="Registrar Nueva Empresa de Transporte" withArrow>
+                    <ActionIcon
+                      type="button"
+                      variant="filled"
+                      color="zinc"
+                      radius="xl"
+                      size="lg"
+                      disabled={confirmando}
+                      onClick={() => setOpenEmpresaModal(true)}
+                      className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 mb-0.5"
+                    >
+                      <IconPlus size={18} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+              </div>
             </Grid.Col>
 
             <Grid.Col span={{ base: 12, sm: 6 }}>
@@ -272,26 +293,45 @@ export const ConfirmarProgramacionModal = ({
             </Grid.Col>
 
             <Grid.Col span={{ base: 12, sm: 6 }}>
-              <Select
-                label="Proveedor Minero"
-                placeholder={ctrl.loadingCatalogos ? "Cargando..." : "Seleccione proveedor"}
-                data={proveedoresOptions}
-                value={ctrl.idProveedorMinero ? String(ctrl.idProveedorMinero) : null}
-                onChange={(val) => ctrl.setIdProveedorMinero(val ? Number(val) : null)}
-                leftSection={<IconUser className="w-4 h-4 text-zinc-500" />}
-                searchable
-                clearable={!ctrl.lockedProveedor}
-                radius="xl"
-                disabled={ctrl.lockedProveedor || ctrl.loadingCatalogos || confirmando}
-                rightSection={
-                  ctrl.lockedProveedor ? (
-                    <IconLock size={14} className="text-zinc-500" />
-                  ) : ctrl.loadingCatalogos ? (
-                    <Loader size={16} />
-                  ) : undefined
-                }
-                classNames={fieldClasses}
-              />
+              <div className="flex gap-2 items-end">
+                <Select
+                  label="Proveedor Minero"
+                  placeholder={ctrl.loadingCatalogos ? "Cargando..." : "Seleccione proveedor"}
+                  data={proveedoresOptions}
+                  value={ctrl.idProveedorMinero ? String(ctrl.idProveedorMinero) : null}
+                  onChange={(val) => ctrl.setIdProveedorMinero(val ? Number(val) : null)}
+                  leftSection={<IconUser className="w-4 h-4 text-zinc-500" />}
+                  searchable
+                  clearable={!ctrl.lockedProveedor}
+                  radius="xl"
+                  className="flex-1"
+                  disabled={ctrl.lockedProveedor || ctrl.loadingCatalogos || confirmando}
+                  rightSection={
+                    ctrl.lockedProveedor ? (
+                      <IconLock size={14} className="text-zinc-500" />
+                    ) : ctrl.loadingCatalogos ? (
+                      <Loader size={16} />
+                    ) : undefined
+                  }
+                  classNames={fieldClasses}
+                />
+                {!ctrl.lockedProveedor && (
+                  <Tooltip label="Registrar Nuevo Proveedor Minero" withArrow>
+                    <ActionIcon
+                      type="button"
+                      variant="filled"
+                      color="zinc"
+                      radius="xl"
+                      size="lg"
+                      disabled={confirmando}
+                      onClick={() => setOpenProveedorModal(true)}
+                      className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 mb-0.5"
+                    >
+                      <IconPlus size={18} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+              </div>
             </Grid.Col>
 
             <Grid.Col span={{ base: 12, sm: 6 }}>
@@ -824,6 +864,32 @@ export const ConfirmarProgramacionModal = ({
             }}
           />
         </ModalEstandar>
+
+        {/* Modal: Registro Rápido de Empresa de Transporte */}
+        <ModalEstandar
+          opened={openEmpresaModal}
+          close={() => setOpenEmpresaModal(false)}
+          title="Registrar Nueva Empresa de Transporte"
+          size="lg"
+        >
+          <RegistroEmpresaTransporte
+            onCancel={() => setOpenEmpresaModal(false)}
+            onSuccess={(e) => {
+              ctrl.handleEmpresaCreada(e);
+              setOpenEmpresaModal(false);
+            }}
+          />
+        </ModalEstandar>
+
+        {/* Modal: Registro Rápido de Proveedor Minero */}
+        <ModalRegistroProveedor
+          opened={openProveedorModal}
+          onClose={() => setOpenProveedorModal(false)}
+          onSuccess={(p) => {
+            ctrl.handleProveedorCreado(p);
+            setOpenProveedorModal(false);
+          }}
+        />
 
         {/* Acciones */}
         <Group justify="flex-end" gap="md" mt="xl">

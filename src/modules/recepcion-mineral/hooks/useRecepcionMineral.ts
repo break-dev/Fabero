@@ -100,10 +100,10 @@ export const useRecepcionMineral = () => {
     }
   };
 
-  const crearLote = async (id: number, condicionIngreso: CondicionIngreso) => {
+  const crearLote = async (id: number, condicionIngreso: CondicionIngreso, idEmpresa: number) => {
     setCreatingLoteId(id);
     try {
-      const nuevoLote = await RecepcionMineralService.crear_lote(id, condicionIngreso);
+      const nuevoLote = await RecepcionMineralService.crear_lote(id, condicionIngreso, idEmpresa);
       notifySuccess("Lote generado correctamente: " + nuevoLote.correlativo);
 
       setEnProcesoList((prev) =>

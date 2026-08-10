@@ -51,8 +51,6 @@ export const useRegistroVehiculoSimple = (
     try {
       const response = await AuxService.crear_vehiculo({
         placa: validation.data.placa.trim(),
-        numero_placa: validation.data.placa.trim(),
-        serie_placa: null,
         id_empresa_transporte: idEmpresaTransporte,
         id_tipo_vehiculo: idTipoVehiculo,
       });

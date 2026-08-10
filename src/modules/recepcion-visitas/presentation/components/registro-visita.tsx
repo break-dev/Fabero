@@ -24,9 +24,11 @@ import {
   IconUserCheck,
   IconPhoto,
   IconSearch,
+  IconPlus,
 } from "@tabler/icons-react";
 import { useRegistroVisita, type VisitanteFormItem } from "../../hooks/useRegistroVisita";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
+import { RegistroMotivoIngreso } from "../../../../presentation/utils/registro-motivo-ingreso";
 import { MultiFilePicker } from "../../../../presentation/utils/archivo/multifile-picker";
 import { AuxService } from "../../../../service/auxiliar.service";
 import type { RecepcionVisitaResponse } from "../../service/recepcion-visitas.responses";
@@ -65,9 +67,11 @@ export const RegistroVisita = ({ onCancel, onSuccess }: Props) => {
     empleados,
     motivos,
     loadingCatalogos,
+    handleMotivoCreado,
   } = useRegistroVisita(onSuccess);
 
   // Sub-modales
+  const [openModalMotivo, setOpenModalMotivo] = useState(false);
   const [openModalVehiculo, setOpenModalVehiculo] = useState(false);
   const [editingVehiculo, setEditingVehiculo] = useState<{
     id: number;
@@ -256,19 +260,35 @@ export const RegistroVisita = ({ onCancel, onSuccess }: Props) => {
         <Grid gutter="md">
           {/* Motivo Visita */}
           <Grid.Col span={{ base: 12, md: 6 }}>
-            <Select
-              label="Motivo Visita"
-              placeholder={loadingCatalogos ? "Cargando..." : "Elija una opción..."}
-              searchable
-              withAsterisk
-              radius="lg"
-              disabled={loadingCatalogos}
-              rightSection={loadingCatalogos ? <Loader size={16} /> : undefined}
-              data={getMotivosDropdown()}
-              value={payload.id_motivo_ingreso ? String(payload.id_motivo_ingreso) : null}
-              onChange={(val) => handleChange("id_motivo_ingreso", val ? Number(val) : 0)}
-              classNames={fieldClasses}
-            />
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <Select
+                  label="Motivo Visita"
+                  placeholder={loadingCatalogos ? "Cargando..." : "Elija una opción..."}
+                  searchable
+                  withAsterisk
+                  radius="lg"
+                  disabled={loadingCatalogos}
+                  rightSection={loadingCatalogos ? <Loader size={16} /> : undefined}
+                  data={getMotivosDropdown()}
+                  value={payload.id_motivo_ingreso ? String(payload.id_motivo_ingreso) : null}
+                  onChange={(val) => handleChange("id_motivo_ingreso", val ? Number(val) : 0)}
+                  classNames={fieldClasses}
+                />
+              </div>
+              <ActionIcon
+                type="button"
+                variant="filled"
+                color="zinc"
+                radius="xl"
+                size="lg"
+                onClick={() => setOpenModalMotivo(true)}
+                title="Registrar nuevo motivo de ingreso"
+                className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 mb-0.5 shrink-0"
+              >
+                <IconPlus size={18} />
+              </ActionIcon>
+            </div>
           </Grid.Col>
 
           {/* Personal Contacto */}
@@ -894,6 +914,22 @@ export const RegistroVisita = ({ onCancel, onSuccess }: Props) => {
             </Button>
           </div>
         </div>
+      </ModalEstandar>
+
+      {/* Modal: Registrar Nuevo Motivo de Ingreso */}
+      <ModalEstandar
+        opened={openModalMotivo}
+        close={() => setOpenModalMotivo(false)}
+        title="Registrar Nuevo Motivo de Ingreso"
+        size="md"
+      >
+        <RegistroMotivoIngreso
+          onCancel={() => setOpenModalMotivo(false)}
+          onSuccess={(nuevoMotivo) => {
+            handleMotivoCreado(nuevoMotivo);
+            setOpenModalMotivo(false);
+          }}
+        />
       </ModalEstandar>
     </>
   );

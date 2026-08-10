@@ -16,6 +16,8 @@ import type { RES_Vehiculo } from "../../../service/responses/vehiculo";
 import type { RES_Conductor } from "../../../service/responses/conductor";
 import type { RES_Proveedor } from "../../../service/responses/proveedor";
 import type { RES_TipoVehiculo } from "../../../service/responses/tipo-vehiculo";
+import type { EmpresaTransporteResponse } from "../../empresas-transporte/service/empresas-transporte.responses";
+import type { ProveedorResponse } from "../../proveedores-mineros/service/proveedores.responses";
 import { useUIStore } from "../../../stores/ui.store";
 
 export interface VisitanteFormItem {
@@ -207,6 +209,15 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (idVehiculo && vehiculosCatalog.length > 0) {
+      const vFound = vehiculosCatalog.find((v) => v.id_vehiculo === idVehiculo);
+      if (vFound?.id_tipo_vehiculo) {
+        setIdTipoVehiculo(vFound.id_tipo_vehiculo);
+      }
+    }
+  }, [idVehiculo, vehiculosCatalog]);
+
   const handleConductorCreado = useCallback((c: RES_Conductor) => {
     setConductoresCatalog((prev) => [c, ...prev]);
     setIdConductor(c.id_conductor);
@@ -230,6 +241,31 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
     } catch (e) {
       console.error(e);
     }
+  }, [notifySuccess]);
+
+  const handleEmpresaCreada = useCallback((nueva: EmpresaTransporteResponse) => {
+    const resEmp: RES_EmpresaTransporte = {
+      id_empresa_transporte: nueva.id,
+      ruc: nueva.ruc,
+      razon_social: nueva.razon_social,
+      estado: nueva.estado,
+    };
+    setEmpresasCatalog((prev) => [resEmp, ...prev.filter((e) => e.id_empresa_transporte !== nueva.id)]);
+    setIdEmpresaTransporte(nueva.id);
+    notifySuccess(`Empresa ${nueva.razon_social} registrada`);
+  }, [notifySuccess]);
+
+  const handleProveedorCreado = useCallback((nuevo: ProveedorResponse) => {
+    const resProv: RES_Proveedor = {
+      id_proveedor: nuevo.id_proveedor,
+      razon_social: nuevo.razon_social,
+      direccion: nuevo.direccion,
+      documento: nuevo.ruc || nuevo.dni || null,
+      telefono: nuevo.telefono,
+    };
+    setProveedoresCatalog((prev) => [resProv, ...prev.filter((p) => p.id_proveedor !== nuevo.id_proveedor)]);
+    setIdProveedorMinero(nuevo.id_proveedor);
+    notifySuccess(`Proveedor ${nuevo.razon_social} registrado`);
   }, [notifySuccess]);
 
   const eliminarVehiculo = useCallback(
@@ -451,33 +487,38 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
           numero_guia_transportista: numeroGuiaTransportista || undefined,
         });
 
-        const payload: ConfirmarVisitaPayload = {
-          id_recepcion_unidad: programacion.id,
-          id_motivo_ingreso: motivoFinal,
-          observacion: observacion || undefined,
-          evidencias,
-          vehiculos: vehiculos.map((v) => ({
-            id: v.id,
-            placa: v.placa,
-            cantidad_personas: v.cantidad_personas,
-            archivos: v.archivos,
-          })),
-          visitantes: visitantes
-            .filter((v) => Boolean((v.nombre && v.nombre.trim()) || (v.dni && v.dni.trim()) || v.id_visitante))
-            .map((v) => ({
-              id_visitante: v.id_visitante || undefined,
-              nombre: v.nombre?.trim() || "VISITANTE",
-              apellido: v.apellido?.trim() || undefined,
-              dni: v.dni?.trim() || undefined,
-              telefono: v.telefono?.trim() || undefined,
-              es_conductor: v.es_conductor,
-              id_visita_vehiculo: v.id_visita_vehiculo ?? undefined,
-              foto_documento: v.foto_documento,
-            })),
-        };
+        const visitantesValidos = visitantes
+          .filter((v) => Boolean((v.nombre && v.nombre.trim()) || (v.dni && v.dni.trim()) || v.id_visitante))
+          .map((v) => ({
+            id_visitante: v.id_visitante || undefined,
+            nombre: v.nombre?.trim() || "VISITANTE",
+            apellido: v.apellido?.trim() || undefined,
+            dni: v.dni?.trim() || undefined,
+            telefono: v.telefono?.trim() || undefined,
+            es_conductor: v.es_conductor,
+            id_visita_vehiculo: v.id_visita_vehiculo ?? undefined,
+            foto_documento: v.foto_documento,
+          }));
 
-        const visita = await RecepcionUnidadesService.crearVisitaParaProgramacion(payload);
-        notifySuccess("Visita y recepción confirmadas correctamente");
+        let visita = null;
+        if (visitantesValidos.length > 0 || vehiculos.length > 0) {
+          const payload: ConfirmarVisitaPayload = {
+            id_recepcion_unidad: programacion.id,
+            id_motivo_ingreso: motivoFinal,
+            observacion: observacion || undefined,
+            evidencias,
+            vehiculos: vehiculos.map((v) => ({
+              id: v.id,
+              placa: v.placa,
+              cantidad_personas: v.cantidad_personas,
+              archivos: v.archivos,
+            })),
+            visitantes: visitantesValidos,
+          };
+          visita = await RecepcionUnidadesService.crearVisitaParaProgramacion(payload);
+        }
+
+        notifySuccess("Recepción confirmada correctamente");
         resetForm();
         return { visita, updatedRecepcion };
       } else {
@@ -485,6 +526,21 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
         const vehiculoSel = vehiculosCatalog.find((v) => v.id_vehiculo === idVehiculo);
         const seriePlaca = vehiculoSel?.serie_placa || undefined;
         const numeroPlaca = vehiculoSel?.numero_placa || vehiculoSel?.placa || "";
+
+        const visitantesValidos = visitantes
+          .filter((v) => Boolean((v.nombre && v.nombre.trim()) || (v.dni && v.dni.trim()) || v.id_visitante))
+          .map((v) => ({
+            id_visitante: v.id_visitante || undefined,
+            nombre: v.nombre?.trim() || "VISITANTE",
+            apellido: v.apellido?.trim() || undefined,
+            dni: v.dni?.trim() || undefined,
+            telefono: v.telefono?.trim() || undefined,
+            es_conductor: v.es_conductor,
+            id_visita_vehiculo: v.id_visita_vehiculo ?? undefined,
+            foto_documento: v.foto_documento,
+          }));
+
+        const hasVisitaInfo = visitantesValidos.length > 0 || vehiculos.length > 0;
 
         const payload: CrearRecepcionRequest = {
           id_vehiculo: idVehiculo,
@@ -499,7 +555,7 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
           numero_guia_remitente: numeroGuiaRemitente || undefined,
           serie_guia_transportista: serieGuiaTransportista || undefined,
           numero_guia_transportista: numeroGuiaTransportista || undefined,
-          id_motivo_ingreso: motivoFinal,
+          id_motivo_ingreso: hasVisitaInfo ? motivoFinal : undefined,
           observacion: observacion || undefined,
           evidencias,
           vehiculos: vehiculos.map((v) => ({
@@ -508,18 +564,7 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
             cantidad_personas: v.cantidad_personas,
             archivos: v.archivos,
           })),
-          visitantes: visitantes
-            .filter((v) => Boolean((v.nombre && v.nombre.trim()) || (v.dni && v.dni.trim()) || v.id_visitante))
-            .map((v) => ({
-              id_visitante: v.id_visitante || undefined,
-              nombre: v.nombre?.trim() || "VISITANTE",
-              apellido: v.apellido?.trim() || undefined,
-              dni: v.dni?.trim() || undefined,
-              telefono: v.telefono?.trim() || undefined,
-              es_conductor: v.es_conductor,
-              id_visita_vehiculo: v.id_visita_vehiculo ?? undefined,
-              foto_documento: v.foto_documento,
-            })),
+          visitantes: visitantesValidos,
         };
 
         const created = await RecepcionUnidadesService.crearRecepcion(payload);
@@ -590,6 +635,8 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
     handleConductorCreado,
     handleVehiculoCreado,
     handleTipoVehiculoCreado,
+    handleEmpresaCreada,
+    handleProveedorCreado,
     vehiculos,
     visitantes,
     setVisitante,

@@ -56,8 +56,15 @@ export const RecepcionMineralService = {
     return data.data;
   },
 
-  crear_lote: async (id: number, condicion_ingreso: CondicionIngreso): Promise<RES_LoteMineral> => {
-    const { data } = await api.post(`${PATH}/${id}/lotes`, { condicion_ingreso });
+  crear_lote: async (
+    id: number,
+    condicion_ingreso: CondicionIngreso,
+    id_empresa: number,
+  ): Promise<RES_LoteMineral> => {
+    const { data } = await api.post(`${PATH}/${id}/lotes`, {
+      condicion_ingreso,
+      id_empresa,
+    });
     return data.data;
   },
 

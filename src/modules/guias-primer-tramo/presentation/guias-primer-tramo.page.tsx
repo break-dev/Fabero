@@ -390,11 +390,7 @@ export const GuiasPrimerTramoPage = () => {
             accessor: "vehiculo_tractor",
             title: "Vehículo",
             render: (g: RES_GuiaPrimerTramo) => {
-              const tractor = g.vehiculo_placa
-                ? g.vehiculo_serie
-                  ? `${g.vehiculo_serie}-${g.vehiculo_placa}`
-                  : g.vehiculo_placa
-                : "—";
+              const tractor = g.vehiculo_placa ? g.vehiculo_placa.toUpperCase() : "—";
               return (
                 <Text size="xs" className="text-zinc-200 font-mono">
                   {tractor}
@@ -406,11 +402,7 @@ export const GuiasPrimerTramoPage = () => {
             accessor: "vehiculo_carreta",
             title: "Carreta",
             render: (g: RES_GuiaPrimerTramo) => {
-              const carreta = g.vehiculo_carreta_placa
-                ? g.vehiculo_carreta_serie
-                  ? `${g.vehiculo_carreta_serie}-${g.vehiculo_carreta_placa}`
-                  : g.vehiculo_carreta_placa
-                : null;
+              const carreta = g.vehiculo_carreta_placa ? g.vehiculo_carreta_placa.toUpperCase() : null;
               return (
                 <Text size="xs" className="text-zinc-300 font-mono">
                   {carreta ?? "—"}

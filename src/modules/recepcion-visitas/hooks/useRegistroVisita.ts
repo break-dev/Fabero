@@ -389,6 +389,16 @@ export const useRegistroVisita = (onSuccess: (r: RecepcionVisitaResponse) => voi
     error,
     empleados,
     motivos,
+    setMotivos,
     loadingCatalogos,
+    handleMotivoCreado: useCallback((nuevoMotivo: RES_MotivoIngreso) => {
+      setMotivos((prev) => {
+        if (prev.some((m) => m.id_motivo_ingreso === nuevoMotivo.id_motivo_ingreso)) {
+          return prev;
+        }
+        return [...prev, nuevoMotivo].sort((a, b) => a.nombre.localeCompare(b.nombre));
+      });
+      setPayload((prev) => ({ ...prev, id_motivo_ingreso: nuevoMotivo.id_motivo_ingreso }));
+    }, []),
   };
 };

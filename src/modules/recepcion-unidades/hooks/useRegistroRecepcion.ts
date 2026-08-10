@@ -102,10 +102,9 @@ export const useRegistroRecepcion = (
 
   // Búsqueda automática al escribir placa
   useEffect(() => {
-    const serieLimpia = serieBusqueda.trim().toUpperCase();
-    const numeroLimpio = numeroBusqueda.trim().toUpperCase();
+    const placaLimpia = placaBusqueda.trim().toUpperCase();
 
-    if (serieLimpia === "" || numeroLimpio === "") {
+    if (placaLimpia === "" || placaLimpia === "-") {
       setVehiculoEncontrado(false);
       setVehiculoOriginal(null);
       setNombreVehiculoEncontrado("");
@@ -117,30 +116,28 @@ export const useRegistroRecepcion = (
     }
 
     const delayDebounce = setTimeout(() => {
-      handleBuscarVehiculo(serieLimpia, numeroLimpio);
+      handleBuscarVehiculo(placaLimpia);
     }, 450);
 
     return () => clearTimeout(delayDebounce);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serieBusqueda, numeroBusqueda]);
+  }, [placaBusqueda]);
 
-  const handleBuscarVehiculo = async (serie: string, numero: string) => {
-    const serieLimpia = serie ? serie.trim().toUpperCase() : "";
-    const numeroLimpio = numero ? numero.trim().toUpperCase() : "";
+  const handleBuscarVehiculo = async (placa: string) => {
+    const placaLimpia = placa ? placa.trim().toUpperCase() : "";
 
-    if (serieLimpia === "" || numeroLimpio === "") return;
+    if (placaLimpia === "") return;
 
     setLoading(true);
     try {
       const vResult = await AuxService.get_vehiculos({
-        serie: serieLimpia,
-        numero_placa: numeroLimpio,
+        placa: placaLimpia,
       });
       if (vResult && vResult.length > 0) {
         const found = vResult[0];
         setVehiculoEncontrado(true);
         setVehiculoOriginal(found);
-        setNombreVehiculoEncontrado(`${found.serie_placa}-${found.numero_placa} (${found.tipo_vehiculo_nombre})`);
+        setNombreVehiculoEncontrado(`${found.placa} (${found.tipo_vehiculo_nombre})`);
 
         setPayload((prev) => ({
           ...prev,
@@ -280,8 +277,9 @@ export const useRegistroRecepcion = (
     e.preventDefault();
     setError(null);
 
-    if (!serieBusqueda.trim() || !numeroBusqueda.trim()) {
-      setError("La serie y el número de placa son obligatorios.");
+    const placaBusquedaTarget = (placaBusqueda || `${serieBusqueda}-${numeroBusqueda}`).trim().toUpperCase();
+    if (!placaBusquedaTarget || placaBusquedaTarget === "-") {
+      setError("La placa del vehículo es obligatoria.");
       return;
     }
     if (!payload.id_empresa_transporte) {
@@ -313,9 +311,9 @@ export const useRegistroRecepcion = (
 
       // 1. Si el vehículo no existe en catálogo, se crea automáticamente
       if (!vehiculoEncontrado) {
+        const placaTarget = (placaBusqueda || `${serieBusqueda}-${numeroBusqueda}`).trim().toUpperCase();
         const nuevoVehiculo = await AuxService.crear_vehiculo({
-          serie_placa: serieBusqueda.trim().toUpperCase() || null,
-          numero_placa: numeroBusqueda.trim().toUpperCase(),
+          placa: placaTarget,
           id_empresa_transporte: payload.id_empresa_transporte,
           id_tipo_vehiculo: payload.id_tipo_vehiculo,
         });
@@ -337,19 +335,9 @@ export const useRegistroRecepcion = (
       }
 
       // 3. Crear el registro de recepción final con visita y vehículos acompañantes
-      const finalPayload: CrearRecepcionRequest = {
-        ...payload,
-        id_vehiculo: finalVehiculoId,
-        id_sucursal: sucursalTarget.id_sucursal,
-        serie_placa: serieBusqueda.trim().toUpperCase(),
-        numero_placa: numeroBusqueda.trim().toUpperCase(),
-        vehiculos: vehiculos.map((v) => ({
-          id: v.id,
-          placa: v.placa,
-          cantidad_personas: v.cantidad_personas,
-          archivos: v.archivos,
-        })),
-        visitantes: visitantes.map((v) => ({
+      const visitantesValidos = visitantes
+        .filter((v) => Boolean((v.nombre && v.nombre.trim()) || (v.dni && v.dni.trim())))
+        .map((v) => ({
           nombre: v.nombre,
           apellido: v.apellido || undefined,
           dni: v.dni || undefined,
@@ -357,7 +345,23 @@ export const useRegistroRecepcion = (
           es_conductor: v.es_conductor,
           id_visita_vehiculo: v.id_visita_vehiculo ?? undefined,
           foto_documento: v.foto_documento,
+        }));
+
+      const hasVisitaInfo = visitantesValidos.length > 0 || vehiculos.length > 0;
+
+      const finalPayload: CrearRecepcionRequest = {
+        ...payload,
+        id_vehiculo: finalVehiculoId,
+        id_sucursal: sucursalTarget.id_sucursal,
+        placa: (placaBusqueda || `${serieBusqueda}-${numeroBusqueda}`).trim().toUpperCase(),
+        id_motivo_ingreso: hasVisitaInfo ? payload.id_motivo_ingreso : undefined,
+        vehiculos: vehiculos.map((v) => ({
+          id: v.id,
+          placa: v.placa,
+          cantidad_personas: v.cantidad_personas,
+          archivos: v.archivos,
         })),
+        visitantes: visitantesValidos,
       };
 
       const created = await RecepcionUnidadesService.crearRecepcion(finalPayload);

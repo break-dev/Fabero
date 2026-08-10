@@ -3,6 +3,7 @@ export interface RES_Empresa {
   ruc: string;
   razon_social: string;
   nombre_comercial: string;
+  prefijo: string | null;
   path_logo: string | null;
   cantidad_cuentas_bancarias?: number;
 }

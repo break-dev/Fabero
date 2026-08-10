@@ -1,7 +1,7 @@
 import { Stack } from "@mantine/core";
 import { useTitlePage } from "../../../../hooks/useTitlePage";
 import { useEmpresasTransporte } from "../../hooks/useEmpresasTransporte";
-import { RegistroEmpresaTransporte } from "../registro-empresa-transporte/registro-empresa-transporte";
+import { RegistroEmpresaTransporte } from "../../../../presentation/utils/registro-empresa-transporte";
 import { useState } from "react";
 import type { EmpresaTransporteResponse } from "../../service/empresas-transporte.responses";
 import { Filtros } from "./components/filtros";

@@ -214,8 +214,8 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
       setLoadingVehiculos(true);
       try {
         const [tractorRes, carretaRes] = await Promise.all([
-          AuxService.get_vehiculos({ serie: "", numero_placa: "" }),
-          AuxService.get_vehiculos({ serie: "", numero_placa: "" }),
+          AuxService.get_vehiculos(),
+          AuxService.get_vehiculos(),
         ]);
         if (isMounted) {
           setVehiculos(tractorRes.filter((v) => !v.es_carreta || Number(v.es_carreta) === 0));
@@ -755,7 +755,7 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
                 clearable
                 data={vehiculos.map((v) => ({
                   value: String(v.id_vehiculo),
-                  label: v.serie_placa ? `${v.serie_placa}-${v.numero_placa}` : v.numero_placa,
+                  label: v.placa || (v.serie_placa ? `${v.serie_placa}-${v.numero_placa}` : v.numero_placa),
                 }))}
                 value={idVehiculo}
                 onChange={setIdVehiculo}
@@ -791,7 +791,7 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
                 clearable
                 data={carretas.map((v) => ({
                   value: String(v.id_vehiculo),
-                  label: v.serie_placa ? `${v.serie_placa}-${v.numero_placa}` : v.numero_placa,
+                  label: v.placa || (v.serie_placa ? `${v.serie_placa}-${v.numero_placa}` : v.numero_placa),
                 }))}
                 value={idVehiculoCarreta}
                 onChange={setIdVehiculoCarreta}
@@ -1164,11 +1164,7 @@ const ModalSeleccionarLote = ({ opened, loading, lotes, onClose, onConfirm }: Mo
                     </td>
                     <td className="font-mono text-zinc-100 text-xs">{l.correlativo}</td>
                     <td className="text-zinc-300 text-xs">
-                      {l.vehiculo_placa
-                        ? l.vehiculo_serie
-                          ? `${l.vehiculo_serie}-${l.vehiculo_placa}`
-                          : l.vehiculo_placa
-                        : "—"}
+                      {l.vehiculo_placa ? l.vehiculo_placa.toUpperCase() : "—"}
                     </td>
                     <td className="text-right font-mono text-zinc-200 text-xs">{l.peso_inicial?.toFixed(2) ?? "—"}</td>
                     <td className="text-right font-mono text-zinc-200 text-xs">{l.peso_final?.toFixed(2) ?? "—"}</td>

@@ -40,6 +40,7 @@ export const RecepcionVisitasService = {
     }
 
     if (payload.con_vehiculo) {
+      if (payload.placa) formData.append("placa", payload.placa);
       if (payload.serie_placa) formData.append("serie_placa", payload.serie_placa);
       if (payload.numero_placa) formData.append("numero_placa", payload.numero_placa);
     }
@@ -127,6 +128,33 @@ export const RecepcionVisitasService = {
     const { data } = await api.put(`/recepcion-visitas/${id}/salida`, payload);
     if (!data.success) {
       throw new Error(data.message || "Error al registrar la salida");
+    }
+    return data.data;
+  },
+
+  /**
+   * Registrar salida general de la cabecera recepcion_visita (marcando salida a todos los visitantes)
+   * Guardando las evidencias únicamente en la tabla recepcion_visita.evidencias_salida.
+   */
+  registrarSalidaGeneral: async (
+    id: number,
+    payload: { observacion_salida?: string; evidencias_salida?: File[] }
+  ): Promise<RecepcionVisitaResponse> => {
+    const formData = new FormData();
+    if (payload.observacion_salida) {
+      formData.append("observacion_salida", payload.observacion_salida);
+    }
+    if (payload.evidencias_salida && payload.evidencias_salida.length > 0) {
+      payload.evidencias_salida.forEach((f) => {
+        formData.append("evidencias_salida[]", f);
+      });
+    }
+
+    const { data } = await api.post(`/recepcion-visitas/${id}/salida-general`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    if (!data.success) {
+      throw new Error(data.message || "Error al registrar la salida general");
     }
     return data.data;
   },

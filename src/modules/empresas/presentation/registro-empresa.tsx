@@ -8,8 +8,8 @@ interface RegistroEmpresaProps {
   setRazonSocial: (val: string) => void;
   nombreComercial: string;
   setNombreComercial: (val: string) => void;
-  abreviatura: string;
-  setAbreviatura: (val: string) => void;
+  prefijo: string;
+  setPrefijo: (val: string) => void;
   logoFile: File | null;
   setLogoFile: (file: File | null) => void;
   error: string;
@@ -25,6 +25,8 @@ export const RegistroEmpresa = ({
   setRazonSocial,
   nombreComercial,
   setNombreComercial,
+  prefijo,
+  setPrefijo,
   logoFile,
   setLogoFile,
   error,
@@ -111,6 +113,16 @@ export const RegistroEmpresa = ({
         classNames={inputClasses}
         value={nombreComercial}
         onChange={(e) => setNombreComercial(e.currentTarget.value)}
+      />
+
+      <TextInput
+        label="Prefijo"
+        placeholder="Ej. FB"
+        disabled={loading}
+        radius="lg"
+        classNames={inputClasses}
+        value={prefijo}
+        onChange={(e) => setPrefijo(e.currentTarget.value)}
       />
 
       {error && (

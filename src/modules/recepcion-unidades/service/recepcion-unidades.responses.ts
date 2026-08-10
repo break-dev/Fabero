@@ -34,6 +34,7 @@ export interface RecepcionUnidadResponse {
   fecha_hora_final_pesaje?: string | null;
   validacion_datos?: {
     condicion_ingreso: boolean;
+    tipo_carga?: boolean;
     placa: boolean;
     empresa_transporte: boolean;
     tipo_vehiculo: boolean;

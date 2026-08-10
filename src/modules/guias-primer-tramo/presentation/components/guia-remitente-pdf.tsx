@@ -436,11 +436,7 @@ export const GuiaRemitentePdf = ({ guia, qrCodeUrl }: GuiaRemitentePdfProps) => 
               <Text>
                 <Text style={styles.labelBold}>Número de placa: </Text>
                 <Text style={styles.valueText}>
-                  {guia.vehiculo_placa
-                    ? guia.vehiculo_serie
-                      ? `${guia.vehiculo_serie}-${guia.vehiculo_placa}`.toUpperCase()
-                      : guia.vehiculo_placa.toUpperCase()
-                    : "—"}
+                  {guia.vehiculo_placa ? guia.vehiculo_placa.toUpperCase() : "—"}
                 </Text>
               </Text>
               <Text style={{ marginTop: 2 }}>
@@ -459,9 +455,7 @@ export const GuiaRemitentePdf = ({ guia, qrCodeUrl }: GuiaRemitentePdfProps) => 
                 <Text>
                   <Text style={styles.labelBold}>Número de placa: </Text>
                   <Text style={styles.valueText}>
-                    {guia.vehiculo_carreta_serie
-                      ? `${guia.vehiculo_carreta_serie}-${guia.vehiculo_carreta_placa}`.toUpperCase()
-                      : guia.vehiculo_carreta_placa.toUpperCase()}
+                    {guia.vehiculo_carreta_placa.toUpperCase()}
                   </Text>
                 </Text>
                 <Text style={{ marginTop: 2 }}>
