@@ -251,25 +251,35 @@ export const GuiasPrimerTramoPage = () => {
           {
             accessor: "fechas",
             title: "Fechas Clave",
-            render: (g: RES_GuiaPrimerTramo) => (
-              <Stack gap={1}>
-                {g.fecha_emision && (
-                  <Text size="11px" c="teal" className="font-mono">
-                    Emis: {g.fecha_emision}
+            render: (g: RES_GuiaPrimerTramo) => {
+              const fechaEmision = g.fecha_emision || g.created_at;
+              if (!fechaEmision && !g.fecha_inicio_traslado && !g.fecha_en_planta) {
+                return (
+                  <Text size="xs" className="text-zinc-500 font-mono">
+                    —
                   </Text>
-                )}
-                {g.fecha_inicio_traslado && (
-                  <Text size="11px" c="indigo" className="font-mono">
-                    Tras: {g.fecha_inicio_traslado}
-                  </Text>
-                )}
-                {g.fecha_en_planta && (
-                  <Text size="11px" c="yellow" className="font-mono">
-                    Plan: {g.fecha_en_planta}
-                  </Text>
-                )}
-              </Stack>
-            ),
+                );
+              }
+              return (
+                <Stack gap={1}>
+                  {fechaEmision && (
+                    <Text size="11px" c="teal" className="font-mono whitespace-nowrap">
+                      Emis: {fechaEmision}
+                    </Text>
+                  )}
+                  {g.fecha_inicio_traslado && (
+                    <Text size="11px" c="indigo" className="font-mono whitespace-nowrap">
+                      Tras: {g.fecha_inicio_traslado}
+                    </Text>
+                  )}
+                  {g.fecha_en_planta && (
+                    <Text size="11px" c="yellow" className="font-mono whitespace-nowrap">
+                      Plan: {g.fecha_en_planta}
+                    </Text>
+                  )}
+                </Stack>
+              );
+            },
           },
           {
             accessor: "guia_remitente",
