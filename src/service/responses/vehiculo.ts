@@ -8,8 +8,6 @@ export interface RES_Vehiculo {
   tipo_vehiculo_nombre: string;
   es_carreta?: boolean;
   placa: string;
-  serie_placa?: string | null;
-  numero_placa?: string | null;
   estado: EstadoBase;
   last_id_conductor?: number | null;
   ya_existia?: boolean;

@@ -48,6 +48,6 @@ export interface RES_ResumenBalanzaItem {
 
 export interface RES_ResumenBalanzaFiltrosMetadata {
   lotes: { id: number; correlativo: string }[];
-  vehiculos: { id: number; placa?: string; serie_placa?: string | null; numero_placa?: string }[];
+  vehiculos: { id: number; placa?: string }[];
   condiciones_ingreso: string[];
 }

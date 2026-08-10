@@ -29,8 +29,6 @@ export interface RecepcionVisitaResponse {
   observacion: string | null;
   con_vehiculo: boolean;
   placa?: string | null;
-  serie_placa: string | null;
-  numero_placa: string | null;
   fecha_hora_salida?: string | null;
   observacion_salida?: string | null;
   evidencias_ingreso?: string[] | string | null;

@@ -160,7 +160,7 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
         {/* 1. Editar Peso Inicial - Ancho completo, 3 columnas */}
         <Paper radius="xl" p="md" className="bg-zinc-900/20 border border-zinc-800/80">
           <Group gap="xs" mb="xs" pb="xs" className="border-b border-zinc-800">
-           
+
             <Text size="xs" fw={800} className="text-indigo-400 uppercase tracking-widest">
               1. Editar Peso Inicial y Transporte
             </Text>
@@ -348,7 +348,7 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
         {/* 2. Registrar Peso Final (Tara) */}
         <Paper radius="xl" p="md" className="bg-zinc-900/20 border border-zinc-800/80">
           <Group gap="xs" mb="xs" pb="xs" className="border-b border-zinc-800">
-            
+
             <Text size="xs" fw={800} className="text-amber-500 uppercase tracking-widest">
               2. Registrar Peso Final
             </Text>

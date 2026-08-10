@@ -4,8 +4,6 @@ import type { TipoCarga } from "../../../shared/enums/_generic/tipo-carga";
 export interface CrearRecepcionRequest {
   id_vehiculo?: number;
   placa?: string;
-  serie_placa?: string;
-  numero_placa?: string;
   id_empresa_transporte: number;
   id_tipo_vehiculo?: number;
   id_conductor: number;

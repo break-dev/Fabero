@@ -36,8 +36,7 @@ export const useRegistroVisita = (onSuccess: (r: RecepcionVisitaResponse) => voi
     id_empleado_contacto: 0,
     id_motivo_ingreso: 0,
     observacion: "",
-    serie_placa: "",
-    numero_placa: "",
+    placa: "",
   });
 
   const [vehiculos, setVehiculos] = useState<VehiculoAcompananteItem[]>([]);
@@ -262,8 +261,7 @@ export const useRegistroVisita = (onSuccess: (r: RecepcionVisitaResponse) => voi
       id_empleado_autoriza: 0,
       id_motivo_ingreso: 0,
       observacion: "",
-      serie_placa: "",
-      numero_placa: "",
+      placa: "",
     });
     setVisitantes([]);
     setVehiculos([]);
@@ -287,6 +285,9 @@ export const useRegistroVisita = (onSuccess: (r: RecepcionVisitaResponse) => voi
         ? visitantes
         : [
             {
+              id_visitante: undefined,
+              id_visita_vehiculo: undefined,
+              es_conductor: true,
               nombre: "VISITANTE",
               apellido: "",
               dni: "",
@@ -295,7 +296,7 @@ export const useRegistroVisita = (onSuccess: (r: RecepcionVisitaResponse) => voi
             },
           ];
 
-    const conVehiculo = vehiculos.length > 0 || Boolean(payload.serie_placa || payload.numero_placa);
+    const conVehiculo = vehiculos.length > 0 || Boolean(payload.placa);
 
     setLoading(true);
 
@@ -324,8 +325,7 @@ export const useRegistroVisita = (onSuccess: (r: RecepcionVisitaResponse) => voi
         id_motivo_ingreso: payload.id_motivo_ingreso,
         observacion: payload.observacion,
         con_vehiculo: conVehiculo,
-        serie_placa: payload.serie_placa,
-        numero_placa: payload.numero_placa,
+        placa: payload.placa,
         evidencias,
         vehiculos: vehiculosPayload,
         visitantes: visitantesPayload,

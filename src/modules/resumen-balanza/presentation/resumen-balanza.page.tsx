@@ -89,7 +89,7 @@ export const ResumenBalanzaPage = () => {
   }));
 
   const placasData = metadata.vehiculos.map((v) => {
-    const label = v.placa || (v.serie_placa ? `${v.serie_placa}-${v.numero_placa}` : v.numero_placa || `Vehículo #${v.id}`);
+    const label = v.placa || `Vehículo #${v.id}`;
     return { value: label, label };
   });
 
@@ -238,7 +238,7 @@ export const ResumenBalanzaPage = () => {
 
         {/* Botón de Limpiar a la Derecha */}
         {hasActiveFilters && (
-          <div className="flex items-center gap-2 shrink-0 pb-[2px]">
+          <div className="flex items-center gap-2 shrink-0 pb-0.5">
             <Button
               variant="subtle"
               color="red"
@@ -246,7 +246,7 @@ export const ResumenBalanzaPage = () => {
               size="sm"
               leftSection={<IconX size={16} />}
               onClick={resetFilters}
-              className="text-red-400 hover:bg-red-500/10 transition-colors h-[38px] px-6"
+              className="text-red-400 hover:bg-red-500/10 transition-colors h-9.5 px-6"
             >
               Limpiar
             </Button>
@@ -413,7 +413,7 @@ export const ResumenBalanzaPage = () => {
               title: "Empresa Transporte",
               width: 200,
               render: (r: RES_ResumenBalanzaItem) => (
-                <Text size="sm" className="text-zinc-200 max-w-[190px]" truncate title={r.empresa_transporte_razon_social || ""}>
+                <Text size="sm" className="text-zinc-200 max-w-47.5" truncate title={r.empresa_transporte_razon_social || ""}>
                   {r.empresa_transporte_razon_social || (
                     <span className="text-zinc-600 italic">Particular / Propio</span>
                   )}
@@ -470,7 +470,7 @@ export const ResumenBalanzaPage = () => {
               title: "Proveedor",
               width: 200,
               render: (r: RES_ResumenBalanzaItem) => (
-                <Text size="sm" className="text-zinc-300 font-medium max-w-[190px]" truncate title={r.proveedor_razon_social || ""}>
+                <Text size="sm" className="text-zinc-300 font-medium max-w-47.5" truncate title={r.proveedor_razon_social || ""}>
                   {r.proveedor_razon_social || (
                     <span className="text-zinc-600 italic">No registrado</span>
                   )}

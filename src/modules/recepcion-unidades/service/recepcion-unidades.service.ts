@@ -38,8 +38,6 @@ export const RecepcionUnidadesService = {
     const formData = new FormData();
     appendIfDefined(formData, "id_vehiculo", payload.id_vehiculo);
     appendIfDefined(formData, "placa", payload.placa);
-    appendIfDefined(formData, "serie_placa", payload.serie_placa);
-    appendIfDefined(formData, "numero_placa", payload.numero_placa);
     appendIfDefined(formData, "id_empresa_transporte", payload.id_empresa_transporte);
     appendIfDefined(formData, "id_tipo_vehiculo", payload.id_tipo_vehiculo);
     appendIfDefined(formData, "id_conductor", payload.id_conductor);

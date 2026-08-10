@@ -25,8 +25,6 @@ export interface CrearRecepcionVisitaRequest {
   evidencias?: File[];
   con_vehiculo: boolean;
   placa?: string;
-  serie_placa?: string;
-  numero_placa?: string;
   vehiculos?: VehiculoAcompananteRequest[];
   visitantes: VisitorPayload[];
 }

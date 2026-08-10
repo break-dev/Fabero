@@ -524,8 +524,7 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
       } else {
         // MODO 2: Registro Directo de Recepción (No Programada)
         const vehiculoSel = vehiculosCatalog.find((v) => v.id_vehiculo === idVehiculo);
-        const seriePlaca = vehiculoSel?.serie_placa || undefined;
-        const numeroPlaca = vehiculoSel?.numero_placa || vehiculoSel?.placa || "";
+        const placa = vehiculoSel?.placa || "";
 
         const visitantesValidos = visitantes
           .filter((v) => Boolean((v.nombre && v.nombre.trim()) || (v.dni && v.dni.trim()) || v.id_visitante))
@@ -544,13 +543,12 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
 
         const payload: CrearRecepcionRequest = {
           id_vehiculo: idVehiculo,
+          placa: placa || undefined,
           id_empresa_transporte: idEmpresaTransporte,
           id_tipo_vehiculo: idTipoVehiculo || undefined,
           id_conductor: idConductor,
           id_proveedor_minero: idProveedorMinero || undefined,
           id_sucursal: sucursalTarget,
-          serie_placa: seriePlaca,
-          numero_placa: numeroPlaca,
           serie_guia_remitente: serieGuiaRemitente || undefined,
           numero_guia_remitente: numeroGuiaRemitente || undefined,
           serie_guia_transportista: serieGuiaTransportista || undefined,

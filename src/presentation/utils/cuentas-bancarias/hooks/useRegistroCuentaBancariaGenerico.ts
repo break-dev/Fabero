@@ -75,11 +75,15 @@ export const useRegistroCuentaBancariaGenerico = <
   const handleSelectBanco = (val: string | null) => {
     const idBanco = val ? Number(val) : 0;
     const banco = bancos.find((b) => b.id_banco === idBanco);
+    const esNacional = Boolean(
+      banco?.es_nacional ||
+        banco?.abreviatura?.trim().toUpperCase() === "BN",
+    );
     setPayload((prev) => ({
       ...prev,
       id_banco: idBanco,
       es_para_detraccion:
-        banco?.es_nacional && prev.moneda === Moneda.Soles
+        esNacional && prev.moneda === Moneda.Soles
           ? prev.es_para_detraccion
           : 0,
     }));

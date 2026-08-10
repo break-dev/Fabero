@@ -220,8 +220,6 @@ export const AuxService = {
    */
   get_vehiculos: async (filters?: {
     placa?: string;
-    serie?: string;
-    numero_placa?: string;
   }): Promise<RES_Vehiculo[]> => {
     const { data } = await api.get(`${path}/vehiculos`, {
       params: filters,

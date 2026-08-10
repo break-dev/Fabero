@@ -39,10 +39,8 @@ export const RecepcionVisitasService = {
       payload.evidencias.forEach((file) => formData.append("evidencias[]", file));
     }
 
-    if (payload.con_vehiculo) {
-      if (payload.placa) formData.append("placa", payload.placa);
-      if (payload.serie_placa) formData.append("serie_placa", payload.serie_placa);
-      if (payload.numero_placa) formData.append("numero_placa", payload.numero_placa);
+    if (payload.con_vehiculo && payload.placa) {
+      formData.append("placa", payload.placa);
     }
 
     // Vehículos acompañantes

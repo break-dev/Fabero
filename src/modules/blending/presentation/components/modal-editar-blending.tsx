@@ -149,10 +149,10 @@ export const ModalEditarBlending: React.FC<ModalEditarBlendingProps> = ({
               />
             </Box>
             <Select
-              placeholder={loadingEmpresas ? "Cargando..." : "Filtrar por Empresa"}
+              placeholder={loadingEmpresas ? "Cargando..." : "Seleccionar Empresa"}
               disabled={loadingEmpresas}
               rightSection={loadingEmpresas ? <Loader size={14} /> : undefined}
-              clearable
+              allowDeselect={false}
               searchable
               comboboxProps={{ withinPortal: true }}
               data={empresas.map((e) => ({

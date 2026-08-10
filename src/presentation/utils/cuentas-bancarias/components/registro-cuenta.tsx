@@ -76,6 +76,10 @@ export function RegistroCuenta<T extends CuentaBancariaItem, TEntity>({
   }));
 
   const selectedBanco = bancos.find((b) => b.id_banco === payload.id_banco);
+  const isBancoNacional = Boolean(
+    selectedBanco?.es_nacional ||
+      selectedBanco?.abreviatura?.trim().toUpperCase() === "BN",
+  );
 
   return (
     <div className="bg-zinc-900/50 p-5 rounded-xl border border-zinc-800">
@@ -118,7 +122,7 @@ export function RegistroCuenta<T extends CuentaBancariaItem, TEntity>({
                   color="blue"
                   radius="xl"
                   onClick={() => setOpenBanco(true)}
-                  className="mb-[2px] bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30"
+                  className="mb-0.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30"
                 >
                   <IconPlus size={18} />
                 </ActionIcon>
@@ -189,7 +193,7 @@ export function RegistroCuenta<T extends CuentaBancariaItem, TEntity>({
                 color="yellow"
                 checked={payload.es_para_detraccion === 1}
                 disabled={
-                  !selectedBanco?.es_nacional ||
+                  !isBancoNacional ||
                   payload.moneda !== Moneda.Soles
                 }
                 onChange={(e) =>

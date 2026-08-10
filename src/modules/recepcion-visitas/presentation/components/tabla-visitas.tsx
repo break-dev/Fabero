@@ -71,7 +71,7 @@ export const TablaVisitas = ({ recepciones, loading, onUpdateRecepcion }: Props)
     const mapGrupos = new Map<string, GrupoVehiculo>();
 
     r.visitantes.forEach((v) => {
-      const placa = v.vehiculo_placa || (v.es_conductor && (r.placa || r.numero_placa) ? (r.placa || r.numero_placa) : null);
+      const placa = v.vehiculo_placa || (v.es_conductor && r.placa ? r.placa : null);
       const key = placa ? placa.toUpperCase().trim() : "__NO_VEHICULO__";
 
       if (!mapGrupos.has(key)) {
@@ -304,7 +304,7 @@ export const TablaVisitas = ({ recepciones, loading, onUpdateRecepcion }: Props)
             render: (r: RecepcionVisitaResponse) => {
               const grupos = getGruposVehiculo(r);
               if (grupos.length === 0) {
-                const tienePlacaHeader = Boolean(r.placa || r.serie_placa || r.numero_placa);
+                const tienePlacaHeader = Boolean(r.placa);
                 const tieneVehiculos = Boolean(r.vehiculos && r.vehiculos.length > 0);
 
                 if (!r.con_vehiculo && !tienePlacaHeader && !tieneVehiculos) {

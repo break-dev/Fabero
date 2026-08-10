@@ -25,8 +25,12 @@ export const useBlendingDisponibles = () => {
         AuxService.get_proveedores(),
         AuxService.get_empresas(),
       ]);
+      const listaEmpresas = resEmp.data || [];
       setProveedores(resProv.data || []);
-      setEmpresas(resEmp.data || []);
+      setEmpresas(listaEmpresas);
+      if (listaEmpresas.length > 0) {
+        setIdEmpresaSeleccionada((prev) => prev ?? listaEmpresas[0].id_empresa);
+      }
     } catch {
       // Ignorar errores menores de catálogo
     } finally {
@@ -57,7 +61,11 @@ export const useBlendingDisponibles = () => {
 
   const limpiarDisponibles = useCallback(() => {
     setDisponibles([]);
-  }, []);
+    if (empresas.length > 0) {
+      setIdEmpresaSeleccionada(empresas[0].id_empresa);
+    }
+    setIdProveedorSeleccionado(null);
+  }, [empresas]);
 
   return {
     disponibles,

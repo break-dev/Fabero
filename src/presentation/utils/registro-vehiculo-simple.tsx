@@ -12,7 +12,7 @@ interface Props {
 
 /**
  * Modal de registro rápido de vehículo.
- * Solo expone los inputs serie_placa y numero_placa — los demás campos del
+ * Solo expone el input placa — los demás campos del
  * schema de la tabla (FKs requeridas, marca, MTC, pesos, dimensiones) se
  * completan con nulos o defaults válidos a nivel de backend.
  *
