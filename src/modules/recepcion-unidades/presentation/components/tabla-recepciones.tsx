@@ -152,7 +152,7 @@ export const TablaRecepciones = ({
             render: (r: RecepcionUnidadResponse) => (
               <div>
                 <Text size="sm" className="text-zinc-200" fw={500}>
-                  {r.fecha_estimada_llegada}
+                  {r.fecha_estimada_llegada ?? "—"}
                 </Text>
                 {r.fecha_estimada_llegada && (
                   <Text size="xs" className="text-zinc-500">
