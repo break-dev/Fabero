@@ -84,6 +84,9 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
       setIdVehiculoEditado(null);
       setIdProveedorMineroEditado(null);
       setIdTipoVehiculoEditado(null);
+      setIdConductor(programacion?.id_conductor ?? null);
+      setIdMotivoIngreso(programacion?.visita?.id_motivo_ingreso ?? null);
+      setObservacion(programacion?.visita?.observacion ?? programacion?.observacion ?? "");
       setVehiculos(programacion?.visita?.vehiculos ?? []);
       setVisitantes(
         programacion?.visita?.detalles?.map((d: VisitaDetalleResponse) => ({
@@ -99,6 +102,7 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
         })) ?? [],
       );
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [programacion, opened]);
 
   const [vehiculos, setVehiculos] = useState<VehiculoAcompananteItem[]>(
@@ -169,6 +173,16 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
     cargarTodo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opened]);
+
+  useEffect(() => {
+    if (programacion?.id_tipo_vehiculo) return;
+    if (idVehiculoEditado == null) {
+      setIdTipoVehiculoEditado(null);
+      return;
+    }
+    const vFound = vehiculosCatalog.find((v) => v.id_vehiculo === idVehiculoEditado);
+    setIdTipoVehiculoEditado(vFound?.id_tipo_vehiculo ?? null);
+  }, [idVehiculoEditado, vehiculosCatalog, programacion?.id_tipo_vehiculo]);
 
   const handleConductorCreado = useCallback((c: RES_Conductor) => {
     setConductoresCatalog((prev) => [c, ...prev]);
@@ -405,6 +419,20 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
     const nGR = programacion?.numero_guia_remitente ?? "";
     const sGT = programacion?.serie_guia_transportista ?? "";
     const nGT = programacion?.numero_guia_transportista ?? "";
+
+    if (idVeh && idTip != null) {
+      const vFound = vehiculosCatalog.find((v) => v.id_vehiculo === idVeh);
+      if (vFound && vFound.id_tipo_vehiculo !== idTip) {
+        try {
+          await AuxService.editar_vehiculo(idVeh, {
+            id_empresa_transporte: vFound.id_empresa_transporte,
+            id_tipo_vehiculo: idTip,
+          });
+        } catch (e) {
+          console.error("No se pudo actualizar el tipo de vehículo:", e);
+        }
+      }
+    }
 
     if (!idEmp) {
       notifyError("Debe seleccionar la Empresa de Transporte");
