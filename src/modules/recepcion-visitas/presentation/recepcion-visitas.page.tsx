@@ -107,7 +107,7 @@ export const RecepcionVisitasPage = () => {
           />
         </div>
         
-        <div className="flex items-center gap-2 shrink-0 pb-[2px]">
+        <div className="flex items-center gap-2 shrink-0 pb-0.5">
           {hasActiveFilters && (
             <Button
               variant="subtle"
@@ -116,7 +116,7 @@ export const RecepcionVisitasPage = () => {
               size="sm"
               leftSection={<IconX size={16} />}
               onClick={clearFilters}
-              className="text-red-400 hover:bg-red-500/10 transition-colors h-[38px]"
+              className="text-red-400 hover:bg-red-500/10 transition-colors h-9.5"
             >
               Limpiar
             </Button>
@@ -127,7 +127,7 @@ export const RecepcionVisitasPage = () => {
             size="sm"
             leftSection={<IconPlus size={18} />}
             onClick={() => setOpenRegistro(true)}
-            className="bg-[#7A604D] hover:bg-[#8c6d53] text-white shadow-lg shadow-zinc-900/40 shrink-0 h-[38px] px-6 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+            className="bg-[#7A604D] hover:bg-[#8c6d53] text-white shadow-lg shadow-zinc-900/40 shrink-0 h-9.5 px-6 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
           >
             Nuevo Registro
           </Button>

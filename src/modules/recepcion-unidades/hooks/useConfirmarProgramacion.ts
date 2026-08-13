@@ -186,14 +186,19 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
 
   const handleConductorCreado = useCallback((c: RES_Conductor) => {
     setConductoresCatalog((prev) => [c, ...prev]);
-    setIdConductor(c.id_conductor);
+    if (!programacion?.id_conductor) {
+      setIdConductor(c.id_conductor);
+    }
     notifySuccess(`Conductor ${c.nombre_completo} registrado`);
-  }, [notifySuccess]);
+  }, [notifySuccess, programacion?.id_conductor]);
 
   const handleVehiculoCreado = useCallback((v: RES_Vehiculo) => {
     setVehiculosCatalog((prev) => [v, ...prev]);
+    if (!programacion?.id_vehiculo) {
+      setIdVehiculoEditado(v.id_vehiculo);
+    }
     notifySuccess(`Vehículo registrado`);
-  }, [notifySuccess]);
+  }, [notifySuccess, programacion?.id_vehiculo]);
 
   const handleTipoVehiculoCreado = useCallback(async (_idTipo: number) => {
     try {
@@ -215,8 +220,11 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
       estado: nueva.estado,
     };
     setEmpresasCatalog((prev) => [resEmp, ...prev.filter((e) => e.id_empresa_transporte !== nueva.id)]);
+    if (!programacion?.id_empresa_transporte) {
+      setIdEmpresaTransporteEditado(nueva.id);
+    }
     notifySuccess(`Empresa ${nueva.razon_social} registrada`);
-  }, [notifySuccess]);
+  }, [notifySuccess, programacion?.id_empresa_transporte]);
 
   const handleProveedorCreado = useCallback((nuevo: ProveedorResponse) => {
     const resProv: RES_Proveedor = {
@@ -227,8 +235,11 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
       telefono: nuevo.telefono,
     };
     setProveedoresCatalog((prev) => [resProv, ...prev.filter((p) => p.id_proveedor !== nuevo.id_proveedor)]);
+    if (!programacion?.id_proveedor_minero) {
+      setIdProveedorMineroEditado(nuevo.id_proveedor);
+    }
     notifySuccess(`Proveedor ${nuevo.razon_social} registrado`);
-  }, [notifySuccess]);
+  }, [notifySuccess, programacion?.id_proveedor_minero]);
 
   const eliminarVehiculo = useCallback(
     async (idVehiculoParam: number) => {
