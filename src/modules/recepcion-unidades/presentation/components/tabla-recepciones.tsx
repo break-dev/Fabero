@@ -60,6 +60,12 @@ export const TablaRecepciones = ({
     }
   };
 
+  const formatFechaEstimada = (fechaStr: string | null | undefined) => {
+    if (!fechaStr) return "—";
+    const soloFecha = fechaStr.split(" ")[0];
+    return soloFecha || fechaStr;
+  };
+
   const handleSaveExit = async () => {
     if (!exitRecord) return;
     if (!estadoSalida) {
@@ -152,7 +158,7 @@ export const TablaRecepciones = ({
             render: (r: RecepcionUnidadResponse) => (
               <div>
                 <Text size="sm" className="text-zinc-200" fw={500}>
-                  {formatFecha(r.fecha_estimada_llegada)}
+                  {formatFechaEstimada(r.fecha_estimada_llegada)}
                 </Text>
                 {r.fecha_estimada_llegada && (
                   <Text size="xs" className="text-zinc-500">

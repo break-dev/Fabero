@@ -26,6 +26,7 @@ import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
 import { RegistroEmpresaTransporte } from "../../../../presentation/utils/registro-empresa-transporte";
 import { RegistroVehiculoSimple } from "../../../../presentation/utils/registro-vehiculo-simple";
 import { ModalRegistroProveedor } from "../../../../presentation/utils/modal-registro-proveedor";
+import { formatLocalDate, parseLocalDate } from "../../../../presentation/utils/local-date";
 import { useProgramarRecepcion } from "../../hooks/useProgramarRecepcion";
 import type { RecepcionUnidadResponse } from "../../service/recepcion-unidades.responses";
 import { TipoIngreso } from "../../../../shared/enums/_generic/tipo-ingreso";
@@ -227,15 +228,14 @@ export const ProgramarRecepcionModal = ({ opened, onClose, onSuccess }: Props) =
               <CustomDatePicker
                 label="Fecha Estimada de Llegada"
                 placeholder="Seleccione fecha (opcional)"
-                value={form.fecha_estimada_llegada ? new Date(form.fecha_estimada_llegada) : null}
+                value={form.fecha_estimada_llegada ? parseLocalDate(form.fecha_estimada_llegada) : null}
                 onChange={(val: unknown) => {
                   if (!val) {
                     setField("fecha_estimada_llegada", undefined);
                     return;
                   }
                   const d = typeof val === "string" ? new Date(val) : (val as Date);
-                  const formatted = d.toISOString().slice(0, 10);
-                  setField("fecha_estimada_llegada", formatted);
+                  setField("fecha_estimada_llegada", formatLocalDate(d));
                 }}
                 disabled={loading}
                 clearable
