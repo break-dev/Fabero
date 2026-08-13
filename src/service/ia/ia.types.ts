@@ -6,10 +6,17 @@ export interface IAIAttachment {
   url?: string;
 }
 
+export interface IAIAttachmentMeta {
+  name: string;
+  mime: string;
+  size: number;
+}
+
 export interface IAIMessage {
   role: AIRole;
   content: string;
   attachments?: IAIAttachment[];
+  attachmentMeta?: IAIAttachmentMeta[];
 }
 
 export interface IAISchema {
