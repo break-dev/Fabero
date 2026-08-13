@@ -47,6 +47,18 @@ const tipoIngresoData = [
   { value: TipoIngreso.DespachoMineral, label: "Despacho de Mineral" },
 ];
 
+const formatLocalDate = (d: Date): string => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
+const parseLocalDate = (s: string): Date => {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, m - 1, d);
+};
+
 export const ProgramarRecepcionModal = ({ opened, onClose, onSuccess }: Props) => {
   const [openEmpresaModal, setOpenEmpresaModal] = useState(false);
   const [openVehiculoModal, setOpenVehiculoModal] = useState(false);
@@ -227,15 +239,14 @@ export const ProgramarRecepcionModal = ({ opened, onClose, onSuccess }: Props) =
               <CustomDatePicker
                 label="Fecha Estimada de Llegada"
                 placeholder="Seleccione fecha (opcional)"
-                value={form.fecha_estimada_llegada ? new Date(form.fecha_estimada_llegada) : null}
+                value={form.fecha_estimada_llegada ? parseLocalDate(form.fecha_estimada_llegada) : null}
                 onChange={(val: unknown) => {
                   if (!val) {
                     setField("fecha_estimada_llegada", undefined);
                     return;
                   }
                   const d = typeof val === "string" ? new Date(val) : (val as Date);
-                  const formatted = d.toISOString().slice(0, 10);
-                  setField("fecha_estimada_llegada", formatted);
+                  setField("fecha_estimada_llegada", formatLocalDate(d));
                 }}
                 disabled={loading}
                 clearable
