@@ -63,6 +63,10 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
   const [idConductor, setIdConductor] = useState<number | null>(
     programacion?.id_conductor ?? null,
   );
+  const [idEmpresaTransporteEditado, setIdEmpresaTransporteEditado] = useState<number | null>(null);
+  const [idVehiculoEditado, setIdVehiculoEditado] = useState<number | null>(null);
+  const [idProveedorMineroEditado, setIdProveedorMineroEditado] = useState<number | null>(null);
+  const [idTipoVehiculoEditado, setIdTipoVehiculoEditado] = useState<number | null>(null);
 
   const [idMotivoIngreso, setIdMotivoIngreso] = useState<number | null>(
     programacion?.visita?.id_motivo_ingreso ?? null,
@@ -76,6 +80,10 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
   useEffect(() => {
     if (opened) {
       setEvidencias([]);
+      setIdEmpresaTransporteEditado(null);
+      setIdVehiculoEditado(null);
+      setIdProveedorMineroEditado(null);
+      setIdTipoVehiculoEditado(null);
       setVehiculos(programacion?.visita?.vehiculos ?? []);
       setVisitantes(
         programacion?.visita?.detalles?.map((d: VisitaDetalleResponse) => ({
@@ -389,10 +397,10 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
     visita?: ProgramacionVisitaPayload;
     updatedRecepcion: RecepcionUnidadResponse;
   } | null> => {
-    const idEmp = programacion?.id_empresa_transporte ?? null;
-    const idVeh = programacion?.id_vehiculo ?? null;
-    const idTip = programacion?.id_tipo_vehiculo ?? null;
-    const idProv = programacion?.id_proveedor_minero ?? null;
+    const idEmp = programacion?.id_empresa_transporte ?? idEmpresaTransporteEditado ?? null;
+    const idVeh = programacion?.id_vehiculo ?? idVehiculoEditado ?? null;
+    const idTip = programacion?.id_tipo_vehiculo ?? idTipoVehiculoEditado ?? null;
+    const idProv = programacion?.id_proveedor_minero ?? idProveedorMineroEditado ?? null;
     const sGR = programacion?.serie_guia_remitente ?? "";
     const nGR = programacion?.numero_guia_remitente ?? "";
     const sGT = programacion?.serie_guia_transportista ?? "";
@@ -543,6 +551,14 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
     idConductor,
     setIdConductor,
     lockedConductor,
+    idEmpresaTransporteEditado,
+    setIdEmpresaTransporteEditado,
+    idVehiculoEditado,
+    setIdVehiculoEditado,
+    idProveedorMineroEditado,
+    setIdProveedorMineroEditado,
+    idTipoVehiculoEditado,
+    setIdTipoVehiculoEditado,
     idMotivoIngreso,
     setIdMotivoIngreso,
     observacion,
