@@ -131,10 +131,8 @@ export const CustomDatePicker = ({
       value={localDate}
       onChange={(val: any) => {
         if (!val) {
-          if (!ref.current?.value || ref.current.value.trim() === "") {
-            setLocalDate(null);
-            onChange(null);
-          }
+          setLocalDate(null);
+          onChange(null);
         } else {
           const dateObj = val instanceof Date ? val : dayjs(val).toDate();
           setLocalDate(dateObj);

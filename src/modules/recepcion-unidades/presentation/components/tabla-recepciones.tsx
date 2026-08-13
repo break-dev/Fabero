@@ -60,6 +60,12 @@ export const TablaRecepciones = ({
     }
   };
 
+  const formatFechaEstimada = (fechaStr: string | null | undefined) => {
+    if (!fechaStr) return "—";
+    const soloFecha = fechaStr.split(" ")[0];
+    return soloFecha || fechaStr;
+  };
+
   const handleSaveExit = async () => {
     if (!exitRecord) return;
     if (!estadoSalida) {

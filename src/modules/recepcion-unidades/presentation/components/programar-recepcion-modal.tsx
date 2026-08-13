@@ -26,6 +26,7 @@ import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
 import { RegistroEmpresaTransporte } from "../../../../presentation/utils/registro-empresa-transporte";
 import { RegistroVehiculoSimple } from "../../../../presentation/utils/registro-vehiculo-simple";
 import { ModalRegistroProveedor } from "../../../../presentation/utils/modal-registro-proveedor";
+import { formatLocalDate, parseLocalDate } from "../../../../presentation/utils/local-date";
 import { useProgramarRecepcion } from "../../hooks/useProgramarRecepcion";
 import type { RecepcionUnidadResponse } from "../../service/recepcion-unidades.responses";
 import { TipoIngreso } from "../../../../shared/enums/_generic/tipo-ingreso";
