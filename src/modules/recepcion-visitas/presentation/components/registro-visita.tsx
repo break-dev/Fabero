@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Button,
   Grid,
@@ -25,12 +25,22 @@ import {
   IconPhoto,
   IconSearch,
   IconPlus,
+  IconSparkles,
 } from "@tabler/icons-react";
 import { useRegistroVisita, type VisitanteFormItem } from "../../hooks/useRegistroVisita";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
 import { RegistroMotivoIngreso } from "../../../../presentation/utils/registro-motivo-ingreso";
 import { MultiFilePicker } from "../../../../presentation/utils/archivo/multifile-picker";
 import { AuxService } from "../../../../service/auxiliar.service";
+import { useNotify } from "../../../../hooks/useNotify";
+import { useAIFileAnalysis } from "../../../../hooks/ia/useAIFileAnalysis";
+import {
+  isCompleteDatos,
+  visitanteIAPrompt,
+  visitanteIASchema,
+  type IDatosVisitanteExtraidos,
+} from "../../service/visitante.ia.schema";
+import { useRecepcionVisitasContextStore } from "../../stores/recepcion-visitas-context.store";
 import type { RecepcionVisitaResponse } from "../../service/recepcion-visitas.responses";
 
 interface Props {
@@ -125,6 +135,104 @@ export const RegistroVisita = ({ onCancel, onSuccess }: Props) => {
 
   const [searchingDni, setSearchingDni] = useState(false);
   const [visitorError, setVisitorError] = useState<string | null>(null);
+
+  const { notifySuccess, notifyInfo, notifyError } = useNotify();
+  const { analyze: analyzeDocumentoIA, loading: loadingIA, reset: resetIA } =
+    useAIFileAnalysis<IDatosVisitanteExtraidos>();
+
+  const setFormEnCurso = useRecepcionVisitasContextStore(
+    (s) => s.setFormEnCurso,
+  );
+
+  useEffect(() => {
+    const motivo =
+      motivos.find((m) => m.id_motivo_ingreso === payload.id_motivo_ingreso)
+        ?.nombre ?? null;
+    const empleado =
+      empleados.find((e) => e.id_empleado === payload.id_empleado_contacto)
+        ?.nombre_completo ?? null;
+
+    setFormEnCurso({
+      motivo_ingreso: motivo,
+      empleado_contacto: empleado,
+      observacion: payload.observacion ?? "",
+      total_visitantes_en_formulario: visitantes.length,
+      visitante_en_edicion: openModalAcompanante
+        ? {
+            dni: visitorForm.dni,
+            nombre: visitorForm.nombre,
+            apellido: visitorForm.apellido,
+            telefono: visitorForm.telefono,
+            total_fotos: visitorForm.fotos_documento.length,
+          }
+        : null,
+      vehiculo_en_edicion: openModalVehiculo
+        ? {
+            placa: formVehiculo.placa,
+            cantidad_personas: formVehiculo.cantidadPersonas,
+            total_fotos: formVehiculo.fotos.length,
+          }
+        : null,
+    });
+  }, [
+    payload.id_motivo_ingreso,
+    payload.id_empleado_contacto,
+    payload.observacion,
+    visitantes.length,
+    openModalAcompanante,
+    visitorForm,
+    openModalVehiculo,
+    formVehiculo,
+    motivos,
+    empleados,
+    setFormEnCurso,
+  ]);
+
+  const handleExtraerDatosIA = async () => {
+    if (visitorForm.fotos_documento.length === 0) {
+      notifyError("Adjunta al menos una foto del documento de identidad.");
+      return;
+    }
+    resetIA();
+    const response = await analyzeDocumentoIA({
+      archivos: visitorForm.fotos_documento,
+      prompt: visitanteIAPrompt,
+      schema: visitanteIASchema,
+      temperature: 0,
+    });
+
+    const datos = response?.structured ?? null;
+
+    if (isCompleteDatos(datos)) {
+      setVisitorForm((prev) => ({
+        ...prev,
+        dni: datos.dni,
+        nombre: datos.nombre,
+        apellido: datos.apellido,
+      }));
+      notifySuccess(
+        "Datos extraídos del documento. Verifica antes de continuar.",
+      );
+      return;
+    }
+
+    if (datos && (datos.dni || datos.nombre || datos.apellido)) {
+      setVisitorForm((prev) => ({
+        ...prev,
+        dni: datos.dni ?? prev.dni,
+        nombre: datos.nombre ?? prev.nombre,
+        apellido: datos.apellido ?? prev.apellido,
+      }));
+      notifyInfo(
+        "La IA extrajo algunos datos. Completa los campos faltantes manualmente.",
+      );
+      return;
+    }
+
+    notifyError(
+      "No se pudo leer el documento. Verifica que la foto sea clara y vuelve a intentar.",
+    );
+  };
 
   const getEmpleadosDropdown = () =>
     empleados.map((e) => ({
@@ -849,6 +957,29 @@ export const RegistroVisita = ({ onCancel, onSuccess }: Props) => {
             label="Foto del Documento de Identidad"
             description="Suba fotografías legibles del DNI o carné"
           />
+
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              size="xs"
+              radius="lg"
+              variant="light"
+              color="violet"
+              leftSection={
+                loadingIA ? (
+                  <Loader size={14} color="violet" />
+                ) : (
+                  <IconSparkles size={14} />
+                )
+              }
+              onClick={handleExtraerDatosIA}
+              loading={loadingIA}
+              disabled={loadingIA || visitorForm.fotos_documento.length === 0}
+              className="bg-violet-500/10 hover:bg-violet-500/20 text-violet-200 border border-violet-500/30 font-bold"
+            >
+              {loadingIA ? "Leyendo documento..." : "Extraer datos con IA"}
+            </Button>
+          </div>
 
           <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-zinc-800">
             <Button variant="subtle" color="gray" radius="lg" onClick={() => setOpenModalAcompanante(false)}>

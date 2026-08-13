@@ -7,6 +7,8 @@ import { GlobalBlackcito } from "./components/global-blackcito";
 import { useAuthLayout } from "./hooks/useAuthLayout";
 import { GlobalPrinterPortal } from "../../utils/printer/GlobalPrinterPortal";
 import { GlobalExcelPortal } from "../../utils/excel/GlobalExcelPortal";
+import { AIAssistantPanel } from "./components/ai-assistant-panel";
+import { ModuleAIContextBridge } from "./components/module-ai-context-bridge";
 
 export const AuthLayout = () => {
   const { open, setOpen } = useAuthLayout();
@@ -46,10 +48,12 @@ export const AuthLayout = () => {
 
       {/* Capa de contenido */}
       <div className="relative z-10 flex flex-col flex-1">
+        <ModuleAIContextBridge />
         <Header onMenuToggle={() => setOpen(true)} />
         {open && <Navbar onClose={() => setOpen(false)} />}
         <GlobalNotification />
         <GlobalBlackcito />
+        <AIAssistantPanel />
 
         <main className="flex-1 mx-auto w-full pt-22 px-4 pb-10 overflow-hidden relative">
           <motion.div
