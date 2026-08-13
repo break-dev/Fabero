@@ -75,6 +75,19 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
     programacion?.visita?.observacion ?? programacion?.observacion ?? "",
   );
 
+  const [serieGuiaRemitente, setSerieGuiaRemitente] = useState<string>(
+    programacion?.serie_guia_remitente ?? "",
+  );
+  const [numeroGuiaRemitente, setNumeroGuiaRemitente] = useState<string>(
+    programacion?.numero_guia_remitente ?? "",
+  );
+  const [serieGuiaTransportista, setSerieGuiaTransportista] = useState<string>(
+    programacion?.serie_guia_transportista ?? "",
+  );
+  const [numeroGuiaTransportista, setNumeroGuiaTransportista] = useState<string>(
+    programacion?.numero_guia_transportista ?? "",
+  );
+
   const lockedConductor = Boolean(programacion?.id_conductor);
 
   useEffect(() => {
@@ -87,6 +100,10 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
       setIdConductor(programacion?.id_conductor ?? null);
       setIdMotivoIngreso(programacion?.visita?.id_motivo_ingreso ?? null);
       setObservacion(programacion?.visita?.observacion ?? programacion?.observacion ?? "");
+      setSerieGuiaRemitente(programacion?.serie_guia_remitente ?? "");
+      setNumeroGuiaRemitente(programacion?.numero_guia_remitente ?? "");
+      setSerieGuiaTransportista(programacion?.serie_guia_transportista ?? "");
+      setNumeroGuiaTransportista(programacion?.numero_guia_transportista ?? "");
       setVehiculos(programacion?.visita?.vehiculos ?? []);
       setVisitantes(
         programacion?.visita?.detalles?.map((d: VisitaDetalleResponse) => ({
@@ -426,10 +443,10 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
     const idVeh = programacion?.id_vehiculo ?? idVehiculoEditado ?? null;
     const idTip = programacion?.id_tipo_vehiculo ?? idTipoVehiculoEditado ?? null;
     const idProv = programacion?.id_proveedor_minero ?? idProveedorMineroEditado ?? null;
-    const sGR = programacion?.serie_guia_remitente ?? "";
-    const nGR = programacion?.numero_guia_remitente ?? "";
-    const sGT = programacion?.serie_guia_transportista ?? "";
-    const nGT = programacion?.numero_guia_transportista ?? "";
+    const sGR = programacion?.serie_guia_remitente ?? serieGuiaRemitente ?? "";
+    const nGR = programacion?.numero_guia_remitente ?? numeroGuiaRemitente ?? "";
+    const sGT = programacion?.serie_guia_transportista ?? serieGuiaTransportista ?? "";
+    const nGT = programacion?.numero_guia_transportista ?? numeroGuiaTransportista ?? "";
 
     if (idVeh && idTip != null) {
       const vFound = vehiculosCatalog.find((v) => v.id_vehiculo === idVeh);
@@ -602,6 +619,14 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
     setIdMotivoIngreso,
     observacion,
     setObservacion,
+    serieGuiaRemitente,
+    setSerieGuiaRemitente,
+    numeroGuiaRemitente,
+    setNumeroGuiaRemitente,
+    serieGuiaTransportista,
+    setSerieGuiaTransportista,
+    numeroGuiaTransportista,
+    setNumeroGuiaTransportista,
     evidencias,
     setEvidencias,
     handleConductorCreado,

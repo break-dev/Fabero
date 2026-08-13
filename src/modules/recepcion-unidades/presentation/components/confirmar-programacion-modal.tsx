@@ -416,8 +416,9 @@ export const ConfirmarProgramacionModal = ({
                   label="Serie Remitente"
                   placeholder="Ej. 001"
                   radius="xl"
-                  value={ctrl.programacion?.serie_guia_remitente ?? ""}
-                  readOnly
+                  value={ctrl.programacion?.serie_guia_remitente ?? ctrl.serieGuiaRemitente}
+                  onChange={(e) => ctrl.setSerieGuiaRemitente(e.currentTarget.value)}
+                  readOnly={Boolean(ctrl.programacion?.serie_guia_remitente)}
                   disabled={confirmando}
                   rightSection={ctrl.programacion?.serie_guia_remitente ? <IconLock size={14} className="text-zinc-500" /> : undefined}
                   classNames={fieldClasses}
@@ -428,8 +429,9 @@ export const ConfirmarProgramacionModal = ({
                   label="Nro. Remitente"
                   placeholder="Ej. 123456"
                   radius="xl"
-                  value={ctrl.programacion?.numero_guia_remitente ?? ""}
-                  readOnly
+                  value={ctrl.programacion?.numero_guia_remitente ?? ctrl.numeroGuiaRemitente}
+                  onChange={(e) => ctrl.setNumeroGuiaRemitente(e.currentTarget.value)}
+                  readOnly={Boolean(ctrl.programacion?.numero_guia_remitente)}
                   disabled={confirmando}
                   rightSection={ctrl.programacion?.numero_guia_remitente ? <IconLock size={14} className="text-zinc-500" /> : undefined}
                   classNames={fieldClasses}
@@ -440,8 +442,9 @@ export const ConfirmarProgramacionModal = ({
                   label="Serie Transportista"
                   placeholder="Ej. 001"
                   radius="xl"
-                  value={ctrl.programacion?.serie_guia_transportista ?? ""}
-                  readOnly
+                  value={ctrl.programacion?.serie_guia_transportista ?? ctrl.serieGuiaTransportista}
+                  onChange={(e) => ctrl.setSerieGuiaTransportista(e.currentTarget.value)}
+                  readOnly={Boolean(ctrl.programacion?.serie_guia_transportista)}
                   disabled={confirmando}
                   rightSection={ctrl.programacion?.serie_guia_transportista ? <IconLock size={14} className="text-zinc-500" /> : undefined}
                   classNames={fieldClasses}
@@ -452,8 +455,9 @@ export const ConfirmarProgramacionModal = ({
                   label="Nro. Transportista"
                   placeholder="Ej. 123456"
                   radius="xl"
-                  value={ctrl.programacion?.numero_guia_transportista ?? ""}
-                  readOnly
+                  value={ctrl.programacion?.numero_guia_transportista ?? ctrl.numeroGuiaTransportista}
+                  onChange={(e) => ctrl.setNumeroGuiaTransportista(e.currentTarget.value)}
+                  readOnly={Boolean(ctrl.programacion?.numero_guia_transportista)}
                   disabled={confirmando}
                   rightSection={ctrl.programacion?.numero_guia_transportista ? <IconLock size={14} className="text-zinc-500" /> : undefined}
                   classNames={fieldClasses}
