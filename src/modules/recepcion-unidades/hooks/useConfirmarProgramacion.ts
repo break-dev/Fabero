@@ -63,6 +63,10 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
   const [idConductor, setIdConductor] = useState<number | null>(
     programacion?.id_conductor ?? null,
   );
+  const [idEmpresaTransporteEditado, setIdEmpresaTransporteEditado] = useState<number | null>(null);
+  const [idVehiculoEditado, setIdVehiculoEditado] = useState<number | null>(null);
+  const [idProveedorMineroEditado, setIdProveedorMineroEditado] = useState<number | null>(null);
+  const [idTipoVehiculoEditado, setIdTipoVehiculoEditado] = useState<number | null>(null);
 
   const [idMotivoIngreso, setIdMotivoIngreso] = useState<number | null>(
     programacion?.visita?.id_motivo_ingreso ?? null,
@@ -76,6 +80,13 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
   useEffect(() => {
     if (opened) {
       setEvidencias([]);
+      setIdEmpresaTransporteEditado(null);
+      setIdVehiculoEditado(null);
+      setIdProveedorMineroEditado(null);
+      setIdTipoVehiculoEditado(null);
+      setIdConductor(programacion?.id_conductor ?? null);
+      setIdMotivoIngreso(programacion?.visita?.id_motivo_ingreso ?? null);
+      setObservacion(programacion?.visita?.observacion ?? programacion?.observacion ?? "");
       setVehiculos(programacion?.visita?.vehiculos ?? []);
       setVisitantes(
         programacion?.visita?.detalles?.map((d: VisitaDetalleResponse) => ({
@@ -91,6 +102,7 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
         })) ?? [],
       );
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [programacion, opened]);
 
   const [vehiculos, setVehiculos] = useState<VehiculoAcompananteItem[]>(
@@ -161,6 +173,16 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
     cargarTodo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opened]);
+
+  useEffect(() => {
+    if (programacion?.id_tipo_vehiculo) return;
+    if (idVehiculoEditado == null) {
+      setIdTipoVehiculoEditado(null);
+      return;
+    }
+    const vFound = vehiculosCatalog.find((v) => v.id_vehiculo === idVehiculoEditado);
+    setIdTipoVehiculoEditado(vFound?.id_tipo_vehiculo ?? null);
+  }, [idVehiculoEditado, vehiculosCatalog, programacion?.id_tipo_vehiculo]);
 
   const handleConductorCreado = useCallback((c: RES_Conductor) => {
     setConductoresCatalog((prev) => [c, ...prev]);
@@ -389,14 +411,28 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
     visita?: ProgramacionVisitaPayload;
     updatedRecepcion: RecepcionUnidadResponse;
   } | null> => {
-    const idEmp = programacion?.id_empresa_transporte ?? null;
-    const idVeh = programacion?.id_vehiculo ?? null;
-    const idTip = programacion?.id_tipo_vehiculo ?? null;
-    const idProv = programacion?.id_proveedor_minero ?? null;
+    const idEmp = programacion?.id_empresa_transporte ?? idEmpresaTransporteEditado ?? null;
+    const idVeh = programacion?.id_vehiculo ?? idVehiculoEditado ?? null;
+    const idTip = programacion?.id_tipo_vehiculo ?? idTipoVehiculoEditado ?? null;
+    const idProv = programacion?.id_proveedor_minero ?? idProveedorMineroEditado ?? null;
     const sGR = programacion?.serie_guia_remitente ?? "";
     const nGR = programacion?.numero_guia_remitente ?? "";
     const sGT = programacion?.serie_guia_transportista ?? "";
     const nGT = programacion?.numero_guia_transportista ?? "";
+
+    if (idVeh && idTip != null) {
+      const vFound = vehiculosCatalog.find((v) => v.id_vehiculo === idVeh);
+      if (vFound && vFound.id_tipo_vehiculo !== idTip) {
+        try {
+          await AuxService.editar_vehiculo(idVeh, {
+            id_empresa_transporte: vFound.id_empresa_transporte,
+            id_tipo_vehiculo: idTip,
+          });
+        } catch (e) {
+          console.error("No se pudo actualizar el tipo de vehículo:", e);
+        }
+      }
+    }
 
     if (!idEmp) {
       notifyError("Debe seleccionar la Empresa de Transporte");
@@ -543,6 +579,14 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
     idConductor,
     setIdConductor,
     lockedConductor,
+    idEmpresaTransporteEditado,
+    setIdEmpresaTransporteEditado,
+    idVehiculoEditado,
+    setIdVehiculoEditado,
+    idProveedorMineroEditado,
+    setIdProveedorMineroEditado,
+    idTipoVehiculoEditado,
+    setIdTipoVehiculoEditado,
     idMotivoIngreso,
     setIdMotivoIngreso,
     observacion,

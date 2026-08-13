@@ -351,9 +351,18 @@ export const RegistroVisita = ({ onCancel, onSuccess }: Props) => {
 
   const visitantesPeatonales = visitantes.filter((v) => !v.id_visita_vehiculo);
 
+  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (visitantes.length === 0 && vehiculos.length === 0) {
+      notifyError("Debes agregar al menos un visitante o un vehículo acompañante.");
+      return;
+    }
+    submit(e);
+  };
+
   return (
     <>
-      <form onSubmit={submit} className="flex flex-col gap-6">
+      <form onSubmit={handleFormSubmit} className="flex flex-col gap-6">
         {error && (
           <Alert
             icon={<IconExclamationCircle size={16} />}
@@ -819,6 +828,7 @@ export const RegistroVisita = ({ onCancel, onSuccess }: Props) => {
           <Button
             type="submit"
             loading={loading}
+            disabled={visitantes.length === 0 && vehiculos.length === 0}
             radius="lg"
             leftSection={<IconDeviceFloppy size={18} />}
             className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-900/20"
