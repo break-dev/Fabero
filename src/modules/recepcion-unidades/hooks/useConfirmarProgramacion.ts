@@ -57,36 +57,11 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
   const [tiposVehiculoCatalog, setTiposVehiculoCatalog] = useState<RES_TipoVehiculo[]>([]);
   const [loadingCatalogos, setLoadingCatalogos] = useState(false);
 
-  const [idEmpresaTransporte, setIdEmpresaTransporte] = useState<number | null>(
-    programacion?.id_empresa_transporte ?? null,
-  );
-  const [idVehiculo, setIdVehiculo] = useState<number | null>(
-    programacion?.id_vehiculo ?? null,
-  );
-  const [idTipoVehiculo, setIdTipoVehiculo] = useState<number | null>(
-    programacion?.id_tipo_vehiculo ?? null,
-  );
   const [idSucursal, setIdSucursal] = useState<number | null>(
     programacion?.id_sucursal ?? useUIStore.getState().sucursal_elegida?.id_sucursal ?? useUIStore.getState().sucursales[0]?.id_sucursal ?? null,
   );
   const [idConductor, setIdConductor] = useState<number | null>(
     programacion?.id_conductor ?? null,
-  );
-  const [idProveedorMinero, setIdProveedorMinero] = useState<number | null>(
-    programacion?.id_proveedor_minero ?? null,
-  );
-
-  const [serieGuiaRemitente, setSerieGuiaRemitente] = useState<string>(
-    programacion?.serie_guia_remitente ?? "",
-  );
-  const [numeroGuiaRemitente, setNumeroGuiaRemitente] = useState<string>(
-    programacion?.numero_guia_remitente ?? "",
-  );
-  const [serieGuiaTransportista, setSerieGuiaTransportista] = useState<string>(
-    programacion?.serie_guia_transportista ?? "",
-  );
-  const [numeroGuiaTransportista, setNumeroGuiaTransportista] = useState<string>(
-    programacion?.numero_guia_transportista ?? "",
   );
 
   const [idMotivoIngreso, setIdMotivoIngreso] = useState<number | null>(
@@ -96,49 +71,27 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
     programacion?.visita?.observacion ?? programacion?.observacion ?? "",
   );
 
-  const lockedEmpresa = Boolean(programacion?.id_empresa_transporte);
-  const lockedVehiculo = Boolean(programacion?.id_vehiculo);
   const lockedConductor = Boolean(programacion?.id_conductor);
-  const lockedProveedor = Boolean(programacion?.id_proveedor_minero);
-  const lockedSerieRemitente = Boolean(programacion?.serie_guia_remitente);
-  const lockedNumeroRemitente = Boolean(programacion?.numero_guia_remitente);
-  const lockedSerieTransportista = Boolean(programacion?.serie_guia_transportista);
-  const lockedNumeroTransportista = Boolean(programacion?.numero_guia_transportista);
-
-  const resetForm = useCallback(() => {
-    setIdEmpresaTransporte(programacion?.id_empresa_transporte ?? null);
-    setIdVehiculo(programacion?.id_vehiculo ?? null);
-    setIdTipoVehiculo(programacion?.id_tipo_vehiculo ?? null);
-    setIdConductor(programacion?.id_conductor ?? null);
-    setIdProveedorMinero(programacion?.id_proveedor_minero ?? null);
-    setSerieGuiaRemitente(programacion?.serie_guia_remitente ?? "");
-    setNumeroGuiaRemitente(programacion?.numero_guia_remitente ?? "");
-    setSerieGuiaTransportista(programacion?.serie_guia_transportista ?? "");
-    setNumeroGuiaTransportista(programacion?.numero_guia_transportista ?? "");
-    setIdMotivoIngreso(programacion?.visita?.id_motivo_ingreso ?? null);
-    setObservacion(programacion?.visita?.observacion ?? programacion?.observacion ?? "");
-    setEvidencias([]);
-    setVehiculos(programacion?.visita?.vehiculos ?? []);
-    setVisitantes(
-      programacion?.visita?.detalles?.map((d: VisitaDetalleResponse) => ({
-        id_visitante: d.id_visitante,
-        id_visita_vehiculo: d.id_visita_vehiculo,
-        nombre: d.visitante_nombre,
-        apellido: d.visitante_apellido ?? "",
-        dni: d.visitante_dni ?? "",
-        telefono: d.visitante_telefono ?? "",
-        es_conductor: d.es_conductor,
-        foto_documento: [],
-        foto_documento_existente: d.url_foto_documento,
-      })) ?? [],
-    );
-  }, [programacion]);
 
   useEffect(() => {
     if (opened) {
-      resetForm();
+      setEvidencias([]);
+      setVehiculos(programacion?.visita?.vehiculos ?? []);
+      setVisitantes(
+        programacion?.visita?.detalles?.map((d: VisitaDetalleResponse) => ({
+          id_visitante: d.id_visitante,
+          id_visita_vehiculo: d.id_visita_vehiculo,
+          nombre: d.visitante_nombre,
+          apellido: d.visitante_apellido ?? "",
+          dni: d.visitante_dni ?? "",
+          telefono: d.visitante_telefono ?? "",
+          es_conductor: d.es_conductor,
+          foto_documento: [],
+          foto_documento_existente: d.url_foto_documento,
+        })) ?? [],
+      );
     }
-  }, [programacion, opened, resetForm]);
+  }, [programacion, opened]);
 
   const [vehiculos, setVehiculos] = useState<VehiculoAcompananteItem[]>(
     programacion?.visita?.vehiculos ?? [],
@@ -207,16 +160,7 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
     };
     cargarTodo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (idVehiculo && vehiculosCatalog.length > 0) {
-      const vFound = vehiculosCatalog.find((v) => v.id_vehiculo === idVehiculo);
-      if (vFound?.id_tipo_vehiculo) {
-        setIdTipoVehiculo(vFound.id_tipo_vehiculo);
-      }
-    }
-  }, [idVehiculo, vehiculosCatalog]);
+  }, [opened]);
 
   const handleConductorCreado = useCallback((c: RES_Conductor) => {
     setConductoresCatalog((prev) => [c, ...prev]);
@@ -226,18 +170,16 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
 
   const handleVehiculoCreado = useCallback((v: RES_Vehiculo) => {
     setVehiculosCatalog((prev) => [v, ...prev]);
-    setIdVehiculo(v.id_vehiculo);
     notifySuccess(`Vehículo registrado`);
   }, [notifySuccess]);
 
-  const handleTipoVehiculoCreado = useCallback(async (idTipo: number) => {
+  const handleTipoVehiculoCreado = useCallback(async (_idTipo: number) => {
     try {
       const tps = await AuxService.get_tipos_vehiculo();
       if (Array.isArray(tps)) {
         setTiposVehiculoCatalog(tps);
       }
-      setIdTipoVehiculo(idTipo);
-      notifySuccess(`Tipo de vehículo seleccionado`);
+      notifySuccess(`Tipo de vehículo registrado`);
     } catch (e) {
       console.error(e);
     }
@@ -251,7 +193,6 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
       estado: nueva.estado,
     };
     setEmpresasCatalog((prev) => [resEmp, ...prev.filter((e) => e.id_empresa_transporte !== nueva.id)]);
-    setIdEmpresaTransporte(nueva.id);
     notifySuccess(`Empresa ${nueva.razon_social} registrada`);
   }, [notifySuccess]);
 
@@ -264,7 +205,6 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
       telefono: nuevo.telefono,
     };
     setProveedoresCatalog((prev) => [resProv, ...prev.filter((p) => p.id_proveedor !== nuevo.id_proveedor)]);
-    setIdProveedorMinero(nuevo.id_proveedor);
     notifySuccess(`Proveedor ${nuevo.razon_social} registrado`);
   }, [notifySuccess]);
 
@@ -449,11 +389,20 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
     visita?: ProgramacionVisitaPayload;
     updatedRecepcion: RecepcionUnidadResponse;
   } | null> => {
-    if (!idEmpresaTransporte) {
+    const idEmp = programacion?.id_empresa_transporte ?? null;
+    const idVeh = programacion?.id_vehiculo ?? null;
+    const idTip = programacion?.id_tipo_vehiculo ?? null;
+    const idProv = programacion?.id_proveedor_minero ?? null;
+    const sGR = programacion?.serie_guia_remitente ?? "";
+    const nGR = programacion?.numero_guia_remitente ?? "";
+    const sGT = programacion?.serie_guia_transportista ?? "";
+    const nGT = programacion?.numero_guia_transportista ?? "";
+
+    if (!idEmp) {
       notifyError("Debe seleccionar la Empresa de Transporte");
       return null;
     }
-    if (!idVehiculo) {
+    if (!idVeh) {
       notifyError("Debe seleccionar el Vehículo");
       return null;
     }
@@ -475,16 +424,16 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
       if (programacion) {
         // MODO 1: Confirmar Programación existente
         const updatedRecepcion = await RecepcionUnidadesService.confirmarProgramacion(programacion.id, {
-          id_empresa_transporte: idEmpresaTransporte ?? undefined,
-          id_vehiculo: idVehiculo ?? undefined,
-          id_tipo_vehiculo: idTipoVehiculo ?? undefined,
+          id_empresa_transporte: idEmp ?? undefined,
+          id_vehiculo: idVeh ?? undefined,
+          id_tipo_vehiculo: idTip ?? undefined,
           id_sucursal: idSucursal ?? undefined,
           id_conductor: idConductor ?? undefined,
-          id_proveedor_minero: idProveedorMinero ?? undefined,
-          serie_guia_remitente: serieGuiaRemitente || undefined,
-          numero_guia_remitente: numeroGuiaRemitente || undefined,
-          serie_guia_transportista: serieGuiaTransportista || undefined,
-          numero_guia_transportista: numeroGuiaTransportista || undefined,
+          id_proveedor_minero: idProv ?? undefined,
+          serie_guia_remitente: sGR || undefined,
+          numero_guia_remitente: nGR || undefined,
+          serie_guia_transportista: sGT || undefined,
+          numero_guia_transportista: nGT || undefined,
         });
 
         const visitantesValidos = visitantes
@@ -519,11 +468,11 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
         }
 
         notifySuccess("Recepción confirmada correctamente");
-        resetForm();
+        setEvidencias([]);
         return { visita, updatedRecepcion };
       } else {
         // MODO 2: Registro Directo de Recepción (No Programada)
-        const vehiculoSel = vehiculosCatalog.find((v) => v.id_vehiculo === idVehiculo);
+        const vehiculoSel = vehiculosCatalog.find((v) => v.id_vehiculo === idVeh);
         const placa = vehiculoSel?.placa || "";
 
         const visitantesValidos = visitantes
@@ -542,17 +491,17 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
         const hasVisitaInfo = visitantesValidos.length > 0 || vehiculos.length > 0;
 
         const payload: CrearRecepcionRequest = {
-          id_vehiculo: idVehiculo,
+          id_vehiculo: idVeh,
           placa: placa || undefined,
-          id_empresa_transporte: idEmpresaTransporte,
-          id_tipo_vehiculo: idTipoVehiculo || undefined,
+          id_empresa_transporte: idEmp,
+          id_tipo_vehiculo: idTip || undefined,
           id_conductor: idConductor,
-          id_proveedor_minero: idProveedorMinero || undefined,
+          id_proveedor_minero: idProv || undefined,
           id_sucursal: sucursalTarget,
-          serie_guia_remitente: serieGuiaRemitente || undefined,
-          numero_guia_remitente: numeroGuiaRemitente || undefined,
-          serie_guia_transportista: serieGuiaTransportista || undefined,
-          numero_guia_transportista: numeroGuiaTransportista || undefined,
+          serie_guia_remitente: sGR || undefined,
+          numero_guia_remitente: nGR || undefined,
+          serie_guia_transportista: sGT || undefined,
+          numero_guia_transportista: nGT || undefined,
           id_motivo_ingreso: hasVisitaInfo ? motivoFinal : undefined,
           observacion: observacion || undefined,
           evidencias,
@@ -567,7 +516,7 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
 
         const created = await RecepcionUnidadesService.crearRecepcion(payload);
         notifySuccess("Recepción de unidad registrada correctamente");
-        resetForm();
+        setEvidencias([]);
         return { updatedRecepcion: created };
       }
     } catch (e) {
@@ -580,6 +529,7 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
   };
 
   return {
+    programacion,
     motivos,
     loadingMotivos,
     empresasCatalog,
@@ -587,43 +537,12 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
     conductoresCatalog,
     proveedoresCatalog,
     loadingCatalogos,
-    idEmpresaTransporte,
-    setIdEmpresaTransporte,
-    lockedEmpresa,
-    idVehiculo,
-    setIdVehiculo: (val: number | null) => {
-      setIdVehiculo(val);
-      if (val) {
-        const vFound = vehiculosCatalog.find((v) => v.id_vehiculo === val);
-        if (vFound?.id_tipo_vehiculo) {
-          setIdTipoVehiculo(vFound.id_tipo_vehiculo);
-        }
-      }
-    },
-    lockedVehiculo,
     tiposVehiculoCatalog,
-    idTipoVehiculo,
-    setIdTipoVehiculo,
     idSucursal,
     setIdSucursal,
     idConductor,
     setIdConductor,
     lockedConductor,
-    idProveedorMinero,
-    setIdProveedorMinero,
-    lockedProveedor,
-    serieGuiaRemitente,
-    setSerieGuiaRemitente,
-    lockedSerieRemitente,
-    numeroGuiaRemitente,
-    setNumeroGuiaRemitente,
-    lockedNumeroRemitente,
-    serieGuiaTransportista,
-    setSerieGuiaTransportista,
-    lockedSerieTransportista,
-    numeroGuiaTransportista,
-    setNumeroGuiaTransportista,
-    lockedNumeroTransportista,
     idMotivoIngreso,
     setIdMotivoIngreso,
     observacion,

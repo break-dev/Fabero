@@ -171,17 +171,18 @@ export const ConfirmarProgramacionModal = ({
                   label="Empresa de Transporte"
                   placeholder={ctrl.loadingCatalogos ? "Cargando..." : "Seleccione la empresa"}
                   data={empresasOptions}
-                  value={ctrl.idEmpresaTransporte ? String(ctrl.idEmpresaTransporte) : null}
-                  onChange={(val) => ctrl.setIdEmpresaTransporte(val ? Number(val) : null)}
+                  value={ctrl.programacion?.id_empresa_transporte ? String(ctrl.programacion.id_empresa_transporte) : null}
+                  onChange={() => {}}
                   leftSection={<IconBuildingFactory className="w-4 h-4 text-zinc-500" />}
                   searchable
                   withAsterisk
                   required
                   radius="xl"
                   className="flex-1"
-                  disabled={ctrl.lockedEmpresa || ctrl.loadingCatalogos || confirmando}
+                  disabled={confirmando}
+                  readOnly
                   rightSection={
-                    ctrl.lockedEmpresa ? (
+                    ctrl.programacion?.id_empresa_transporte ? (
                       <IconLock size={14} className="text-zinc-500" />
                     ) : ctrl.loadingCatalogos ? (
                       <Loader size={16} />
@@ -189,7 +190,7 @@ export const ConfirmarProgramacionModal = ({
                   }
                   classNames={fieldClasses}
                 />
-                {!ctrl.lockedEmpresa && (
+                {ctrl.programacion == null && (
                   <Tooltip label="Registrar Nueva Empresa de Transporte" withArrow>
                     <ActionIcon
                       type="button"
@@ -214,16 +215,16 @@ export const ConfirmarProgramacionModal = ({
                   label="Vehículo"
                   placeholder={ctrl.loadingCatalogos ? "Cargando..." : "Seleccione vehículo"}
                   data={vehiculosOptions}
-                  value={ctrl.idVehiculo ? String(ctrl.idVehiculo) : null}
-                  onChange={(val) => ctrl.setIdVehiculo(val ? Number(val) : null)}
+                  value={ctrl.programacion?.id_vehiculo ? String(ctrl.programacion.id_vehiculo) : null}
+                  onChange={() => {}}
                   leftSection={<IconTruck className="w-4 h-4 text-zinc-500" />}
                   searchable
-                  clearable={!ctrl.lockedVehiculo}
                   radius="xl"
                   className="flex-1"
-                  disabled={ctrl.lockedVehiculo || ctrl.loadingCatalogos || confirmando}
+                  disabled={confirmando}
+                  readOnly
                   rightSection={
-                    ctrl.lockedVehiculo ? (
+                    ctrl.programacion?.id_vehiculo ? (
                       <IconLock size={14} className="text-zinc-500" />
                     ) : ctrl.loadingCatalogos ? (
                       <Loader size={16} />
@@ -231,7 +232,7 @@ export const ConfirmarProgramacionModal = ({
                   }
                   classNames={fieldClasses}
                 />
-                {!ctrl.lockedVehiculo && (
+                {ctrl.programacion == null && (
                   <Tooltip label="Registrar Nuevo Vehículo" withArrow>
                     <ActionIcon
                       type="button"
@@ -298,16 +299,16 @@ export const ConfirmarProgramacionModal = ({
                   label="Proveedor Minero"
                   placeholder={ctrl.loadingCatalogos ? "Cargando..." : "Seleccione proveedor"}
                   data={proveedoresOptions}
-                  value={ctrl.idProveedorMinero ? String(ctrl.idProveedorMinero) : null}
-                  onChange={(val) => ctrl.setIdProveedorMinero(val ? Number(val) : null)}
+                  value={ctrl.programacion?.id_proveedor_minero ? String(ctrl.programacion.id_proveedor_minero) : null}
+                  onChange={() => {}}
                   leftSection={<IconUser className="w-4 h-4 text-zinc-500" />}
                   searchable
-                  clearable={!ctrl.lockedProveedor}
                   radius="xl"
                   className="flex-1"
-                  disabled={ctrl.lockedProveedor || ctrl.loadingCatalogos || confirmando}
+                  disabled={confirmando}
+                  readOnly
                   rightSection={
-                    ctrl.lockedProveedor ? (
+                    ctrl.programacion?.id_proveedor_minero ? (
                       <IconLock size={14} className="text-zinc-500" />
                     ) : ctrl.loadingCatalogos ? (
                       <Loader size={16} />
@@ -315,7 +316,7 @@ export const ConfirmarProgramacionModal = ({
                   }
                   classNames={fieldClasses}
                 />
-                {!ctrl.lockedProveedor && (
+                {ctrl.programacion == null && (
                   <Tooltip label="Registrar Nuevo Proveedor Minero" withArrow>
                     <ActionIcon
                       type="button"
@@ -340,34 +341,39 @@ export const ConfirmarProgramacionModal = ({
                   label="Tipo de Vehículo"
                   placeholder={ctrl.loadingCatalogos ? "Cargando..." : "Seleccione tipo de vehículo"}
                   data={tiposVehiculoOptions}
-                  value={ctrl.idTipoVehiculo ? String(ctrl.idTipoVehiculo) : null}
-                  onChange={(val) => ctrl.setIdTipoVehiculo(val ? Number(val) : null)}
+                  value={ctrl.programacion?.id_tipo_vehiculo ? String(ctrl.programacion.id_tipo_vehiculo) : null}
+                  onChange={() => {}}
                   leftSection={<IconTruck className="w-4 h-4 text-zinc-500" />}
                   searchable
                   radius="xl"
                   className="flex-1"
-                  disabled={ctrl.loadingCatalogos || confirmando}
+                  disabled={confirmando}
+                  readOnly
                   rightSection={
-                    ctrl.loadingCatalogos ? (
+                    ctrl.programacion?.id_tipo_vehiculo ? (
+                      <IconLock size={14} className="text-zinc-500" />
+                    ) : ctrl.loadingCatalogos ? (
                       <Loader size={16} />
                     ) : undefined
                   }
                   classNames={fieldClasses}
                 />
-                <Tooltip label="Registrar Tipo de Vehículo" withArrow>
-                  <ActionIcon
-                    type="button"
-                    variant="filled"
-                    color="zinc"
-                    radius="xl"
-                    size="lg"
-                    disabled={confirmando}
-                    onClick={() => setOpenTipoVehiculoModal(true)}
-                    className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700"
-                  >
-                    <IconPlus size={18} />
-                  </ActionIcon>
-                </Tooltip>
+                {ctrl.programacion == null && (
+                  <Tooltip label="Registrar Tipo de Vehículo" withArrow>
+                    <ActionIcon
+                      type="button"
+                      variant="filled"
+                      color="zinc"
+                      radius="xl"
+                      size="lg"
+                      disabled={confirmando}
+                      onClick={() => setOpenTipoVehiculoModal(true)}
+                      className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700"
+                    >
+                      <IconPlus size={18} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
               </div>
             </Grid.Col>
           </Grid>
@@ -386,10 +392,10 @@ export const ConfirmarProgramacionModal = ({
                   label="Serie Remitente"
                   placeholder="Ej. 001"
                   radius="xl"
-                  value={ctrl.serieGuiaRemitente}
-                  onChange={(e) => ctrl.setSerieGuiaRemitente(e.target.value.toUpperCase())}
-                  disabled={ctrl.lockedSerieRemitente || confirmando}
-                  rightSection={ctrl.lockedSerieRemitente ? <IconLock size={14} className="text-zinc-500" /> : undefined}
+                  value={ctrl.programacion?.serie_guia_remitente ?? ""}
+                  readOnly
+                  disabled={confirmando}
+                  rightSection={ctrl.programacion?.serie_guia_remitente ? <IconLock size={14} className="text-zinc-500" /> : undefined}
                   classNames={fieldClasses}
                 />
               </Grid.Col>
@@ -398,10 +404,10 @@ export const ConfirmarProgramacionModal = ({
                   label="Nro. Remitente"
                   placeholder="Ej. 123456"
                   radius="xl"
-                  value={ctrl.numeroGuiaRemitente}
-                  onChange={(e) => ctrl.setNumeroGuiaRemitente(e.target.value)}
-                  disabled={ctrl.lockedNumeroRemitente || confirmando}
-                  rightSection={ctrl.lockedNumeroRemitente ? <IconLock size={14} className="text-zinc-500" /> : undefined}
+                  value={ctrl.programacion?.numero_guia_remitente ?? ""}
+                  readOnly
+                  disabled={confirmando}
+                  rightSection={ctrl.programacion?.numero_guia_remitente ? <IconLock size={14} className="text-zinc-500" /> : undefined}
                   classNames={fieldClasses}
                 />
               </Grid.Col>
@@ -410,10 +416,10 @@ export const ConfirmarProgramacionModal = ({
                   label="Serie Transportista"
                   placeholder="Ej. 001"
                   radius="xl"
-                  value={ctrl.serieGuiaTransportista}
-                  onChange={(e) => ctrl.setSerieGuiaTransportista(e.target.value.toUpperCase())}
-                  disabled={ctrl.lockedSerieTransportista || confirmando}
-                  rightSection={ctrl.lockedSerieTransportista ? <IconLock size={14} className="text-zinc-500" /> : undefined}
+                  value={ctrl.programacion?.serie_guia_transportista ?? ""}
+                  readOnly
+                  disabled={confirmando}
+                  rightSection={ctrl.programacion?.serie_guia_transportista ? <IconLock size={14} className="text-zinc-500" /> : undefined}
                   classNames={fieldClasses}
                 />
               </Grid.Col>
@@ -422,10 +428,10 @@ export const ConfirmarProgramacionModal = ({
                   label="Nro. Transportista"
                   placeholder="Ej. 123456"
                   radius="xl"
-                  value={ctrl.numeroGuiaTransportista}
-                  onChange={(e) => ctrl.setNumeroGuiaTransportista(e.target.value)}
-                  disabled={ctrl.lockedNumeroTransportista || confirmando}
-                  rightSection={ctrl.lockedNumeroTransportista ? <IconLock size={14} className="text-zinc-500" /> : undefined}
+                  value={ctrl.programacion?.numero_guia_transportista ?? ""}
+                  readOnly
+                  disabled={confirmando}
+                  rightSection={ctrl.programacion?.numero_guia_transportista ? <IconLock size={14} className="text-zinc-500" /> : undefined}
                   classNames={fieldClasses}
                 />
               </Grid.Col>
@@ -839,8 +845,8 @@ export const ConfirmarProgramacionModal = ({
           size="md"
         >
           <RegistroVehiculoSimple
-            idEmpresaTransporte={ctrl.idEmpresaTransporte}
-            idTipoVehiculo={ctrl.idTipoVehiculo}
+            idEmpresaTransporte={null}
+            idTipoVehiculo={null}
             onCancel={() => setOpenVehiculoSimpleModal(false)}
             onSuccess={(v) => {
               ctrl.handleVehiculoCreado(v);
