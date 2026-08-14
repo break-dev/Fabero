@@ -197,7 +197,7 @@ export const ConfirmarProgramacionModal = ({
                   classNames={fieldClasses}
                 />
                 {!ctrl.programacion?.id_empresa_transporte && (
-                  <Tooltip label="Registrar Nueva Empresa de Transporte" withArrow>
+                  <Tooltip label="Nueva Empresa de Transporte" withArrow>
                     <ActionIcon
                       type="button"
                       variant="filled"
@@ -906,7 +906,7 @@ export const ConfirmarProgramacionModal = ({
         <ModalEstandar
           opened={openEmpresaModal}
           close={() => setOpenEmpresaModal(false)}
-          title="Registrar Nueva Empresa de Transporte"
+          title="Nueva Empresa de Transporte"
           size="lg"
         >
           <RegistroEmpresaTransporte

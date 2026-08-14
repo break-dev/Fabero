@@ -307,7 +307,7 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
                   onChange={(e) => setPesoInicial(e.currentTarget.value.replace(/\D/g, ""))}
                   classNames={{
                     input:
-                      "bg-zinc-900/60 border-zinc-800 text-center font-bold text-lg text-white focus:border-zinc-300 transition-all",
+                      "bg-zinc-900/60 border-zinc-800 text-center font-bold text-white focus:border-zinc-300 transition-all",
                   }}
                   radius="lg"
                 />

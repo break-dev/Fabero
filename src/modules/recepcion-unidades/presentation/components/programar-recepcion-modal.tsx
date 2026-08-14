@@ -125,7 +125,7 @@ export const ProgramarRecepcionModal = ({ opened, onClose, onSuccess }: Props) =
                   classNames={fieldClasses}
                   className="flex-1"
                 />
-                <Tooltip label="Registrar nueva empresa de transporte">
+                <Tooltip label="Nueva empresa de transporte">
                   <ActionIcon
                     type="button"
                     variant="filled"
@@ -329,7 +329,7 @@ export const ProgramarRecepcionModal = ({ opened, onClose, onSuccess }: Props) =
       <ModalEstandar
         opened={openEmpresaModal}
         close={() => setOpenEmpresaModal(false)}
-        title="Registrar Nueva Empresa de Transporte"
+        title="Nueva Empresa de Transporte"
         size="lg"
       >
         <RegistroEmpresaTransporte

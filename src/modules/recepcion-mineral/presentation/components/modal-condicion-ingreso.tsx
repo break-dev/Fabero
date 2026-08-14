@@ -37,7 +37,7 @@ export const ModalCondicionIngreso = ({
     <ModalEstandar
       opened={opened}
       close={onClose}
-      title="Generar Lote de Mineral"
+      title="Nuevo Lote"
       size="md"
     >
       <div className="flex flex-col gap-4 p-2">

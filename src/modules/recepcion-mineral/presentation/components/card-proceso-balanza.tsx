@@ -36,7 +36,7 @@ interface CardProcesoBalanzaProps {
     recepcionId: number,
     field: string,
     currentValue: string,
-    extraValue?: string | null
+    extraValue?: string | null,
   ) => void;
   handleSaveField: (recepcionId: number, field: string) => Promise<void>;
   openedPopover: string | null;
@@ -125,20 +125,6 @@ export const CardProcesoBalanza = ({
     );
   };
 
-  const getValidatedCount = (recepcion: RecepcionMineralResponse) => {
-    const val = recepcion.validacion_datos;
-    if (!val) return 0;
-    let count = 0;
-    if (val.condicion_ingreso) count++;
-    if (val.tipo_carga) count++;
-    if (val.placa) count++;
-    if (val.empresa_transporte) count++;
-    if (val.tipo_vehiculo) count++;
-    if (val.segunda_placa) count++;
-    if (val.conductor) count++;
-    return count;
-  };
-
   const canCloseProceso = (recepcion: RecepcionMineralResponse) => {
     if (!isValidationComplete(recepcion)) return false;
     if (!recepcion.lotes || recepcion.lotes.length === 0) return false;
@@ -146,14 +132,14 @@ export const CardProcesoBalanza = ({
   };
 
   const valComplete = isValidationComplete(ru);
-  const valCount = getValidatedCount(ru);
   const isFicticio = ru.tipo_ingreso === "Ficticio";
   const lotesAMostrar = ru.lotes || [];
 
   const fieldClasses = {
     input:
       "bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all h-[38px]",
-    label: "text-zinc-400 mb-1 font-medium text-xs ml-1 flex items-center gap-1.5",
+    label:
+      "text-zinc-400 mb-1 font-medium text-xs ml-1 flex items-center gap-1.5",
   };
 
   return (
@@ -174,51 +160,39 @@ export const CardProcesoBalanza = ({
             }`}
           />
           <div>
-            <div className="flex items-center gap-2">
-              <Text
-                size="xs"
-                fw={700}
-                className={`tracking-wider ${
-                  isFicticio ? "text-indigo-400" : "text-amber-400"
-                }`}
-              >
-                PROCESO DE BALANZA ACTIVO
-              </Text>
-              {isFicticio && (
-                <Badge variant="dot" color="indigo" size="xs">
-                  Ficticia
-                </Badge>
-              )}
-            </div>
             <Text size="sm" fw={700} className="text-white font-mono">
               Unidad:{" "}
-              <span className="text-zinc-100 font-bold">
+              <span className="text-amber-400 font-bold">
                 {getFullPlaca(
                   isFicticio ? null : ru.vehiculo_serie,
-                  ru.vehiculo_placa
+                  ru.vehiculo_placa,
                 )}
               </span>
             </Text>
+            {isFicticio && (
+              <Badge variant="dot" color="indigo" size="xs">
+                Ficticia
+              </Badge>
+            )}
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <Badge
-            variant="filled"
-            color={
-              valCount === 7 ? "emerald" : valCount > 0 ? "amber" : "gray"
-            }
-            size="sm"
+          {/* Botón Cerrar Proceso de Balanza */}
+          <Button
             radius="lg"
-            leftSection={valCount === 7 ? <IconCheck size={12} /> : undefined}
-            className="font-semibold"
+            disabled={!canCloseProceso(ru)}
+            loading={closingProcesoId === ru.id}
+            onClick={() => cerrarProceso(ru.id)}
+            size="xs"
+            className={`font-bold ${
+              canCloseProceso(ru)
+                ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-900/20"
+                : "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-800"
+            }`}
           >
-            {valCount === 7
-              ? "Vigilancia 100% Validada"
-              : `Vigilancia: ${valCount}/7 Validado${
-                  valCount === 1 ? "" : "s"
-                }`}
-          </Badge>
+            Cerrar Proceso
+          </Button>
 
           <div className="text-right border-l border-zinc-800/80 pl-3">
             <Text
@@ -237,9 +211,6 @@ export const CardProcesoBalanza = ({
 
       {/* Sección de Validación de Vigilancia (Cards Slim) */}
       <div className="flex flex-col gap-2">
-        <Text size="xs" fw={700} c="dimmed" className="uppercase tracking-wider">
-          Validación de Datos de Vigilancia
-        </Text>
         <Grid gutter="xs">
           {/* 1. Condición Ingreso */}
           <Grid.Col span={{ base: 12, sm: 6, md: 4, lg: 2 }}>
@@ -262,7 +233,7 @@ export const CardProcesoBalanza = ({
                     handleOpenPopover(
                       ru.id,
                       "condicion_ingreso",
-                      ru.tipo_ingreso || ""
+                      ru.tipo_ingreso || "",
                     )
                   }
                   className={`px-3 py-2 cursor-pointer border rounded-xl flex flex-col justify-between h-14 transition-all duration-200 ${
@@ -281,7 +252,10 @@ export const CardProcesoBalanza = ({
                       CONDICIÓN
                     </Text>
                     {ru.validacion_datos.condicion_ingreso ? (
-                      <IconCheck size={12} className="text-emerald-400 shrink-0" />
+                      <IconCheck
+                        size={12}
+                        className="text-emerald-400 shrink-0"
+                      />
                     ) : (
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
                     )}
@@ -347,7 +321,7 @@ export const CardProcesoBalanza = ({
                     handleOpenPopover(
                       ru.id,
                       "tipo_carga",
-                      ru.tipo_carga || "Granel"
+                      ru.tipo_carga || "Granel",
                     )
                   }
                   className={`px-3 py-2 cursor-pointer border rounded-xl flex flex-col justify-between h-14 transition-all duration-200 ${
@@ -366,7 +340,10 @@ export const CardProcesoBalanza = ({
                       CARGA
                     </Text>
                     {ru.validacion_datos.tipo_carga ? (
-                      <IconCheck size={12} className="text-emerald-400 shrink-0" />
+                      <IconCheck
+                        size={12}
+                        className="text-emerald-400 shrink-0"
+                      />
                     ) : (
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
                     )}
@@ -429,11 +406,7 @@ export const CardProcesoBalanza = ({
               <Popover.Target>
                 <Paper
                   onClick={() =>
-                    handleOpenPopover(
-                      ru.id,
-                      "placa",
-                      ru.vehiculo_placa || ""
-                    )
+                    handleOpenPopover(ru.id, "placa", ru.vehiculo_placa || "")
                   }
                   className={`px-3 py-2 cursor-pointer border rounded-xl flex flex-col justify-between h-14 transition-all duration-200 ${
                     ru.validacion_datos.placa
@@ -451,7 +424,10 @@ export const CardProcesoBalanza = ({
                       PLACA 1
                     </Text>
                     {ru.validacion_datos.placa ? (
-                      <IconCheck size={12} className="text-emerald-400 shrink-0" />
+                      <IconCheck
+                        size={12}
+                        className="text-emerald-400 shrink-0"
+                      />
                     ) : (
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
                     )}
@@ -521,7 +497,7 @@ export const CardProcesoBalanza = ({
                       "empresa_transporte",
                       ru.id_empresa_transporte
                         ? String(ru.id_empresa_transporte)
-                        : ""
+                        : "",
                     )
                   }
                   className={`px-3 py-2 cursor-pointer border rounded-xl flex flex-col justify-between h-14 transition-all duration-200 ${
@@ -540,7 +516,10 @@ export const CardProcesoBalanza = ({
                       EMP. TRANSPORTE
                     </Text>
                     {ru.validacion_datos.empresa_transporte ? (
-                      <IconCheck size={12} className="text-emerald-400 shrink-0" />
+                      <IconCheck
+                        size={12}
+                        className="text-emerald-400 shrink-0"
+                      />
                     ) : (
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
                     )}
@@ -610,7 +589,7 @@ export const CardProcesoBalanza = ({
                     handleOpenPopover(
                       ru.id,
                       "tipo_vehiculo",
-                      ru.id_tipo_vehiculo ? String(ru.id_tipo_vehiculo) : ""
+                      ru.id_tipo_vehiculo ? String(ru.id_tipo_vehiculo) : "",
                     )
                   }
                   className={`px-3 py-2 cursor-pointer border rounded-xl flex flex-col justify-between h-14 transition-all duration-200 ${
@@ -629,7 +608,10 @@ export const CardProcesoBalanza = ({
                       TIPO VEHÍCULO
                     </Text>
                     {ru.validacion_datos.tipo_vehiculo ? (
-                      <IconCheck size={12} className="text-emerald-400 shrink-0" />
+                      <IconCheck
+                        size={12}
+                        className="text-emerald-400 shrink-0"
+                      />
                     ) : (
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
                     )}
@@ -699,7 +681,7 @@ export const CardProcesoBalanza = ({
                     handleOpenPopover(
                       ru.id,
                       "segunda_placa",
-                      ru.segunda_placa || ""
+                      ru.segunda_placa || "",
                     )
                   }
                   className={`px-3 py-2 cursor-pointer border rounded-xl flex flex-col justify-between h-14 transition-all duration-200 ${
@@ -718,7 +700,10 @@ export const CardProcesoBalanza = ({
                       PLACA ACOPLE
                     </Text>
                     {ru.validacion_datos.segunda_placa ? (
-                      <IconCheck size={12} className="text-emerald-400 shrink-0" />
+                      <IconCheck
+                        size={12}
+                        className="text-emerald-400 shrink-0"
+                      />
                     ) : (
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
                     )}
@@ -786,7 +771,7 @@ export const CardProcesoBalanza = ({
                     handleOpenPopover(
                       ru.id,
                       "conductor",
-                      ru.id_conductor ? String(ru.id_conductor) : ""
+                      ru.id_conductor ? String(ru.id_conductor) : "",
                     )
                   }
                   className={`px-3 py-2 cursor-pointer border rounded-xl flex flex-col justify-between h-14 transition-all duration-200 ${
@@ -805,7 +790,10 @@ export const CardProcesoBalanza = ({
                       CONDUCTOR
                     </Text>
                     {ru.validacion_datos.conductor ? (
-                      <IconCheck size={12} className="text-emerald-400 shrink-0" />
+                      <IconCheck
+                        size={12}
+                        className="text-emerald-400 shrink-0"
+                      />
                     ) : (
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
                     )}
@@ -869,7 +857,7 @@ export const CardProcesoBalanza = ({
       </div>
 
       {/* Sección Lotes */}
-      <div className="border border-zinc-900/60 rounded-3xl p-4 bg-zinc-950/20">
+      <div className="border border-zinc-900/60 rounded-3xl p-4 pt-0 bg-zinc-950/20">
         <Group
           justify="space-between"
           mb="md"
@@ -877,17 +865,8 @@ export const CardProcesoBalanza = ({
         >
           <Group gap="xs">
             <Text size="sm" fw={700} className="text-zinc-200">
-              Lotes de Mineral Asociados
+              Lotes
             </Text>
-            {!valComplete && (
-              <Text
-                size="11px"
-                className="text-amber-500 font-semibold italic"
-              >
-                * Debe validar todos los datos de vigilancia para poder
-                agregar lotes.
-              </Text>
-            )}
           </Group>
           <Button
             size="xs"
@@ -953,10 +932,7 @@ export const CardProcesoBalanza = ({
                       <td>
                         <Group gap={6} wrap="nowrap">
                           {barcodeUrl ? (
-                            <Tooltip
-                              label="Ver / reimprimir ticket"
-                              withArrow
-                            >
+                            <Tooltip label="Ver / reimprimir ticket" withArrow>
                               <ActionIcon
                                 variant="default"
                                 radius="sm"
@@ -989,7 +965,7 @@ export const CardProcesoBalanza = ({
                       </td>
                       <td>
                         <Text size="xs" className="text-zinc-300">
-                          {lote.numero_correlativo}
+                          -
                         </Text>
                       </td>
                       <td className="text-right">
@@ -1047,23 +1023,6 @@ export const CardProcesoBalanza = ({
             </tbody>
           </Table>
         </div>
-      </div>
-
-      {/* Botón Cerrar Proceso de Balanza */}
-      <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-zinc-900">
-        <Button
-          radius="lg"
-          disabled={!canCloseProceso(ru)}
-          loading={closingProcesoId === ru.id}
-          onClick={() => cerrarProceso(ru.id)}
-          className={`font-bold ${
-            canCloseProceso(ru)
-              ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-900/20"
-              : "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-800"
-          }`}
-        >
-          Cerrar Proceso de Balanza
-        </Button>
       </div>
     </Paper>
   );

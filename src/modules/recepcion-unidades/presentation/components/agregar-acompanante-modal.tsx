@@ -1,11 +1,5 @@
 import { useState } from "react";
-import {
-  Stack,
-  Group,
-  Button,
-  TextInput,
-  Text,
-} from "@mantine/core";
+import { Stack, Group, Button, TextInput } from "@mantine/core";
 import { FileButton } from "@mantine/core";
 import { IconFileUpload, IconUserCheck } from "@tabler/icons-react";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
@@ -42,12 +36,17 @@ export const AgregarAcompananteModal = ({
   const [apellido, setApellido] = useState(datosIniciales?.apellido ?? "");
   const [dni, setDni] = useState(datosIniciales?.dni ?? "");
   const [telefono, setTelefono] = useState(datosIniciales?.telefono ?? "");
-  const [fotos, setFotos] = useState<File[]>(datosIniciales?.foto_documento ?? []);
+  const [fotos, setFotos] = useState<File[]>(
+    datosIniciales?.foto_documento ?? [],
+  );
   const [errorNombre, setErrorNombre] = useState<string | null>(null);
 
   const [prevProps, setPrevProps] = useState({ datosIniciales, opened });
 
-  if (prevProps.datosIniciales !== datosIniciales || prevProps.opened !== opened) {
+  if (
+    prevProps.datosIniciales !== datosIniciales ||
+    prevProps.opened !== opened
+  ) {
     setPrevProps({ datosIniciales, opened });
     setNombre(datosIniciales?.nombre ?? "");
     setApellido(datosIniciales?.apellido ?? "");
@@ -87,15 +86,11 @@ export const AgregarAcompananteModal = ({
     <ModalEstandar
       opened={opened}
       close={handleClose}
-      title={isEditing ? "Editar Acompañante de Unidad" : "Agregar Acompañante de Unidad"}
+      title={isEditing ? "Editar Acompañante" : "Agregar Acompañante"}
       size="md"
     >
       <form onSubmit={handleSubmit}>
         <Stack gap="md">
-          <Text size="xs" c="zinc.5">
-            Ingresa o actualiza los datos de la persona que viaja dentro de la unidad principal de recepción.
-          </Text>
-
           <TextInput
             label="Nombre"
             placeholder="Nombre completo o primer nombre"
@@ -125,7 +120,9 @@ export const AgregarAcompananteModal = ({
               placeholder="Ej. 12345678"
               maxLength={8}
               value={dni}
-              onChange={(e) => setDni(e.target.value.replace(/\D/g, "").slice(0, 8))}
+              onChange={(e) =>
+                setDni(e.target.value.replace(/\D/g, "").slice(0, 8))
+              }
               radius="xl"
               classNames={fieldClasses}
             />
@@ -140,7 +137,11 @@ export const AgregarAcompananteModal = ({
             />
           </Group>
 
-          <Group align="center" justify="space-between" className="pt-2 border-t border-zinc-800">
+          <Group
+            align="center"
+            justify="space-between"
+            className="pt-2 border-t border-zinc-800"
+          >
             <FileButton
               multiple
               accept="image/*"
@@ -155,7 +156,9 @@ export const AgregarAcompananteModal = ({
                   leftSection={<IconFileUpload size={14} />}
                   className="bg-zinc-800! text-zinc-300! border-zinc-700!"
                 >
-                  {fotos.length > 0 ? `${fotos.length} foto(s) seleccionada(s)` : "Adjuntar Foto / Doc."}
+                  {fotos.length > 0
+                    ? `${fotos.length} foto(s) seleccionada(s)`
+                    : "Adjuntar Foto / Doc."}
                 </Button>
               )}
             </FileButton>

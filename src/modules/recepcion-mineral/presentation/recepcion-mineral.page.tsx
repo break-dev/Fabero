@@ -135,11 +135,23 @@ export const RecepcionMineralPage = () => {
         <Grid columns={24} gutter="md">
           {/* Lateral Izquierdo: Unidades en Planta (Sin Pesar) */}
           <Grid.Col span={{ base: 24, sm: 8, md: 6, lg: 5 }}>
-            <Paper radius="lg" p="md" className="bg-zinc-950/40 border border-zinc-900/80 min-h-125 h-full flex flex-col gap-4">
+            <Paper
+              radius="lg"
+              p="md"
+              className="bg-zinc-950/40 border border-zinc-900/80 min-h-125 h-full flex flex-col gap-4"
+            >
               <div className="border-b border-zinc-900 pb-3 flex justify-between items-center gap-1 w-full">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <IconChecklist size={18} className="text-indigo-400 shrink-0" />
-                  <Text size="sm" fw={700} className="text-zinc-100 truncate" title="Unidades en Planta">
+                  <IconChecklist
+                    size={18}
+                    className="text-indigo-400 shrink-0"
+                  />
+                  <Text
+                    size="sm"
+                    fw={700}
+                    className="text-zinc-100 truncate"
+                    title="Unidades en Planta"
+                  >
                     Unidades en Planta
                   </Text>
                 </div>
@@ -165,17 +177,21 @@ export const RecepcionMineralPage = () => {
                 ) : (
                   sinPesarList.map((ru) => {
                     const isSelected = selectedRecepcion?.id === ru.id;
-                    const formatFechaHora = (s: string | null | undefined): { fecha: string; hora: string } => {
+                    const formatFechaHora = (
+                      s: string | null | undefined,
+                    ): { fecha: string; hora: string } => {
                       if (!s) return { fecha: "---", hora: "---" };
                       const d = new Date(s);
-                      if (isNaN(d.getTime())) return { fecha: "---", hora: "---" };
+                      if (isNaN(d.getTime()))
+                        return { fecha: "---", hora: "---" };
                       const pad = (n: number) => n.toString().padStart(2, "0");
                       return {
                         fecha: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
                         hora: `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`,
                       };
                     };
-                    const { fecha: formattedDate, hora: formattedTime } = formatFechaHora(ru.fecha_hora_ingreso);
+                    const { fecha: formattedDate, hora: formattedTime } =
+                      formatFechaHora(ru.fecha_hora_ingreso);
 
                     return (
                       <Paper
@@ -190,9 +206,15 @@ export const RecepcionMineralPage = () => {
                               cancelLabel: "Cancelar",
                               message: (
                                 <>
-                                  ¿Desea iniciar el proceso de pesaje para la unidad con placa{" "}
+                                  ¿Desea iniciar el proceso de pesaje para la
+                                  unidad con placa{" "}
                                   <strong className="text-indigo-400">
-                                    "{getFullPlaca(ru.vehiculo_serie, ru.vehiculo_placa)}"
+                                    "
+                                    {getFullPlaca(
+                                      ru.vehiculo_serie,
+                                      ru.vehiculo_placa,
+                                    )}
+                                    "
                                   </strong>
                                   ?
                                 </>
@@ -214,8 +236,10 @@ export const RecepcionMineralPage = () => {
                           <Group justify="center" gap={8} wrap="nowrap">
                             <span className="truncate">
                               {getFullPlaca(
-                                ru.tipo_ingreso === "Ficticio" ? null : ru.vehiculo_serie,
-                                ru.vehiculo_placa
+                                ru.tipo_ingreso === "Ficticio"
+                                  ? null
+                                  : ru.vehiculo_serie,
+                                ru.vehiculo_placa,
                               )}
                             </span>
                             {ru.tipo_ingreso === "Ficticio" && (
@@ -253,13 +277,17 @@ export const RecepcionMineralPage = () => {
                         {/* Body: Fechas */}
                         <div className="p-3 space-y-1.5 bg-zinc-900/10">
                           <div className="flex justify-between items-center text-[11px]">
-                            <span className="text-zinc-400 font-medium">Fecha Ingreso</span>
+                            <span className="text-zinc-400 font-medium">
+                              Fecha Ingreso
+                            </span>
                             <span className="text-zinc-200 font-mono font-bold">
                               {formattedDate}
                             </span>
                           </div>
                           <div className="flex justify-between items-center text-[11px]">
-                            <span className="text-zinc-400 font-medium">Hora Ingreso</span>
+                            <span className="text-zinc-400 font-medium">
+                              Hora Ingreso
+                            </span>
                             <span className="text-zinc-200 font-mono font-bold">
                               {formattedTime}
                             </span>
@@ -275,13 +303,16 @@ export const RecepcionMineralPage = () => {
 
           {/* Área Central: Proceso de Pesaje y Lotes */}
           <Grid.Col span={{ base: 24, sm: 16, md: 18, lg: 19 }}>
-            <Paper radius="lg" p="md" className="bg-zinc-950/40 border border-zinc-900/80 min-h-125 h-full flex flex-col gap-4 ">
+            <Paper
+              radius="lg"
+              p="md"
+              className="bg-zinc-950/40 border border-zinc-900/80 min-h-125 h-full flex flex-col gap-4 "
+            >
               <div className="border-b border-zinc-900 pb-3 flex justify-between items-center">
                 <div>
                   <Text size="md" fw={700} className="text-zinc-200">
                     Proceso de Pesaje y Lotes
                   </Text>
-                  
                 </div>
               </div>
 
@@ -290,12 +321,12 @@ export const RecepcionMineralPage = () => {
                 <div className="flex-1 flex flex-col justify-center items-center py-12 gap-3">
                   <IconScale size={48} className="text-zinc-600 stroke-[1.5]" />
                   <Text size="sm" c="dimmed" ta="center">
-                    Ningún proceso de pesaje activo. Seleccione una unidad del listado izquierdo para iniciar su pesaje.
+                    Ningún proceso de pesaje activo. Seleccione una unidad del
+                    listado izquierdo para iniciar su pesaje.
                   </Text>
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col gap-8 overflow-y-auto min-h-0 pr-2">
-
                   {unidadesAOperar.map((ru) => (
                     <CardProcesoBalanza
                       key={ru.id}
@@ -311,7 +342,9 @@ export const RecepcionMineralPage = () => {
                       tempValue={tempValue}
                       setTempValue={setTempValue}
                       setOpenNewConductorModal={setOpenNewConductorModal}
-                      setSelectedRecepcionIdForLote={setSelectedRecepcionIdForLote}
+                      setSelectedRecepcionIdForLote={
+                        setSelectedRecepcionIdForLote
+                      }
                       setCondicionModalOpen={setCondicionModalOpen}
                       creatingLoteId={creatingLoteId}
                       deletingLoteId={deletingLoteId}
@@ -336,16 +369,22 @@ export const RecepcionMineralPage = () => {
         <ModalEstandar
           opened={!!activeLotePesoInicial}
           close={() => setActiveLotePesoInicial(null)}
-          title={`Peso Inicial para Lote: ${activeLotePesoInicial.correlativo}`}
-          size="md"
+          title={`Peso Inicial: ${activeLotePesoInicial.correlativo}`}
+          size="lg"
         >
           <ModalPesoInicial
             lote={activeLotePesoInicial}
             onCancel={() => setActiveLotePesoInicial(null)}
             onSubmit={async (loteId, dto) => {
-              const ru = enProcesoList.find((r) => r.lotes?.some((l) => l.id === loteId));
+              const ru = enProcesoList.find((r) =>
+                r.lotes?.some((l) => l.id === loteId),
+              );
               if (ru) {
-                const loteActualizado = await registrarPesoInicial(ru.id, loteId, dto);
+                const loteActualizado = await registrarPesoInicial(
+                  ru.id,
+                  loteId,
+                  dto,
+                );
                 setActiveLotePesoInicial(null);
                 if (loteActualizado) {
                   printTicketBalanza(loteActualizado.id);
@@ -368,9 +407,15 @@ export const RecepcionMineralPage = () => {
             lote={activeLotePesoFinal}
             onCancel={() => setActiveLotePesoFinal(null)}
             onSubmit={async (loteId, dto) => {
-              const ru = enProcesoList.find((r) => r.lotes?.some((l) => l.id === loteId));
+              const ru = enProcesoList.find((r) =>
+                r.lotes?.some((l) => l.id === loteId),
+              );
               if (ru) {
-                const loteActualizado = await registrarPesoFinal(ru.id, loteId, dto);
+                const loteActualizado = await registrarPesoFinal(
+                  ru.id,
+                  loteId,
+                  dto,
+                );
                 setActiveLotePesoFinal(null);
                 if (loteActualizado) {
                   printTicketBalanza(loteActualizado.id);
@@ -412,7 +457,11 @@ export const RecepcionMineralPage = () => {
         initialFechaHoraIngreso={editingFicticia?.fecha_hora_ingreso ?? null}
         onConfirm={async (fechaHoraIngreso) => {
           if (editingFicticia) {
-            await validarCampo(editingFicticia.id, "fecha_hora_ingreso", fechaHoraIngreso);
+            await validarCampo(
+              editingFicticia.id,
+              "fecha_hora_ingreso",
+              fechaHoraIngreso,
+            );
             setEditingFicticia(null);
           } else {
             await crearUnidadFicticia(fechaHoraIngreso);
