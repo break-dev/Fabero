@@ -17,11 +17,9 @@ import { IconPlus, IconDeviceFloppy } from "@tabler/icons-react";
 import { MultiFilePicker } from "../../../../presentation/utils/archivo/multifile-picker";
 import { FormZonaOrigen } from "../../../../presentation/utils/form-zona-origen";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
-import { RegistroEncargadoMuestra } from "../../../encargados-muestra/presentation/registro-encargado-muestra/registro-encargado-muestra";
 import { AuxService } from "../../../../service/auxiliar.service";
 import { RecepcionMineralService } from "../../../recepcion-mineral/service/recepcion-mineral.service";
 import type { RES_Proveedor } from "../../../../service/responses/proveedor";
-import type { RES_EncargadoMuestraGlobal } from "../../../../service/responses/encargado-muestra-global";
 import type { RES_ZonaOrigen } from "../../../../service/responses/zona-origen";
 import type { RES_Conductor } from "../../../../service/responses/conductor";
 import type { RES_Vehiculo } from "../../../../service/responses/vehiculo";
@@ -49,7 +47,6 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
 
   // Estados Catálogos
   const [proveedores, setProveedores] = useState<RES_Proveedor[]>([]);
-  const [encargados, setEncargados] = useState<RES_EncargadoMuestraGlobal[]>([]);
   const [zonas, setZonas] = useState<RES_ZonaOrigen[]>([]);
   const [conductores, setConductores] = useState<RES_Conductor[]>([]);
   const [vehiculos, setVehiculos] = useState<RES_Vehiculo[]>([]);
@@ -60,7 +57,6 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
   // Estados Sub-Modals
   const [openZonaModal, setOpenZonaModal] = useState(false);
   const [nuevaZonaNombre, setNuevaZonaNombre] = useState("");
-  const [openEncargadoModal, setOpenEncargadoModal] = useState(false);
   const [openVehiculoModal, setOpenVehiculoModal] = useState(false);
 
   // Estados Formulario
@@ -68,7 +64,6 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
   const [motivo, setMotivo] = useState<string>("");
   const [tipoCarga, setTipoCarga] = useState<string>(lote.lote_tipo_carga || TipoCarga.Granel);
   const [idProveedor, setIdProveedor] = useState<string | null>(lote.id_proveedor ? String(lote.id_proveedor) : null);
-  const [idEncargado, setIdEncargado] = useState<string | null>(lote.id_encargado_muestra ? String(lote.id_encargado_muestra) : null);
   const [idZona, setIdZona] = useState<string | null>(lote.id_zona_origen ? String(lote.id_zona_origen) : null);
   const [contacto, setContacto] = useState<string>(lote.lote_numero_contacto || "");
   const [producto, setProducto] = useState<string>(lote.lote_tipo_producto || TipoMineral.Aurifero);
@@ -99,9 +94,8 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
   const fetchCatalogos = async () => {
     setLoadingCatalogos(true);
     try {
-      const [resProv, resEnc, resZonas, resCond, resVeh, resTipos, resEmp] = await Promise.all([
+      const [resProv, resZonas, resCond, resVeh, resTipos, resEmp] = await Promise.all([
         AuxService.get_proveedores(),
-        AuxService.get_encargados_muestra(),
         AuxService.get_zonas_origen(),
         AuxService.get_conductores(),
         AuxService.get_vehiculos(),
@@ -110,7 +104,6 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
       ]);
 
       setProveedores(resProv.data || []);
-      setEncargados(resEnc || []);
       setZonas(resZonas || []);
       setConductores(resCond || []);
       setVehiculos(resVeh || []);
@@ -130,7 +123,6 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
       // Reiniciar estados del formulario con el lote seleccionado
       setTipoCarga(lote.lote_tipo_carga || TipoCarga.Granel);
       setIdProveedor(lote.id_proveedor ? String(lote.id_proveedor) : null);
-      setIdEncargado(lote.id_encargado_muestra ? String(lote.id_encargado_muestra) : null);
       setIdZona(lote.id_zona_origen ? String(lote.id_zona_origen) : null);
       setContacto(lote.lote_numero_contacto || "");
       setProducto(lote.lote_tipo_producto || TipoMineral.Aurifero);
@@ -191,7 +183,6 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
         evidencias: evidencias,
         evidencias_existentes: evidenciasExistentes,
         id_proveedor_minero: idProveedor ? Number(idProveedor) : null,
-        id_encargado_muestra: idEncargado ? Number(idEncargado) : null,
         id_zona_origen: idZona ? Number(idZona) : null,
         numero_contacto: contacto,
         tipo_carga: tipoCarga,
@@ -352,37 +343,6 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
                 </Tooltip>
               </div>
             </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-              <div className="flex gap-1.5 items-end">
-                <Select
-                  label="Encargado Muestra:"
-                  placeholder={loadingCatalogos ? "Cargando..." : "Seleccione..."}
-                  searchable
-                  disabled={loadingCatalogos}
-                  rightSection={loadingCatalogos ? <Loader size={16} /> : undefined}
-                  data={encargados.map((e) => ({ value: String(e.id_encargado_muestra), label: e.nombre }))}
-                  value={idEncargado}
-                  onChange={setIdEncargado}
-                  classNames={selectClassNames}
-                  radius="lg"
-                  comboboxProps={selectComboboxProps}
-                  className="flex-1"
-                />
-                <Tooltip label="Agregar Encargado" withArrow>
-                  <ActionIcon
-                    type="button"
-                    variant="filled"
-                    color="zinc"
-                    radius="lg"
-                    onClick={() => setOpenEncargadoModal(true)}
-                    className="bg-zinc-800 text-zinc-300 hover:bg-zinc-700 h-9 w-9 mb-0.5"
-                  >
-                    <IconPlus size={16} />
-                  </ActionIcon>
-                </Tooltip>
-              </div>
-            </Grid.Col>
-
             <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
               <TextInput
                 label="N° Contacto:"
@@ -597,27 +557,6 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
             setIdZona(String(nueva.id));
             setNuevaZonaNombre("");
             setOpenZonaModal(false);
-          }}
-        />
-      </ModalEstandar>
-
-      {/* Sub-Modal: Registro de Nuevo Encargado de Muestra */}
-      <ModalEstandar
-        opened={openEncargadoModal}
-        close={() => setOpenEncargadoModal(false)}
-        title="Registrar Nuevo Encargado de Muestra"
-        size="md"
-      >
-        <RegistroEncargadoMuestra
-          onCancel={() => setOpenEncargadoModal(false)}
-          onSuccess={(nuevo) => {
-            const formatted: RES_EncargadoMuestraGlobal = {
-              id_encargado_muestra: nuevo.id_encargado_muestra,
-              nombre: `${nuevo.nombre} ${nuevo.apellido}`.trim(),
-            };
-            setEncargados((prev) => [...prev, formatted]);
-            setIdEncargado(String(nuevo.id_encargado_muestra));
-            setOpenEncargadoModal(false);
           }}
         />
       </ModalEstandar>

@@ -20,8 +20,7 @@ export const ModalCondicionIngreso = ({
   const [condicion, setCondicion] = useState<CondicionIngreso>(CondicionIngreso.Comercializacion);
   const [idEmpresa, setIdEmpresa] = useState<string | null>(null);
 
-  const selectedEmpresa = empresasTitulares.find((e) => String(e.id_empresa) === idEmpresa);
-  const prefijoActual = selectedEmpresa?.prefijo ? selectedEmpresa.prefijo : "FB";
+  const prefijoActual = "FB";
 
   const handleConfirm = () => {
     if (!idEmpresa) return;

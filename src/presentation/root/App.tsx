@@ -17,7 +17,6 @@ import { CuentasPage } from "../../modules/cuentas/presentation/cuentas.page.tsx
 import { PerfilPage } from "../../modules/perfil/presentation/perfil.page.tsx";
 import { ProveedoresPage } from "../../modules/proveedores-mineros/presentation/proveedores-page/proveedores.page.tsx";
 import { PlantasDestinoPage } from "../../modules/plantas-destino/presentation/plantas-page/plantas.page.tsx";
-import { EncargadosMuestraPage } from "../../modules/encargados-muestra/presentation/encargados-muestra.page.tsx";
 import { ConductoresPage } from "../../modules/conductores/presentation/conductores-page/conductores.page.tsx";
 import { EmpresasTransportePage } from "../../modules/empresas-transporte/presentation/empresas-transporte-page/empresas-transporte.page.tsx";
 import { VehiculosPage } from "../../modules/vehiculos/presentation/vehiculos-page/vehiculos.page.tsx";
@@ -101,10 +100,6 @@ export const App = () => {
           <Route path="personal" element={<GenericLayout />}>
             <Route path="areas_cargos" element={<OrganigramaPage />} />
             <Route path="trabajadores" element={<PersonalPage />} />
-            <Route
-              path="encargados-muestra"
-              element={<EncargadosMuestraPage />}
-            />
           </Route>
 
           {/* Usuarios */}

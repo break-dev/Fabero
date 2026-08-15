@@ -22,7 +22,6 @@ import type {
 import type { EstadoBase } from "../shared/enums/_generic/estado-base";
 import type { RES_Sucursal } from "./responses/sucursal";
 import type { RES_ZonaOrigen } from "./responses/zona-origen";
-import type { RES_EncargadoMuestraGlobal } from "./responses/encargado-muestra-global";
 
 const path = "/aux";
 
@@ -327,11 +326,6 @@ export const AuxService = {
     nombre: string;
   }): Promise<RES_ZonaOrigen> => {
     const { data } = await api.post(`${path}/zonas-origen`, payload);
-    return data.data;
-  },
-
-  get_encargados_muestra: async (): Promise<RES_EncargadoMuestraGlobal[]> => {
-    const { data } = await api.get(`${path}/encargados-muestra`);
     return data.data;
   },
 

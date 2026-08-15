@@ -2,7 +2,6 @@ import type { IArchivo } from "../../../shared/interfaces/archivo";
 
 export interface DTO_PesoInicial {
   id_proveedor_minero: number | null;
-  id_encargado_muestra: number | null;
   id_zona_origen: number | null;
   numero_contacto: string;
   tipo_carga: string;
@@ -19,7 +18,6 @@ export interface DTO_PesoFinal {
   evidencias?: File[];
   evidencias_existentes?: IArchivo[];
   id_proveedor_minero?: number | null;
-  id_encargado_muestra?: number | null;
   id_zona_origen?: number | null;
   numero_contacto?: string;
   tipo_carga?: string;

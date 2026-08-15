@@ -19,10 +19,8 @@ import { IconWeight, IconPlus } from "@tabler/icons-react";
 import { MultiFilePicker } from "../../../../presentation/utils/archivo/multifile-picker";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
 import { FormZonaOrigen } from "../../../../presentation/utils/form-zona-origen";
-import { RegistroEncargadoMuestra } from "../../../encargados-muestra/presentation/registro-encargado-muestra/registro-encargado-muestra";
 import { AuxService } from "../../../../service/auxiliar.service";
 import type { RES_Proveedor } from "../../../../service/responses/proveedor";
-import type { RES_EncargadoMuestraGlobal } from "../../../../service/responses/encargado-muestra-global";
 import type { RES_ZonaOrigen } from "../../../../service/responses/zona-origen";
 import type { RES_LoteMineral } from "../../service/recepcion-mineral.responses";
 import type { DTO_PesoFinal } from "../../service/recepcion-mineral.requests";
@@ -39,19 +37,16 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
 
   // Estados Catálogos
   const [proveedores, setProveedores] = useState<RES_Proveedor[]>([]);
-  const [encargados, setEncargados] = useState<RES_EncargadoMuestraGlobal[]>([]);
   const [zonas, setZonas] = useState<RES_ZonaOrigen[]>([]);
   const [loadingCatalogos, setLoadingCatalogos] = useState(false);
 
   // Estados Sub-Modals
   const [openZonaModal, setOpenZonaModal] = useState(false);
   const [nuevaZonaNombre, setNuevaZonaNombre] = useState("");
-  const [openEncargadoModal, setOpenEncargadoModal] = useState(false);
 
   // Estados Formulario - Peso Inicial (Izquierda)
   const [tipoCarga, setTipoCarga] = useState<string>(lote.tipo_carga || "Granel");
   const [idProveedor, setIdProveedor] = useState<string | null>(lote.id_proveedor_minero ? String(lote.id_proveedor_minero) : null);
-  const [idEncargado, setIdEncargado] = useState<string | null>(lote.id_encargado_muestra ? String(lote.id_encargado_muestra) : null);
   const [idZona, setIdZona] = useState<string | null>(lote.id_zona_origen ? String(lote.id_zona_origen) : null);
   const [contacto, setContacto] = useState<string>(lote.numero_contacto || "");
   const [producto, setProducto] = useState<string>(lote.tipo_producto || "Aurífero");
@@ -70,14 +65,12 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
   const fetchCatalogos = async () => {
     setLoadingCatalogos(true);
     try {
-      const [resProv, resEnc, resZonas] = await Promise.all([
+      const [resProv, resZonas] = await Promise.all([
         AuxService.get_proveedores(),
-        AuxService.get_encargados_muestra(),
         AuxService.get_zonas_origen(),
       ]);
 
       setProveedores(resProv.data || []);
-      setEncargados(resEnc || []);
       setZonas(resZonas || []);
     } catch (e) {
       console.error("Error al cargar catálogos en pesaje final", e);
@@ -129,7 +122,6 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
         evidencias: evidencias,
         // Enviar datos actualizados de peso inicial
         id_proveedor_minero: idProveedor ? Number(idProveedor) : null,
-        id_encargado_muestra: idEncargado ? Number(idEncargado) : null,
         id_zona_origen: idZona ? Number(idZona) : null,
         numero_contacto: contacto,
         tipo_carga: tipoCarga,
@@ -253,38 +245,6 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
                 </Tooltip>
               </Group>
             </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 4 }}>
-              <Group gap="xs" align="flex-end" wrap="nowrap">
-                <Select
-                  label="Encargado Muestra:"
-                  placeholder={loadingCatalogos ? "Cargando..." : "Seleccione..."}
-                  searchable
-                  disabled={loadingCatalogos}
-                  rightSection={loadingCatalogos ? <Loader size={16} /> : undefined}
-                  data={encargados.map((e) => ({ value: String(e.id_encargado_muestra), label: e.nombre }))}
-                  value={idEncargado}
-                  onChange={setIdEncargado}
-                  classNames={fieldClasses}
-                  radius="lg"
-                  size="xs"
-                  className="flex-1"
-                />
-                <Tooltip label="Agregar Encargado" withArrow>
-                  <ActionIcon
-                    type="button"
-                    variant="filled"
-                    color="zinc"
-                    radius="lg"
-                    size="lg"
-                    onClick={() => setOpenEncargadoModal(true)}
-                    className="bg-zinc-800 text-zinc-300 hover:bg-zinc-700 border border-zinc-700"
-                  >
-                    <IconPlus size={16} />
-                  </ActionIcon>
-                </Tooltip>
-              </Group>
-            </Grid.Col>
-
             <Grid.Col span={{ base: 12, md: 4 }}>
               <TextInput
                 label="N° Contacto:"
@@ -517,26 +477,6 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
         />
       </ModalEstandar>
 
-      {/* Sub-Modal: Registro de Nuevo Encargado de Muestra */}
-      <ModalEstandar
-        opened={openEncargadoModal}
-        close={() => setOpenEncargadoModal(false)}
-        title="Registrar Nuevo Encargado de Muestra"
-        size="md"
-      >
-        <RegistroEncargadoMuestra
-          onCancel={() => setOpenEncargadoModal(false)}
-          onSuccess={(nuevo) => {
-            const formatted: RES_EncargadoMuestraGlobal = {
-              id_encargado_muestra: nuevo.id_encargado_muestra,
-              nombre: `${nuevo.nombre} ${nuevo.apellido}`.trim()
-            };
-            setEncargados((prev) => [...prev, formatted]);
-            setIdEncargado(String(nuevo.id_encargado_muestra));
-            setOpenEncargadoModal(false);
-          }}
-        />
-      </ModalEstandar>
-    </>
+      </>
   );
 };

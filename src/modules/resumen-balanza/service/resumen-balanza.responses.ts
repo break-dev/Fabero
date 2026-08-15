@@ -37,8 +37,6 @@ export interface RES_ResumenBalanzaItem {
   proveedor_razon_social: string | null;
   id_zona_origen: number | null;
   zona_origen_nombre: string | null;
-  id_encargado_muestra: number | null;
-  encargado_muestra_nombre: string | null;
   id_conductor: number | null;
   conductor_nombre_completo: string | null;
   conductor_dni: string | null;

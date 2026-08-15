@@ -65,17 +65,6 @@ export const EmpresaCard = ({
           >
             RUC: {empresa.ruc}
           </Badge>
-          {empresa.prefijo && (
-            <Badge
-              variant="outline"
-              color="violet"
-              size="xs"
-              radius="md"
-              className="font-bold tracking-tight px-2 text-violet-300 border-violet-500/30"
-            >
-              PREFIJO: {empresa.prefijo}
-            </Badge>
-          )}
         </Group>
         <Group gap="xs" wrap="nowrap">
           <Badge
@@ -147,13 +136,6 @@ export const EmpresaCard = ({
             size="md"
             fw={800}
             className="text-white group-hover:text-indigo-200 transition-colors line-clamp-1 leading-tight"
-          >
-            {empresa.nombre_comercial}
-          </Text>
-          <Text
-            size="xs"
-            fw={500}
-            className="text-zinc-500 line-clamp-2 italic leading-snug"
           >
             {empresa.razon_social}
           </Text>

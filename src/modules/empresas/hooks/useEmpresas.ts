@@ -44,7 +44,6 @@ export const useEmpresas = () => {
       (emp) =>
         !q ||
         emp.razon_social.toLowerCase().includes(q) ||
-        emp.nombre_comercial.toLowerCase().includes(q) ||
         emp.ruc.includes(q),
     );
   }, [empresas, busqueda]);

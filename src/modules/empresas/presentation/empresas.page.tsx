@@ -140,10 +140,6 @@ export const EmpresasPage = () => {
           setRuc={registro.setRuc}
           razonSocial={registro.razonSocial}
           setRazonSocial={registro.setRazonSocial}
-          nombreComercial={registro.nombreComercial}
-          setNombreComercial={registro.setNombreComercial}
-          prefijo={registro.prefijo}
-          setPrefijo={registro.setPrefijo}
           logoFile={registro.logoFile}
           setLogoFile={registro.setLogoFile}
           error={registro.error}

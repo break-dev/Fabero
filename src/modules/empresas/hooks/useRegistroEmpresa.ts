@@ -17,8 +17,6 @@ export const useRegistroEmpresa = ({
   // Estado del formulario
   const [ruc, setRuc] = useState("");
   const [razonSocial, setRazonSocial] = useState("");
-  const [nombreComercial, setNombreComercial] = useState("");
-  const [prefijo, setPrefijo] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
 
   const [error, setError] = useState("");
@@ -27,8 +25,6 @@ export const useRegistroEmpresa = ({
   const reset = useCallback(() => {
     setRuc("");
     setRazonSocial("");
-    setNombreComercial("");
-    setPrefijo("");
     setLogoFile(null);
     setError("");
   }, []);
@@ -46,16 +42,9 @@ export const useRegistroEmpresa = ({
       return;
     }
 
-    if (!nombreComercial) {
-      setError("El nombre comercial es obligatorio");
-      return;
-    }
-
     const formData = new FormData();
     formData.append("ruc", ruc);
     formData.append("razon_social", razonSocial);
-    formData.append("nombre_comercial", nombreComercial);
-    formData.append("prefijo", prefijo);
 
     if (logoFile) {
       formData.append("path_logo", logoFile);
@@ -88,10 +77,6 @@ export const useRegistroEmpresa = ({
     setRuc,
     razonSocial,
     setRazonSocial,
-    nombreComercial,
-    setNombreComercial,
-    prefijo,
-    setPrefijo,
     logoFile,
     setLogoFile,
     error,

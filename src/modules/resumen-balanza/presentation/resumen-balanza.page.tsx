@@ -454,18 +454,6 @@ export const ResumenBalanzaPage = () => {
               ),
             },
             {
-              accessor: "encargado_muestra_nombre",
-              title: "Encargado Muestra",
-              width: 180,
-              render: (r: RES_ResumenBalanzaItem) => (
-                <Text size="sm" className="text-zinc-300">
-                  {r.encargado_muestra_nombre || (
-                    <span className="text-zinc-600 italic">No registrado</span>
-                  )}
-                </Text>
-              ),
-            },
-            {
               accessor: "proveedor_razon_social",
               title: "Proveedor",
               width: 200,

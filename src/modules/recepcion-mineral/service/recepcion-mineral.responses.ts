@@ -5,14 +5,11 @@ export interface RES_LoteMineral {
   id_recepcion_unidad: number;
   id_empresa?: number | null;
   empresa_nombre?: string;
-  empresa_prefijo?: string;
   id_proveedor_minero: number | null;
   proveedor_nombre?: string;
   proveedor_telefono?: string;
   id_empleado_registro: number;
   empleado_registro_nombre?: string;
-  id_encargado_muestra: number | null;
-  encargado_nombre?: string;
   id_zona_origen: number | null;
   zona_origen_nombre?: string;
   correlativo: string;

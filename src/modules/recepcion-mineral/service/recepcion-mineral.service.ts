@@ -86,9 +86,6 @@ export const RecepcionMineralService = {
     if (dto.id_proveedor_minero !== null && dto.id_proveedor_minero !== undefined) {
       formData.append("id_proveedor_minero", String(dto.id_proveedor_minero));
     }
-    if (dto.id_encargado_muestra !== null && dto.id_encargado_muestra !== undefined) {
-      formData.append("id_encargado_muestra", String(dto.id_encargado_muestra));
-    }
     if (dto.id_zona_origen !== null && dto.id_zona_origen !== undefined) {
       formData.append("id_zona_origen", String(dto.id_zona_origen));
     }
@@ -130,9 +127,6 @@ export const RecepcionMineralService = {
 
     if (dto.id_proveedor_minero !== null && dto.id_proveedor_minero !== undefined) {
       formData.append("id_proveedor_minero", String(dto.id_proveedor_minero));
-    }
-    if (dto.id_encargado_muestra !== null && dto.id_encargado_muestra !== undefined) {
-      formData.append("id_encargado_muestra", String(dto.id_encargado_muestra));
     }
     if (dto.id_zona_origen !== null && dto.id_zona_origen !== undefined) {
       formData.append("id_zona_origen", String(dto.id_zona_origen));
@@ -202,9 +196,6 @@ export const RecepcionMineralService = {
     }
     if (dto.id_proveedor_minero !== null && dto.id_proveedor_minero !== undefined) {
       formData.append("id_proveedor_minero", String(dto.id_proveedor_minero));
-    }
-    if (dto.id_encargado_muestra !== null && dto.id_encargado_muestra !== undefined) {
-      formData.append("id_encargado_muestra", String(dto.id_encargado_muestra));
     }
     if (dto.id_zona_origen !== null && dto.id_zona_origen !== undefined) {
       formData.append("id_zona_origen", String(dto.id_zona_origen));

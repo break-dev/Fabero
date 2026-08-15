@@ -3,11 +3,9 @@ import { Select, TextInput, Textarea, Button, ActionIcon, Tooltip, Stack, Text, 
 import { IconPlus, IconWeight } from "@tabler/icons-react";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
 import { FormZonaOrigen } from "../../../../presentation/utils/form-zona-origen";
-import { RegistroEncargadoMuestra } from "../../../encargados-muestra/presentation/registro-encargado-muestra/registro-encargado-muestra";
 import { MultiFilePicker } from "../../../../presentation/utils/archivo/multifile-picker";
 import { AuxService } from "../../../../service/auxiliar.service";
 import type { RES_Proveedor } from "../../../../service/responses/proveedor";
-import type { RES_EncargadoMuestraGlobal } from "../../../../service/responses/encargado-muestra-global";
 import type { RES_ZonaOrigen } from "../../../../service/responses/zona-origen";
 import type { RES_LoteMineral } from "../../service/recepcion-mineral.responses";
 import type { DTO_PesoInicial } from "../../service/recepcion-mineral.requests";
@@ -25,7 +23,6 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
   // Inputs
   const [tipoCarga, setTipoCarga] = useState<string | null>(null);
   const [idProveedor, setIdProveedor] = useState<string | null>(null);
-  const [idEncargado, setIdEncargado] = useState<string | null>(null);
   const [idZona, setIdZona] = useState<string | null>(null);
   const [contacto, setContacto] = useState<string>("");
   const [producto, setProducto] = useState<string | null>(null);
@@ -36,7 +33,6 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
 
   // Catálogos
   const [proveedores, setProveedores] = useState<RES_Proveedor[]>([]);
-  const [encargados, setEncargados] = useState<RES_EncargadoMuestraGlobal[]>([]);
   const [zonas, setZonas] = useState<RES_ZonaOrigen[]>([]);
   const [loadingCatalogos, setLoadingCatalogos] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -44,19 +40,16 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
   // Sub-Modals
   const [openZonaModal, setOpenZonaModal] = useState(false);
   const [nuevaZonaNombre, setNuevaZonaNombre] = useState("");
-  const [openEncargadoModal, setOpenEncargadoModal] = useState(false);
 
   const fetchCatalogos = async () => {
     setLoadingCatalogos(true);
     try {
-      const [resProv, resEnc, resZonas] = await Promise.all([
+      const [resProv, resZonas] = await Promise.all([
         AuxService.get_proveedores(),
-        AuxService.get_encargados_muestra(),
         AuxService.get_zonas_origen(),
       ]);
 
       setProveedores(resProv.data || []);
-      setEncargados(resEnc || []);
       setZonas(resZonas || []);
     } catch (e) {
       console.error("Error al cargar catálogos de pesaje inicial", e);
@@ -105,7 +98,6 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
     try {
       const dto: DTO_PesoInicial = {
         id_proveedor_minero: idProveedor ? Number(idProveedor) : null,
-        id_encargado_muestra: idEncargado ? Number(idEncargado) : null,
         id_zona_origen: idZona ? Number(idZona) : null,
         numero_contacto: contacto,
         tipo_carga: tipoCarga,
@@ -216,36 +208,6 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
                     radius="lg"
                     size="lg"
                     onClick={() => setOpenZonaModal(true)}
-                    className="bg-zinc-800 text-zinc-300 hover:bg-zinc-700 h-9.5 w-9.5 mb-2"
-                  >
-                    <IconPlus size={18} />
-                  </ActionIcon>
-                </Tooltip>
-              </div>
-
-              {/* Encargado Muestra + Botón Agregar */}
-              <div className="flex gap-2 items-end">
-                <Select
-                  label="Encargado Muestra:"
-                  placeholder={loadingCatalogos ? "Cargando..." : "---"}
-                  searchable
-                  disabled={loadingCatalogos}
-                  rightSection={loadingCatalogos ? <Loader size={16} /> : undefined}
-                  data={encargados.map((e) => ({ value: String(e.id_encargado_muestra), label: e.nombre }))}
-                  value={idEncargado}
-                  onChange={setIdEncargado}
-                  classNames={fieldClasses}
-                  radius="lg"
-                  className="flex-1"
-                />
-                <Tooltip label="Agregar Encargado de Muestra" withArrow>
-                  <ActionIcon
-                    type="button"
-                    variant="filled"
-                    color="zinc"
-                    radius="lg"
-                    size="lg"
-                    onClick={() => setOpenEncargadoModal(true)}
                     className="bg-zinc-800 text-zinc-300 hover:bg-zinc-700 h-9.5 w-9.5 mb-2"
                   >
                     <IconPlus size={18} />
@@ -370,26 +332,6 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
         />
       </ModalEstandar>
 
-      {/* Sub-Modal: Registro de Nuevo Encargado de Muestra */}
-      <ModalEstandar
-        opened={openEncargadoModal}
-        close={() => setOpenEncargadoModal(false)}
-        title="Registrar Nuevo Encargado de Muestra"
-        size="md"
-      >
-        <RegistroEncargadoMuestra
-          onCancel={() => setOpenEncargadoModal(false)}
-          onSuccess={(nuevo) => {
-            const formatted: RES_EncargadoMuestraGlobal = {
-              id_encargado_muestra: nuevo.id_encargado_muestra,
-              nombre: `${nuevo.nombre} ${nuevo.apellido}`.trim()
-            };
-            setEncargados((prev) => [...prev, formatted]);
-            setIdEncargado(String(nuevo.id_encargado_muestra));
-            setOpenEncargadoModal(false);
-          }}
-        />
-      </ModalEstandar>
-    </>
+      </>
   );
 };
