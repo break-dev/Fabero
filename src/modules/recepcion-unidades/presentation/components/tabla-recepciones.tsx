@@ -215,16 +215,18 @@ export const TablaRecepciones = ({
           },
           {
             accessor: "condicion",
-            title: "Condición / Carga",
-            width: 220,
+            title: "Condición",
+            width: 200,
             render: (r: RecepcionUnidadResponse) => (
               <div>
                 <Text size="xs" className="text-zinc-300">
                   Ingreso: <strong className="text-indigo-400">{r.tipo_ingreso ?? "—"}</strong>
                 </Text>
-                <Text size="xs" className="text-zinc-500">
-                  Carga: {r.tipo_carga ?? "—"} {r.segunda_placa ? `(Acople: ${r.segunda_placa})` : ""}
-                </Text>
+                {r.segunda_placa && (
+                  <Text size="xs" className="text-zinc-500">
+                    Acople: {r.segunda_placa}
+                  </Text>
+                )}
               </div>
             ),
           },

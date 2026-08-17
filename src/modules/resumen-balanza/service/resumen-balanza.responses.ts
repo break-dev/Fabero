@@ -6,7 +6,6 @@ export interface RES_ResumenBalanzaItem {
   id_recepcion_unidad: number;
   lote_correlativo: string;
   lote_numero_correlativo: number;
-  lote_tipo_carga: string;
   lote_numero_contacto: string | null;
   lote_tipo_producto: string;
   lote_tipo_mineral: string;

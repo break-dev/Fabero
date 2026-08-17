@@ -1,7 +1,6 @@
 import { api } from "../../../service/_api";
-import type { DTO_PesoInicial, DTO_PesoFinal } from "./recepcion-mineral.requests";
+import type { DTO_PesoInicial, DTO_PesoFinal, DTO_CrearLote } from "./recepcion-mineral.requests";
 import type { RecepcionMineralResponse, RES_LoteMineral, RES_TicketBalanzaData } from "./recepcion-mineral.responses";
-import { CondicionIngreso } from "../../../shared/enums/_generic/condicion-ingreso";
 
 const PATH = "/recepcion-mineral";
 
@@ -58,13 +57,19 @@ export const RecepcionMineralService = {
 
   crear_lote: async (
     id: number,
-    condicion_ingreso: CondicionIngreso,
-    id_empresa: number,
+    dto: DTO_CrearLote,
   ): Promise<RES_LoteMineral> => {
-    const { data } = await api.post(`${PATH}/${id}/lotes`, {
-      condicion_ingreso,
-      id_empresa,
-    });
+    const body: DTO_CrearLote = {
+      condicion_ingreso: dto.condicion_ingreso,
+      id_empresa: dto.id_empresa,
+    };
+    if (dto.correlativo_manual) {
+      body.correlativo_manual = dto.correlativo_manual;
+    }
+    if (dto.numero_correlativo_manual) {
+      body.numero_correlativo_manual = dto.numero_correlativo_manual;
+    }
+    const { data } = await api.post(`${PATH}/${id}/lotes`, body);
     return data.data;
   },
 
@@ -90,7 +95,6 @@ export const RecepcionMineralService = {
       formData.append("id_zona_origen", String(dto.id_zona_origen));
     }
     formData.append("numero_contacto", dto.numero_contacto || "");
-    formData.append("tipo_carga", dto.tipo_carga);
     formData.append("tipo_producto", dto.tipo_producto);
     formData.append("tipo_mineral", dto.tipo_mineral);
     formData.append("peso_inicial", String(dto.peso_inicial));
@@ -133,9 +137,6 @@ export const RecepcionMineralService = {
     }
     if (dto.numero_contacto !== undefined) {
       formData.append("numero_contacto", dto.numero_contacto);
-    }
-    if (dto.tipo_carga !== undefined) {
-      formData.append("tipo_carga", dto.tipo_carga);
     }
     if (dto.tipo_producto !== undefined) {
       formData.append("tipo_producto", dto.tipo_producto);
@@ -202,9 +203,6 @@ export const RecepcionMineralService = {
     }
     if (dto.numero_contacto !== undefined) {
       formData.append("numero_contacto", dto.numero_contacto);
-    }
-    if (dto.tipo_carga !== undefined) {
-      formData.append("tipo_carga", dto.tipo_carga);
     }
     if (dto.tipo_producto !== undefined) {
       formData.append("tipo_producto", dto.tipo_producto);

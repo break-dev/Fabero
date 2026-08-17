@@ -21,7 +21,6 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
   const { notifyError } = useNotify();
 
   // Inputs
-  const [tipoCarga, setTipoCarga] = useState<string | null>(null);
   const [idProveedor, setIdProveedor] = useState<string | null>(null);
   const [idZona, setIdZona] = useState<string | null>(null);
   const [contacto, setContacto] = useState<string>("");
@@ -77,10 +76,6 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
   };
 
   const handleConfirmar = async () => {
-    if (!tipoCarga) {
-      notifyError("Debe seleccionar el tipo de carga.");
-      return;
-    }
     if (!producto) {
       notifyError("Debe seleccionar el producto.");
       return;
@@ -100,7 +95,6 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
         id_proveedor_minero: idProveedor ? Number(idProveedor) : null,
         id_zona_origen: idZona ? Number(idZona) : null,
         numero_contacto: contacto,
-        tipo_carga: tipoCarga,
         tipo_producto: producto,
         tipo_mineral: material,
         peso_inicial: Number(pesoInicial),
@@ -130,18 +124,6 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
           {/* Columna Izquierda */}
           <Grid.Col span={{ base: 12, md: 6 }}>
             <Stack gap="md">
-              {/* Tipo Carga */}
-              <Select
-                label="Tipo Carga:"
-                placeholder="Seleccione"
-                data={["Granel", "Sacos", "Mixto"]}
-                value={tipoCarga}
-                onChange={(val) => setTipoCarga(val)}
-                classNames={fieldClasses}
-                radius="lg"
-                required
-              />
-
               {/* Proveedor Minero */}
               <Select
                 label="Proveedor Minero:"

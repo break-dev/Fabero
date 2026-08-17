@@ -1,5 +1,4 @@
 import type { TipoIngreso } from "../../../shared/enums/_generic/tipo-ingreso";
-import type { TipoCarga } from "../../../shared/enums/_generic/tipo-carga";
 
 export interface CrearRecepcionRequest {
   id_vehiculo?: number;
@@ -9,15 +8,12 @@ export interface CrearRecepcionRequest {
   id_conductor: number;
   id_proveedor_minero?: number;
   tipo_ingreso?: TipoIngreso;
-  tipo_carga?: TipoCarga;
   segunda_placa?: string;
   observacion?: string;
   evidencias?: File[];
   id_sucursal?: number;
-  serie_guia_remitente?: string;
-  numero_guia_remitente?: string;
-  serie_guia_transportista?: string;
-  numero_guia_transportista?: string;
+  guia_remitente?: string;
+  guia_transportista?: string;
   id_motivo_ingreso?: number;
   vehiculos?: {
     id?: number;
@@ -52,10 +48,8 @@ export interface ProgramarRecepcionRequest {
   id_proveedor_minero?: number;
   id_sucursal?: number;
   fecha_estimada_llegada?: string;
-  serie_guia_remitente?: string;
-  numero_guia_remitente?: string;
-  serie_guia_transportista?: string;
-  numero_guia_transportista?: string;
+  guia_remitente?: string;
+  guia_transportista?: string;
   observacion?: string;
   tipo_ingreso?: TipoIngreso | string;
 }

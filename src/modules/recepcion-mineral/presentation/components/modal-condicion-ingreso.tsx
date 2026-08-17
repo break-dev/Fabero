@@ -1,15 +1,22 @@
-import { useState } from "react";
-import { Select, Button } from "@mantine/core";
+import { useState, useMemo, useEffect } from "react";
+import { Select, Button, Checkbox, TextInput, Stack } from "@mantine/core";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
 import { CondicionIngreso } from "../../../../shared/enums/_generic/condicion-ingreso";
+import { useNotify } from "../../../../hooks/useNotify";
 import type { RES_Empresa } from "../../../../service/responses/empresa";
 
 interface ModalCondicionIngresoProps {
   opened: boolean;
   onClose: () => void;
   empresasTitulares: RES_Empresa[];
-  onConfirm: (condicion: CondicionIngreso, idEmpresa: number) => void;
+  onConfirm: (
+    condicion: CondicionIngreso,
+    idEmpresa: number,
+    correlativoManual?: { correlativo: string; numeroCorrelativo: number },
+  ) => void;
 }
+
+const CORRELATIVO_REGEX = /^\d{2}-[A-Z0-9]{1,5}-\d{5}$/;
 
 export const ModalCondicionIngreso = ({
   opened,
@@ -17,14 +24,45 @@ export const ModalCondicionIngreso = ({
   empresasTitulares,
   onConfirm,
 }: ModalCondicionIngresoProps) => {
+  const { notifyError } = useNotify();
   const [condicion, setCondicion] = useState<CondicionIngreso>(CondicionIngreso.Comercializacion);
   const [idEmpresa, setIdEmpresa] = useState<string | null>(null);
+  const [esManual, setEsManual] = useState(false);
+  const [correlativo, setCorrelativo] = useState("");
 
-  const prefijoActual = "FB";
+  useEffect(() => {
+    if (opened) {
+      setCondicion(CondicionIngreso.Comercializacion);
+      setIdEmpresa(null);
+      setEsManual(false);
+      setCorrelativo("");
+    }
+  }, [opened]);
+
+  const prefijoActual = useMemo(
+    () => (condicion === CondicionIngreso.Comercializacion ? "FB" : "LOT"),
+    [condicion],
+  );
 
   const handleConfirm = () => {
     if (!idEmpresa) return;
-    onConfirm(condicion, Number(idEmpresa));
+
+    let manual: { correlativo: string; numeroCorrelativo: number } | undefined;
+    if (esManual) {
+      const corr = correlativo.trim().toUpperCase();
+      if (!CORRELATIVO_REGEX.test(corr)) {
+        notifyError("El correlativo debe tener formato YY-PREFIJO-NNNNN (ej. 26-LOT-00001)");
+        return;
+      }
+      const num = Number(corr.split("-")[2]);
+      if (!Number.isInteger(num) || num <= 0) {
+        notifyError("El número correlativo debe ser un entero positivo");
+        return;
+      }
+      manual = { correlativo: corr, numeroCorrelativo: num };
+    }
+
+    onConfirm(condicion, Number(idEmpresa), manual);
   };
 
   const fieldClasses = {
@@ -39,7 +77,7 @@ export const ModalCondicionIngreso = ({
       title="Nuevo Lote"
       size="md"
     >
-      <div className="flex flex-col gap-4 p-2">
+      <Stack gap="md" className="p-2">
         <Select
           label="Empresa Titular"
           placeholder="Seleccionar empresa"
@@ -77,6 +115,27 @@ export const ModalCondicionIngreso = ({
           radius="md"
         />
 
+        <Checkbox
+          label="Correlativo manual"
+          checked={esManual}
+          onChange={(e) => setEsManual(e.currentTarget.checked)}
+          color="indigo"
+          classNames={{ label: "text-zinc-200 text-sm" }}
+        />
+
+        {esManual && (
+          <TextInput
+            label="Correlativo"
+            placeholder={`Ej. 26-${prefijoActual}-00001`}
+            required
+            withAsterisk
+            value={correlativo}
+            onChange={(e) => setCorrelativo(e.target.value.toUpperCase())}
+            classNames={fieldClasses}
+            radius="md"
+          />
+        )}
+
         <div className="flex justify-end gap-2 mt-2">
           <Button variant="subtle" color="zinc" onClick={onClose}>
             Cancelar
@@ -89,7 +148,7 @@ export const ModalCondicionIngreso = ({
             Generar Lote
           </Button>
         </div>
-      </div>
+      </Stack>
     </ModalEstandar>
   );
 };

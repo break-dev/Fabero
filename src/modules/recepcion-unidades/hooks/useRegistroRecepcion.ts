@@ -10,7 +10,6 @@ import type { RecepcionUnidadResponse } from "../service/recepcion-unidades.resp
 import type { CrearRecepcionRequest } from "../service/recepcion-unidades.requests";
 import type { RES_Vehiculo } from "../../../service/responses/vehiculo";
 import { TipoIngreso } from "../../../shared/enums/_generic/tipo-ingreso";
-import { TipoCarga } from "../../../shared/enums/_generic/tipo-carga";
 import { useNotify } from "../../../hooks/useNotify";
 import { useUIStore } from "../../../stores/ui.store";
 import type { VisitanteFormItem, VehiculoAcompananteItem } from "./useConfirmarProgramacion";
@@ -47,14 +46,11 @@ export const useRegistroRecepcion = (
     id_conductor: 0,
     id_proveedor_minero: undefined,
     tipo_ingreso: TipoIngreso.RecepcionMineral,
-    tipo_carga: TipoCarga.Granel,
     segunda_placa: "",
     observacion: "",
     evidencias: [],
-    serie_guia_remitente: "",
-    numero_guia_remitente: "",
-    serie_guia_transportista: "",
-    numero_guia_transportista: "",
+    guia_remitente: "",
+    guia_transportista: "",
     id_motivo_ingreso: undefined,
   });
 

@@ -253,46 +253,24 @@ export const ProgramarRecepcionModal = ({ opened, onClose, onSuccess }: Props) =
               </Text>
             </Group>
             <Grid gutter="sm">
-              <Grid.Col span={{ base: 6, sm: 3 }}>
+              <Grid.Col span={{ base: 6, sm: 6 }}>
                 <TextInput
-                  label="Serie Remitente"
-                  placeholder="Ej. 001"
+                  label="Guía Remitente"
+                  placeholder="Ej. 001-123456"
                   radius="xl"
-                  value={form.serie_guia_remitente ?? ""}
-                  onChange={(e) => setField("serie_guia_remitente", e.target.value.toUpperCase())}
+                  value={form.guia_remitente ?? ""}
+                  onChange={(e) => setField("guia_remitente", e.target.value.toUpperCase())}
                   disabled={loading}
                   classNames={fieldClasses}
                 />
               </Grid.Col>
-              <Grid.Col span={{ base: 6, sm: 3 }}>
+              <Grid.Col span={{ base: 6, sm: 6 }}>
                 <TextInput
-                  label="Nro. Remitente"
-                  placeholder="Ej. 123456"
+                  label="Guía Transportista"
+                  placeholder="Ej. 001-123456"
                   radius="xl"
-                  value={form.numero_guia_remitente ?? ""}
-                  onChange={(e) => setField("numero_guia_remitente", e.target.value)}
-                  disabled={loading}
-                  classNames={fieldClasses}
-                />
-              </Grid.Col>
-              <Grid.Col span={{ base: 6, sm: 3 }}>
-                <TextInput
-                  label="Serie Transportista"
-                  placeholder="Ej. 001"
-                  radius="xl"
-                  value={form.serie_guia_transportista ?? ""}
-                  onChange={(e) => setField("serie_guia_transportista", e.target.value.toUpperCase())}
-                  disabled={loading}
-                  classNames={fieldClasses}
-                />
-              </Grid.Col>
-              <Grid.Col span={{ base: 6, sm: 3 }}>
-                <TextInput
-                  label="Nro. Transportista"
-                  placeholder="Ej. 123456"
-                  radius="xl"
-                  value={form.numero_guia_transportista ?? ""}
-                  onChange={(e) => setField("numero_guia_transportista", e.target.value)}
+                  value={form.guia_transportista ?? ""}
+                  onChange={(e) => setField("guia_transportista", e.target.value.toUpperCase())}
                   disabled={loading}
                   classNames={fieldClasses}
                 />

@@ -75,17 +75,11 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
     programacion?.visita?.observacion ?? programacion?.observacion ?? "",
   );
 
-  const [serieGuiaRemitente, setSerieGuiaRemitente] = useState<string>(
-    programacion?.serie_guia_remitente ?? "",
+  const [guiaRemitente, setGuiaRemitente] = useState<string>(
+    programacion?.guia_remitente ?? "",
   );
-  const [numeroGuiaRemitente, setNumeroGuiaRemitente] = useState<string>(
-    programacion?.numero_guia_remitente ?? "",
-  );
-  const [serieGuiaTransportista, setSerieGuiaTransportista] = useState<string>(
-    programacion?.serie_guia_transportista ?? "",
-  );
-  const [numeroGuiaTransportista, setNumeroGuiaTransportista] = useState<string>(
-    programacion?.numero_guia_transportista ?? "",
+  const [guiaTransportista, setGuiaTransportista] = useState<string>(
+    programacion?.guia_transportista ?? "",
   );
 
   const lockedConductor = Boolean(programacion?.id_conductor);
@@ -100,10 +94,8 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
       setIdConductor(programacion?.id_conductor ?? null);
       setIdMotivoIngreso(programacion?.visita?.id_motivo_ingreso ?? null);
       setObservacion(programacion?.visita?.observacion ?? programacion?.observacion ?? "");
-      setSerieGuiaRemitente(programacion?.serie_guia_remitente ?? "");
-      setNumeroGuiaRemitente(programacion?.numero_guia_remitente ?? "");
-      setSerieGuiaTransportista(programacion?.serie_guia_transportista ?? "");
-      setNumeroGuiaTransportista(programacion?.numero_guia_transportista ?? "");
+      setGuiaRemitente(programacion?.guia_remitente ?? "");
+      setGuiaTransportista(programacion?.guia_transportista ?? "");
       setVehiculos(programacion?.visita?.vehiculos ?? []);
       setVisitantes(
         programacion?.visita?.detalles?.map((d: VisitaDetalleResponse) => ({
@@ -443,10 +435,8 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
     const idVeh = programacion?.id_vehiculo ?? idVehiculoEditado ?? null;
     const idTip = programacion?.id_tipo_vehiculo ?? idTipoVehiculoEditado ?? null;
     const idProv = programacion?.id_proveedor_minero ?? idProveedorMineroEditado ?? null;
-    const sGR = programacion?.serie_guia_remitente ?? serieGuiaRemitente ?? "";
-    const nGR = programacion?.numero_guia_remitente ?? numeroGuiaRemitente ?? "";
-    const sGT = programacion?.serie_guia_transportista ?? serieGuiaTransportista ?? "";
-    const nGT = programacion?.numero_guia_transportista ?? numeroGuiaTransportista ?? "";
+    const gRemitente = programacion?.guia_remitente ?? guiaRemitente ?? "";
+    const gTransportista = programacion?.guia_transportista ?? guiaTransportista ?? "";
 
     if (idVeh && idTip != null) {
       const vFound = vehiculosCatalog.find((v) => v.id_vehiculo === idVeh);
@@ -494,10 +484,8 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
           id_sucursal: idSucursal ?? undefined,
           id_conductor: idConductor ?? undefined,
           id_proveedor_minero: idProv ?? undefined,
-          serie_guia_remitente: sGR || undefined,
-          numero_guia_remitente: nGR || undefined,
-          serie_guia_transportista: sGT || undefined,
-          numero_guia_transportista: nGT || undefined,
+          guia_remitente: gRemitente || undefined,
+          guia_transportista: gTransportista || undefined,
         });
 
         const visitantesValidos = visitantes
@@ -562,10 +550,8 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
           id_conductor: idConductor,
           id_proveedor_minero: idProv || undefined,
           id_sucursal: sucursalTarget,
-          serie_guia_remitente: sGR || undefined,
-          numero_guia_remitente: nGR || undefined,
-          serie_guia_transportista: sGT || undefined,
-          numero_guia_transportista: nGT || undefined,
+          guia_remitente: gRemitente || undefined,
+          guia_transportista: gTransportista || undefined,
           id_motivo_ingreso: hasVisitaInfo ? motivoFinal : undefined,
           observacion: observacion || undefined,
           evidencias,
@@ -619,14 +605,10 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
     setIdMotivoIngreso,
     observacion,
     setObservacion,
-    serieGuiaRemitente,
-    setSerieGuiaRemitente,
-    numeroGuiaRemitente,
-    setNumeroGuiaRemitente,
-    serieGuiaTransportista,
-    setSerieGuiaTransportista,
-    numeroGuiaTransportista,
-    setNumeroGuiaTransportista,
+    guiaRemitente,
+    setGuiaRemitente,
+    guiaTransportista,
+    setGuiaTransportista,
     evidencias,
     setEvidencias,
     handleConductorCreado,

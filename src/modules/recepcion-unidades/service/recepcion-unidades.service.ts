@@ -43,14 +43,11 @@ export const RecepcionUnidadesService = {
     appendIfDefined(formData, "id_conductor", payload.id_conductor);
     appendIfDefined(formData, "id_proveedor_minero", payload.id_proveedor_minero);
     appendIfDefined(formData, "tipo_ingreso", payload.tipo_ingreso);
-    appendIfDefined(formData, "tipo_carga", payload.tipo_carga);
     appendIfDefined(formData, "id_sucursal", payload.id_sucursal);
     appendIfDefined(formData, "segunda_placa", payload.segunda_placa);
     appendIfDefined(formData, "observacion", payload.observacion);
-    appendIfDefined(formData, "serie_guia_remitente", payload.serie_guia_remitente);
-    appendIfDefined(formData, "numero_guia_remitente", payload.numero_guia_remitente);
-    appendIfDefined(formData, "serie_guia_transportista", payload.serie_guia_transportista);
-    appendIfDefined(formData, "numero_guia_transportista", payload.numero_guia_transportista);
+    appendIfDefined(formData, "guia_remitente", payload.guia_remitente);
+    appendIfDefined(formData, "guia_transportista", payload.guia_transportista);
     appendIfDefined(formData, "id_motivo_ingreso", payload.id_motivo_ingreso);
 
     if (payload.evidencias && payload.evidencias.length > 0) {
@@ -161,10 +158,8 @@ export const RecepcionUnidadesService = {
       id_conductor?: number;
       id_proveedor_minero?: number;
       id_empresa_transporte?: number;
-      serie_guia_remitente?: string;
-      numero_guia_remitente?: string;
-      serie_guia_transportista?: string;
-      numero_guia_transportista?: string;
+      guia_remitente?: string;
+      guia_transportista?: string;
     },
   ): Promise<RecepcionUnidadResponse> => {
     const { data } = await api.post(`/recepcion-unidades/programaciones/${id}/confirmar`, payload);

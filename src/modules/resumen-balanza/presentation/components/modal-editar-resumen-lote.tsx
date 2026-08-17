@@ -31,7 +31,6 @@ import type { IArchivo } from "../../../../shared/interfaces/archivo";
 import { useNotify } from "../../../../hooks/useNotify";
 import { RegistroVehiculoSimple } from "../../../../presentation/utils/registro-vehiculo-simple";
 import { CondicionIngreso } from "../../../../shared/enums/_generic/condicion-ingreso";
-import { TipoCarga } from "../../../../shared/enums/_generic/tipo-carga";
 import { TipoMineral } from "../../../../shared/enums/_generic/tipo-mineral";
 import { EstadoBase } from "../../../../shared/enums/_generic/estado-base";
 
@@ -62,7 +61,6 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
   // Estados Formulario
   const [condicionIngreso, setCondicionIngreso] = useState<string>(lote.lote_condicion_ingreso || CondicionIngreso.Comercializacion);
   const [motivo, setMotivo] = useState<string>("");
-  const [tipoCarga, setTipoCarga] = useState<string>(lote.lote_tipo_carga || TipoCarga.Granel);
   const [idProveedor, setIdProveedor] = useState<string | null>(lote.id_proveedor ? String(lote.id_proveedor) : null);
   const [idZona, setIdZona] = useState<string | null>(lote.id_zona_origen ? String(lote.id_zona_origen) : null);
   const [contacto, setContacto] = useState<string>(lote.lote_numero_contacto || "");
@@ -121,7 +119,6 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
     if (opened) {
       fetchCatalogos();
       // Reiniciar estados del formulario con el lote seleccionado
-      setTipoCarga(lote.lote_tipo_carga || TipoCarga.Granel);
       setIdProveedor(lote.id_proveedor ? String(lote.id_proveedor) : null);
       setIdZona(lote.id_zona_origen ? String(lote.id_zona_origen) : null);
       setContacto(lote.lote_numero_contacto || "");
@@ -185,7 +182,6 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
         id_proveedor_minero: idProveedor ? Number(idProveedor) : null,
         id_zona_origen: idZona ? Number(idZona) : null,
         numero_contacto: contacto,
-        tipo_carga: tipoCarga,
         tipo_producto: producto,
         tipo_mineral: material,
         id_vehiculo: idVehiculo ? Number(idVehiculo) : null,
@@ -252,19 +248,6 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
                     ]}
                     value={condicionIngreso}
                     onChange={(val) => setCondicionIngreso(val || CondicionIngreso.Comercializacion)}
-                    classNames={selectClassNames}
-                    radius="lg"
-                    comboboxProps={selectComboboxProps}
-                    required
-                  />
-                </Grid.Col>
-                <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
-                  <Select
-                    label="Tipo Carga:"
-                    placeholder="Seleccione"
-                    data={[TipoCarga.Granel, TipoCarga.Sacos, TipoCarga.Mixto]}
-                    value={tipoCarga}
-                    onChange={(val) => setTipoCarga(val || TipoCarga.Granel)}
                     classNames={selectClassNames}
                     radius="lg"
                     comboboxProps={selectComboboxProps}

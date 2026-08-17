@@ -71,11 +71,14 @@ export const useRecepcionMineral = () => {
     try {
       const res = await RecepcionMineralService.iniciar_pesaje(id);
       notifySuccess("Proceso de pesaje iniciado correctamente");
-      await loadRecepciones();
-      
-      // Auto-seleccionar la unidad ahora en la vista de procesos activos
-      const updated = enProcesoList.find((r) => r.id === id) || res;
-      setSelectedRecepcion(updated);
+
+      // Mover la unidad de "Sin Pesar" a "En Proceso" sin refetchear todo
+      setSinPesarList((prev) => prev.filter((r) => r.id !== id));
+      setEnProcesoList((prev) => {
+        if (prev.some((r) => r.id === id)) return prev;
+        return [res, ...prev];
+      });
+      setSelectedRecepcion(res);
     } catch (e: unknown) {
       console.error(e);
       notifyError("No se pudo iniciar el proceso de pesaje");
@@ -100,10 +103,20 @@ export const useRecepcionMineral = () => {
     }
   };
 
-  const crearLote = async (id: number, condicionIngreso: CondicionIngreso, idEmpresa: number) => {
+  const crearLote = async (
+    id: number,
+    condicionIngreso: CondicionIngreso,
+    idEmpresa: number,
+    correlativoManual?: { correlativo: string; numeroCorrelativo: number },
+  ) => {
     setCreatingLoteId(id);
     try {
-      const nuevoLote = await RecepcionMineralService.crear_lote(id, condicionIngreso, idEmpresa);
+      const nuevoLote = await RecepcionMineralService.crear_lote(id, {
+        condicion_ingreso: condicionIngreso,
+        id_empresa: idEmpresa,
+        correlativo_manual: correlativoManual?.correlativo,
+        numero_correlativo_manual: correlativoManual?.numeroCorrelativo,
+      });
       notifySuccess("Lote generado correctamente: " + nuevoLote.correlativo);
 
       setEnProcesoList((prev) =>

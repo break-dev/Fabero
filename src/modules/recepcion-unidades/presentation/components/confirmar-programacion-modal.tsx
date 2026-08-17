@@ -411,55 +411,29 @@ export const ConfirmarProgramacionModal = ({
               </Text>
             </Group>
             <Grid gutter="sm">
-              <Grid.Col span={{ base: 6, sm: 3 }}>
+              <Grid.Col span={{ base: 6, sm: 6 }}>
                 <TextInput
-                  label="Serie Remitente"
-                  placeholder="Ej. 001"
+                  label="Guía Remitente"
+                  placeholder="Ej. 001-123456"
                   radius="xl"
-                  value={ctrl.programacion?.serie_guia_remitente ?? ctrl.serieGuiaRemitente}
-                  onChange={(e) => ctrl.setSerieGuiaRemitente(e.currentTarget.value)}
-                  readOnly={Boolean(ctrl.programacion?.serie_guia_remitente)}
+                  value={ctrl.programacion?.guia_remitente ?? ctrl.guiaRemitente}
+                  onChange={(e) => ctrl.setGuiaRemitente(e.currentTarget.value)}
+                  readOnly={Boolean(ctrl.programacion?.guia_remitente)}
                   disabled={confirmando}
-                  rightSection={ctrl.programacion?.serie_guia_remitente ? <IconLock size={14} className="text-zinc-500" /> : undefined}
+                  rightSection={ctrl.programacion?.guia_remitente ? <IconLock size={14} className="text-zinc-500" /> : undefined}
                   classNames={fieldClasses}
                 />
               </Grid.Col>
-              <Grid.Col span={{ base: 6, sm: 3 }}>
+              <Grid.Col span={{ base: 6, sm: 6 }}>
                 <TextInput
-                  label="Nro. Remitente"
-                  placeholder="Ej. 123456"
+                  label="Guía Transportista"
+                  placeholder="Ej. 001-123456"
                   radius="xl"
-                  value={ctrl.programacion?.numero_guia_remitente ?? ctrl.numeroGuiaRemitente}
-                  onChange={(e) => ctrl.setNumeroGuiaRemitente(e.currentTarget.value)}
-                  readOnly={Boolean(ctrl.programacion?.numero_guia_remitente)}
+                  value={ctrl.programacion?.guia_transportista ?? ctrl.guiaTransportista}
+                  onChange={(e) => ctrl.setGuiaTransportista(e.currentTarget.value)}
+                  readOnly={Boolean(ctrl.programacion?.guia_transportista)}
                   disabled={confirmando}
-                  rightSection={ctrl.programacion?.numero_guia_remitente ? <IconLock size={14} className="text-zinc-500" /> : undefined}
-                  classNames={fieldClasses}
-                />
-              </Grid.Col>
-              <Grid.Col span={{ base: 6, sm: 3 }}>
-                <TextInput
-                  label="Serie Transportista"
-                  placeholder="Ej. 001"
-                  radius="xl"
-                  value={ctrl.programacion?.serie_guia_transportista ?? ctrl.serieGuiaTransportista}
-                  onChange={(e) => ctrl.setSerieGuiaTransportista(e.currentTarget.value)}
-                  readOnly={Boolean(ctrl.programacion?.serie_guia_transportista)}
-                  disabled={confirmando}
-                  rightSection={ctrl.programacion?.serie_guia_transportista ? <IconLock size={14} className="text-zinc-500" /> : undefined}
-                  classNames={fieldClasses}
-                />
-              </Grid.Col>
-              <Grid.Col span={{ base: 6, sm: 3 }}>
-                <TextInput
-                  label="Nro. Transportista"
-                  placeholder="Ej. 123456"
-                  radius="xl"
-                  value={ctrl.programacion?.numero_guia_transportista ?? ctrl.numeroGuiaTransportista}
-                  onChange={(e) => ctrl.setNumeroGuiaTransportista(e.currentTarget.value)}
-                  readOnly={Boolean(ctrl.programacion?.numero_guia_transportista)}
-                  disabled={confirmando}
-                  rightSection={ctrl.programacion?.numero_guia_transportista ? <IconLock size={14} className="text-zinc-500" /> : undefined}
+                  rightSection={ctrl.programacion?.guia_transportista ? <IconLock size={14} className="text-zinc-500" /> : undefined}
                   classNames={fieldClasses}
                 />
               </Grid.Col>

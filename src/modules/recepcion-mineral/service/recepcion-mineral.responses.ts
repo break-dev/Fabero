@@ -14,7 +14,6 @@ export interface RES_LoteMineral {
   zona_origen_nombre?: string;
   correlativo: string;
   numero_correlativo: number;
-  tipo_carga: string | null;
   numero_contacto: string | null;
   tipo_producto: string | null;
   tipo_mineral: string | null;
@@ -61,7 +60,6 @@ export interface RecepcionMineralResponse {
   conductor_nombre_completo: string | null;
   conductor_dni: string | null;
   tipo_ingreso: string;
-  tipo_carga: string;
   segunda_placa: string | null;
   fecha_hora_ingreso: string;
   fecha_hora_salida: string | null;
@@ -77,16 +75,8 @@ export interface RecepcionMineralResponse {
   estado: string;
   estado_salida: string | null;
   estado_pesaje: string | null;
-  validacion_datos: {
-    condicion_ingreso: boolean;
-    tipo_carga: boolean;
-    placa: boolean;
-    empresa_transporte: boolean;
-    tipo_vehiculo: boolean;
-    segunda_placa: boolean;
-    conductor: boolean;
-  };
   id_sucursal: number | null;
+  es_recepcion_ficticia: boolean;
   lotes: RES_LoteMineral[];
 }
 
@@ -97,7 +87,6 @@ export interface RES_TicketBalanzaData {
   fecha_impresion: string | null;
   placa: string | null;
   tipo_producto: string | null;
-  tipo_carga: string | null;
   tipo_mineral: string | null;
   guia_remision: string | null;
   ruc_proveedor: string | null;
@@ -128,4 +117,3 @@ export interface RES_TicketBalanzaData {
   dni_operador: string | null;
   cargo_operador: string | null;
 }
-

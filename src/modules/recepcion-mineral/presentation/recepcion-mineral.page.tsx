@@ -6,7 +6,6 @@ import { mostrarConfirmacion } from "../../../presentation/utils/modal-confirmac
 import { useRecepcionMineral } from "../hooks/useRecepcionMineral";
 import { AuxService } from "../../../service/auxiliar.service";
 import { ModalEstandar } from "../../../presentation/utils/modal-estandar";
-import { RegistroConductor } from "../../../presentation/utils/registro-conductor";
 import { ModalPesoInicial } from "./components/modal-peso-inicial";
 import { ModalPesoFinal } from "./components/modal-peso-final";
 import { ModalUnidadFicticia } from "./components/modal-unidad-ficticia";
@@ -18,14 +17,12 @@ import type { RES_Conductor } from "../../../service/responses/conductor";
 import type { RES_Empresa } from "../../../service/responses/empresa";
 import type { RES_LoteMineral, RecepcionMineralResponse } from "../service/recepcion-mineral.responses";
 import { useUIStore } from "../../../stores/ui.store";
-import { useTicketLote } from "../hooks/useTicketLote";
 import { useTicketBalanza } from "../hooks/useTicketBalanza";
 
 export const RecepcionMineralPage = () => {
   useTitlePage("Recepción de Mineral", true);
 
   const sucursal = useUIStore((state) => state.sucursal_elegida);
-  const { printTicket, getBarcodePreviewUrl } = useTicketLote();
   const { printTicketBalanza } = useTicketBalanza();
 
   const {
@@ -34,12 +31,11 @@ export const RecepcionMineralPage = () => {
     loading,
     selectedRecepcion,
     setSelectedRecepcion,
-    validatingField,
+    validarCampo,
     creatingLoteId,
     deletingLoteId,
     closingProcesoId,
     iniciarProceso,
-    validarCampo,
     crearLote,
     eliminarLote,
     registrarPesoInicial,
@@ -53,7 +49,7 @@ export const RecepcionMineralPage = () => {
     return serie ? `${serie}-${placa}` : placa;
   };
 
-  // Catálogos para popovers de edición
+  // Catálogos para el panel de la unidad (izquierda) y modal de lote
   const [empresas, setEmpresas] = useState<RES_EmpresaTransporte[]>([]);
   const [tiposVehiculo, setTiposVehiculo] = useState<RES_TipoVehiculo[]>([]);
   const [conductores, setConductores] = useState<RES_Conductor[]>([]);
@@ -65,17 +61,10 @@ export const RecepcionMineralPage = () => {
   const [activeLotePesoFinal, setActiveLotePesoFinal] = useState<RES_LoteMineral | null>(null);
   const [openFicticiaModal, setOpenFicticiaModal] = useState(false);
   const [editingFicticia, setEditingFicticia] = useState<RecepcionMineralResponse | null>(null);
-  const [openNewConductorModal, setOpenNewConductorModal] = useState(false);
 
   // Modal para condición de ingreso de lote
   const [condicionModalOpen, setCondicionModalOpen] = useState(false);
   const [selectedRecepcionIdForLote, setSelectedRecepcionIdForLote] = useState<number | null>(null);
-
-  // Popovers abiertos (estado de ID de recepción + clave del campo)
-  const [openedPopover, setOpenedPopover] = useState<string | null>(null);
-  const [tempValue, setTempValue] = useState<string>("");
-
-
 
   useEffect(() => {
     let isMounted = true;
@@ -96,7 +85,7 @@ export const RecepcionMineralPage = () => {
           }
         }
       } catch (e) {
-        console.error("Error al cargar catálogos para validación", e);
+        console.error("Error al cargar catálogos para edición", e);
       }
     };
     load();
@@ -105,22 +94,6 @@ export const RecepcionMineralPage = () => {
     };
   }, []);
 
-  const handleOpenPopover = (recepcionId: number, field: string, currentValue: string) => {
-    setOpenedPopover(`${recepcionId}-${field}`);
-    setTempValue(currentValue);
-  };
-
-  const handleSaveField = async (recepcionId: number, field: string) => {
-    await validarCampo(recepcionId, field, tempValue);
-    setOpenedPopover(null);
-    // Recargar conductores si se creó uno nuevo
-    if (field === "conductor") {
-      const resCond = await AuxService.get_conductores();
-      setConductores(resCond);
-    }
-  };
-
-  // Determinar si una recepción tiene todas las validaciones completadas
   const unidadesAOperar = enProcesoList;
 
   return (
@@ -334,26 +307,18 @@ export const RecepcionMineralPage = () => {
                       empresas={empresas}
                       tiposVehiculo={tiposVehiculo}
                       conductores={conductores}
-                      validatingField={validatingField}
-                      handleOpenPopover={handleOpenPopover}
-                      handleSaveField={handleSaveField}
-                      openedPopover={openedPopover}
-                      setOpenedPopover={setOpenedPopover}
-                      tempValue={tempValue}
-                      setTempValue={setTempValue}
-                      setOpenNewConductorModal={setOpenNewConductorModal}
                       setSelectedRecepcionIdForLote={
                         setSelectedRecepcionIdForLote
                       }
                       setCondicionModalOpen={setCondicionModalOpen}
-                      creatingLoteId={creatingLoteId}
+                      crearLoteLoadingId={creatingLoteId}
                       deletingLoteId={deletingLoteId}
+                      closingProcesoId={closingProcesoId}
+                      validarCampo={validarCampo}
                       eliminarLote={eliminarLote}
-                      printTicket={printTicket}
-                      getBarcodePreviewUrl={getBarcodePreviewUrl}
+                      printTicketBalanza={printTicketBalanza}
                       setActiveLotePesoInicial={setActiveLotePesoInicial}
                       setActiveLotePesoFinal={setActiveLotePesoFinal}
-                      closingProcesoId={closingProcesoId}
                       cerrarProceso={cerrarProceso}
                     />
                   ))}
@@ -426,26 +391,6 @@ export const RecepcionMineralPage = () => {
         </ModalEstandar>
       )}
 
-      {/* Modal: Registro de Nuevo Conductor (dentro del selector rápido) */}
-      <ModalEstandar
-        opened={openNewConductorModal}
-        close={() => setOpenNewConductorModal(false)}
-        title="Registrar Nuevo Conductor"
-        size="md"
-      >
-        <RegistroConductor
-          onCancel={() => setOpenNewConductorModal(false)}
-          onSuccess={async (conductor) => {
-            // Actualizar el valor temporal al ID del conductor recién creado
-            setTempValue(String(conductor.id_conductor));
-            // Actualizar lista general de conductores
-            const resCond = await AuxService.get_conductores();
-            setConductores(resCond);
-            setOpenNewConductorModal(false);
-          }}
-        />
-      </ModalEstandar>
-
       {/* Modal: Unidad Ficticia (crear / editar fecha/hora) */}
       <ModalUnidadFicticia
         opened={openFicticiaModal || !!editingFicticia}
@@ -478,9 +423,9 @@ export const RecepcionMineralPage = () => {
           setSelectedRecepcionIdForLote(null);
         }}
         empresasTitulares={empresasTitulares}
-        onConfirm={(condicion, idEmpresa) => {
+        onConfirm={(condicion, idEmpresa, correlativoManual) => {
           if (selectedRecepcionIdForLote) {
-            crearLote(selectedRecepcionIdForLote, condicion, idEmpresa);
+            crearLote(selectedRecepcionIdForLote, condicion, idEmpresa, correlativoManual);
           }
           setCondicionModalOpen(false);
           setSelectedRecepcionIdForLote(null);

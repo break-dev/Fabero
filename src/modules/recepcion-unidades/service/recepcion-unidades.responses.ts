@@ -1,6 +1,5 @@
 import type { IArchivo } from "../../../shared/interfaces/archivo";
 import type { TipoIngreso } from "../../../shared/enums/_generic/tipo-ingreso";
-import type { TipoCarga } from "../../../shared/enums/_generic/tipo-carga";
 import type { EstadoUnidad } from "../../../shared/enums/_generic/estado-unidad";
 import type { EstadoSalida } from "../../../shared/enums/_generic/estado-salida";
 import type { EstadoPesaje } from "../../../shared/enums/_generic/estado-pesaje";
@@ -20,7 +19,6 @@ export interface RecepcionUnidadResponse {
   conductor_dni: string | null;
   conductor_numero_licencia: string | null;
   tipo_ingreso: TipoIngreso | string | null;
-  tipo_carga: TipoCarga | string | null;
   segunda_placa: string | null;
   fecha_hora_ingreso: string | null;
   evidencias: IArchivo[];
@@ -32,15 +30,6 @@ export interface RecepcionUnidadResponse {
   id_sucursal?: number | null;
   fecha_hora_inicio_pesaje?: string | null;
   fecha_hora_final_pesaje?: string | null;
-  validacion_datos?: {
-    condicion_ingreso: boolean;
-    tipo_carga?: boolean;
-    placa: boolean;
-    empresa_transporte: boolean;
-    tipo_vehiculo: boolean;
-    segunda_placa: boolean;
-    conductor: boolean;
-  };
   estado_pesaje: EstadoPesaje | string | null;
   id_proveedor_minero: number | null;
   proveedor_razon_social: string | null;
@@ -50,10 +39,9 @@ export interface RecepcionUnidadResponse {
   empleado_recepcion_nombre: string | null;
   es_programacion: boolean;
   fecha_estimada_llegada: string | null;
-  serie_guia_remitente: string | null;
-  numero_guia_remitente: string | null;
-  serie_guia_transportista: string | null;
-  numero_guia_transportista: string | null;
+  guia_remitente: string | null;
+  guia_transportista: string | null;
+  es_recepcion_ficticia: boolean;
   visita?: ProgramacionVisitaPayload | null;
 }
 

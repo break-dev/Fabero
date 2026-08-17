@@ -22,10 +22,8 @@ const INITIAL_FORM: ProgramarRecepcionRequest = {
   id_proveedor_minero: undefined,
   id_sucursal: undefined,
   fecha_estimada_llegada: "",
-  serie_guia_remitente: "",
-  numero_guia_remitente: "",
-  serie_guia_transportista: "",
-  numero_guia_transportista: "",
+  guia_remitente: "",
+  guia_transportista: "",
   observacion: "",
 };
 

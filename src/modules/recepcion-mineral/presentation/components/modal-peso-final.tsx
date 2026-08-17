@@ -45,7 +45,6 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
   const [nuevaZonaNombre, setNuevaZonaNombre] = useState("");
 
   // Estados Formulario - Peso Inicial (Izquierda)
-  const [tipoCarga, setTipoCarga] = useState<string>(lote.tipo_carga || "Granel");
   const [idProveedor, setIdProveedor] = useState<string | null>(lote.id_proveedor_minero ? String(lote.id_proveedor_minero) : null);
   const [idZona, setIdZona] = useState<string | null>(lote.id_zona_origen ? String(lote.id_zona_origen) : null);
   const [contacto, setContacto] = useState<string>(lote.numero_contacto || "");
@@ -124,7 +123,6 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
         id_proveedor_minero: idProveedor ? Number(idProveedor) : null,
         id_zona_origen: idZona ? Number(idZona) : null,
         numero_contacto: contacto,
-        tipo_carga: tipoCarga,
         tipo_producto: producto,
         tipo_mineral: material,
         peso_inicial: pesoBruto,
@@ -161,19 +159,6 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
           <Grid gutter="sm">
             <Grid.Col span={{ base: 12, md: 4 }}>
               <Select
-                label="Tipo Carga:"
-                placeholder="Seleccione"
-                data={["Granel", "Sacos", "Mixto"]}
-                value={tipoCarga}
-                onChange={(val) => setTipoCarga(val || "Granel")}
-                classNames={fieldClasses}
-                radius="lg"
-                size="xs"
-                required
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 4 }}>
-              <Select
                 label="Producto:"
                 placeholder="Seleccione"
                 data={["Aurífero", "Polimetálico"]}
@@ -198,6 +183,7 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
                 required
               />
             </Grid.Col>
+            <Grid.Col span={{ base: 12, md: 4 }}/>
 
             <Grid.Col span={{ base: 12, md: 4 }}>
               <Select

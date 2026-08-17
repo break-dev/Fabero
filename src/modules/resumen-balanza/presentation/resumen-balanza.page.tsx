@@ -294,7 +294,6 @@ export const ResumenBalanzaPage = () => {
                   numero_correlativo: r.lote_numero_correlativo,
                   vehiculo_placa: r.vehiculo_placa,
                   vehiculo_serie: r.vehiculo_serie,
-                  tipo_carga: r.lote_tipo_carga,
                   empresa_transporte_ruc: ruc,
                   empresa_transporte_razon_social: r.empresa_transporte_razon_social,
                   tipo_vehiculo_nombre: r.tipo_vehiculo_nombre,
@@ -475,16 +474,6 @@ export const ResumenBalanzaPage = () => {
                     <span className="text-zinc-600 italic">No registrada</span>
                   )}
                 </Text>
-              ),
-            },
-            {
-              accessor: "lote_tipo_carga",
-              title: "Tipo Carga",
-              width: 130,
-              render: (r: RES_ResumenBalanzaItem) => (
-                <Badge variant="dot" color="cyan" size="sm" className="uppercase font-semibold">
-                  {r.lote_tipo_carga}
-                </Badge>
               ),
             },
             {

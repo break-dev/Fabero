@@ -317,7 +317,7 @@ export const TicketBalanzaPdf = ({ data }: TicketBalanzaPdfProps) => {
         </View>
 
         <View style={styles.fieldRow}>
-          <Text style={styles.fieldLabel}>OBS.......:</Text>
+          <Text style={styles.fieldLabel}>LOTE.........:</Text>
           <Text style={styles.fieldValue}>
             {data.correlativo || data.id_lote}
             {observacionText ? ` (${observacionText})` : ""}
