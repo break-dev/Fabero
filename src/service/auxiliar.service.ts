@@ -177,6 +177,38 @@ export const AuxService = {
   },
 
   /**
+   * Crear empresa de transporte (POST /api/empresas-transporte)
+   */
+  crear_empresa_transporte: async (payload: {
+    tipo_entidad: string;
+    ruc?: string;
+    dni?: string;
+    razon_social: string;
+    direccion?: string;
+    telefono?: string;
+    correo?: string;
+  }): Promise<RES_EmpresaTransporte> => {
+    const { data } = await api.post("/empresas-transporte", payload);
+    return data.data;
+  },
+
+  /**
+   * Crear proveedor (POST /api/proveedores)
+   */
+  crear_proveedor: async (payload: {
+    tipo_entidad: string;
+    ruc?: string;
+    dni?: string;
+    razon_social: string;
+    direccion?: string;
+    telefono?: string;
+    correo?: string;
+  }): Promise<RES_Proveedor> => {
+    const { data } = await api.post("/proveedores", payload);
+    return data.data;
+  },
+
+  /**
    * Editar la información de un tipo de vehículo existente
    */
   editar_tipo_vehiculo: async (

@@ -24,6 +24,7 @@ import { RecepcionUnidadesPage } from "../../modules/recepcion-unidades/presenta
 import { RecepcionVisitasPage } from "../../modules/recepcion-visitas/presentation/recepcion-visitas.page.tsx";
 import { RecepcionMineralPage } from "../../modules/recepcion-mineral/presentation/recepcion-mineral.page.tsx";
 import { ResumenBalanzaPage } from "../../modules/resumen-balanza/presentation/resumen-balanza.page.tsx";
+import { ValidacionDistribucionPage } from "../../modules/validacion-distribucion/presentation/validacion-distribucion.page.tsx";
 import { GuiasPrimerTramoPage } from "../../modules/guias-primer-tramo/presentation/guias-primer-tramo.page.tsx";
 import { useEffect } from "react";
 import { onSocketEvent } from "../../service/_socket.ts";
@@ -148,6 +149,11 @@ export const App = () => {
             <Route
               path="recepcion-mineral"
               element={<RecepcionMineralPage />}
+            />
+            {/* Validación y Distribución */}
+            <Route
+              path="validacion-distribucion"
+              element={<ValidacionDistribucionPage />}
             />
             {/* Resumen de Balanza */}
             <Route path="resumen-balanza" element={<ResumenBalanzaPage />} />

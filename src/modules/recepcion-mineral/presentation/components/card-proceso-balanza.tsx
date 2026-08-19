@@ -74,17 +74,12 @@ export const CardProcesoBalanza = ({
 }: CardProcesoBalanzaProps) => {
   const { notifyError } = useNotify();
 
-  const isFicticio = ru.tipo_ingreso === "Ficticio" || ru.es_recepcion_ficticia;
+  const isFicticio = ru.tipo_ingreso === "Ficticio" || ru.es_recepcion_ficticia === true;
   const lotesAMostrar = ru.lotes || [];
 
   const canCloseProceso = (recepcion: RecepcionMineralResponse) => {
     if (!recepcion.lotes || recepcion.lotes.length === 0) return false;
     return recepcion.lotes.every((l: RES_LoteMineral) => l.peso_final !== null);
-  };
-
-  const getFullPlaca = (serie: string | null, placa: string | null) => {
-    if (!placa) return "SIN PLACA";
-    return serie ? `${serie}-${placa}` : placa;
   };
 
   const formatPlacaInput = (val: string): string => {
@@ -95,8 +90,8 @@ export const CardProcesoBalanza = ({
 
   // Los inputs siempre son editables; el guardado es automático al cambiar select (onChange) o al perder foco (onBlur).
   const [condIng, setCondIng] = useState(ru.tipo_ingreso || "");
-  const [segPlaca, setSegPlaca] = useState(ru.vehiculo_placa || "");
-  const [segPlaca2, setSegPlaca2] = useState(ru.segunda_placa || "");
+  const [segPlaca, setSegPlaca] = useState(formatPlacaInput(ru.vehiculo_placa || ""));
+  const [segPlaca2, setSegPlaca2] = useState(formatPlacaInput(ru.segunda_placa || ""));
   const [idEmp, setIdEmp] = useState<string>(
     ru.id_empresa_transporte ? String(ru.id_empresa_transporte) : "",
   );
@@ -165,12 +160,8 @@ export const CardProcesoBalanza = ({
           />
           <Text size="xs" fw={700} className="text-white font-mono">
             <span className="text-zinc-400">Unidad: </span>
-            <span className="text-amber-400">{getFullPlaca(isFicticio ? null : ru.vehiculo_serie, ru.vehiculo_placa)}</span>
-            {isFicticio && (
-              <Badge variant="dot" color="indigo" size="xs" ml={6}>
-                FICT
-              </Badge>
-            )}
+            <span className="text-amber-400">{(() => { const placa = formatPlacaInput(ru.vehiculo_placa || ""); const serie = isFicticio ? null : (ru.vehiculo_serie || null); if (!serie) return placa; if (placa.startsWith(serie)) return placa; return `${serie}-${placa}`; })()}</span>
+            {isFicticio && <Badge variant="dot" color="indigo" size="xs" ml={6}>FICT</Badge>}
           </Text>
         </div>
 

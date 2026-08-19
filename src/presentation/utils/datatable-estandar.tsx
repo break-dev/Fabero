@@ -22,6 +22,7 @@ interface DataTableEstandarProps {
   initialPageSize?: number;
   loading: boolean;
   columnGroups?: FlexibleGroup[];
+  renderExpandedRow?: (record: any) => React.ReactNode;
   [key: string]: any;
 }
 
@@ -32,6 +33,7 @@ export const DataTableEstandar = ({
   initialPageSize = 25,
   loading,
   columnGroups,
+  renderExpandedRow,
   ...props
 }: DataTableEstandarProps) => {
   const [page, setPage] = useState(1);
@@ -134,6 +136,15 @@ export const DataTableEstandar = ({
         loadingText="Cargando..."
         paginationText={({ from, to, totalRecords }) =>
           `${from} - ${to} de ${totalRecords}`
+        }
+        rowExpansion={
+          renderExpandedRow
+            ? {
+                allowMultiple: false,
+                content: ({ record }: { record: any }) =>
+                  renderExpandedRow(record),
+              }
+            : undefined
         }
         scrollAreaProps={{
           viewportProps: {
