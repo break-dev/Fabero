@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import {
   TextInput,
-  Textarea,
   Button,
   Stack,
   Group,
@@ -15,10 +14,11 @@ import {
   Badge,
   Loader,
 } from "@mantine/core";
-import { IconWeight, IconPlus } from "@tabler/icons-react";
+import { IconWeight, IconPlus, IconUserPlus } from "@tabler/icons-react";
 import { MultiFilePicker } from "../../../../presentation/utils/archivo/multifile-picker";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
 import { FormZonaOrigen } from "../../../../presentation/utils/form-zona-origen";
+import { RegistroProveedorMineroSimple } from "../../../../presentation/utils/registro-proveedor-minero-simple";
 import { AuxService } from "../../../../service/auxiliar.service";
 import type { RES_Proveedor } from "../../../../service/responses/proveedor";
 import type { RES_ZonaOrigen } from "../../../../service/responses/zona-origen";
@@ -42,6 +42,7 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
 
   // Estados Sub-Modals
   const [openZonaModal, setOpenZonaModal] = useState(false);
+  const [openProveedorModal, setOpenProveedorModal] = useState(false);
   const [nuevaZonaNombre, setNuevaZonaNombre] = useState("");
 
   // Estados Formulario - Peso Inicial (Izquierda)
@@ -50,12 +51,10 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
   const [contacto, setContacto] = useState<string>(lote.numero_contacto || "");
   const [producto, setProducto] = useState<string>(lote.tipo_producto || "Aurífero");
   const [material, setMaterial] = useState<string>(lote.tipo_mineral || "Mixto");
-  const [observacionInicial, setObservacionInicial] = useState<string>(lote.observacion_peso_inicial || "");
   const [pesoInicial, setPesoInicial] = useState<string>(lote.peso_inicial ? String(lote.peso_inicial) : "");
 
   // Estados Formulario - Peso Final (Derecha)
   const [pesoFinal, setPesoFinal] = useState<string>("");
-  const [observacionFinal, setObservacionFinal] = useState<string>("");
   const [evidencias, setEvidencias] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -117,7 +116,6 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
     try {
       const dto: DTO_PesoFinal = {
         peso_final: Number(pesoFinal),
-        observacion_peso_final: observacionFinal,
         evidencias: evidencias,
         // Enviar datos actualizados de peso inicial
         id_proveedor_minero: idProveedor ? Number(idProveedor) : null,
@@ -126,7 +124,6 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
         tipo_producto: producto,
         tipo_mineral: material,
         peso_inicial: pesoBruto,
-        observacion_peso_inicial: observacionInicial,
       };
 
       await onSubmit(lote.id, dto);
@@ -136,6 +133,18 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleCreatedProveedor = (nuevo: RES_Proveedor) => {
+    setProveedores((prev) => {
+      const sinDuplicado = prev.filter((p) => p.id_proveedor !== nuevo.id_proveedor);
+      return [nuevo, ...sinDuplicado];
+    });
+    setIdProveedor(String(nuevo.id_proveedor));
+    if (nuevo.telefono) {
+      setContacto(nuevo.telefono);
+    }
+    setOpenProveedorModal(false);
   };
 
   const fieldClasses = {
@@ -186,19 +195,43 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
             <Grid.Col span={{ base: 12, md: 4 }}/>
 
             <Grid.Col span={{ base: 12, md: 4 }}>
-              <Select
-                label="Proveedor Minero:"
-                placeholder={loadingCatalogos ? "Cargando..." : "Seleccione"}
-                searchable
-                disabled={loadingCatalogos}
-                rightSection={loadingCatalogos ? <Loader size={16} /> : undefined}
-                data={proveedores.map((p) => ({ value: String(p.id_proveedor), label: `${p.razon_social} (${p.documento})` }))}
-                value={idProveedor}
-                onChange={handleProveedorChange}
-                classNames={fieldClasses}
-                radius="lg"
-                size="xs"
-              />
+              <Group gap="xs" align="flex-end" wrap="nowrap">
+                <Select
+                  label="Proveedor Minero:"
+                  placeholder={loadingCatalogos ? "Cargando..." : "Seleccione"}
+                  searchable
+                  disabled={loadingCatalogos}
+                  rightSection={loadingCatalogos ? <Loader size={16} /> : undefined}
+                  data={proveedores
+                    .filter(
+                      (p): p is RES_Proveedor & { id_proveedor: number } =>
+                        typeof p.id_proveedor === "number",
+                    )
+                    .map((p) => ({
+                      value: String(p.id_proveedor),
+                      label: `${p.razon_social} (${p.documento})`,
+                    }))}
+                  value={idProveedor}
+                  onChange={handleProveedorChange}
+                  classNames={fieldClasses}
+                  radius="lg"
+                  size="xs"
+                  className="flex-1"
+                />
+                <Tooltip label="Registrar Proveedor Minero" withArrow>
+                  <ActionIcon
+                    type="button"
+                    variant="filled"
+                    color="indigo"
+                    radius="lg"
+                    size="lg"
+                    onClick={() => setOpenProveedorModal(true)}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white h-9.5 w-9.5"
+                  >
+                    <IconUserPlus size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              </Group>
             </Grid.Col>
             <Grid.Col span={{ base: 12, md: 4 }}>
               <Group gap="xs" align="flex-end" wrap="nowrap">
@@ -274,20 +307,6 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
             <Grid.Col span={{ base: 12, md: 4 }}>
               {/* Columna vacía para mantener el grid 3x3 balanceado */}
             </Grid.Col>
-
-            <Grid.Col span={12}>
-              <Textarea
-                label="Observación Peso Inicial:"
-                placeholder="Escriba alguna observación sobre el peso inicial..."
-                value={observacionInicial}
-                onChange={(e) => setObservacionInicial(e.currentTarget.value)}
-                classNames={fieldClasses}
-                radius="lg"
-                size="xs"
-                minRows={1}
-                autosize
-              />
-            </Grid.Col>
           </Grid>
         </Paper>
 
@@ -301,7 +320,7 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
           </Group>
 
           <Grid gutter="sm">
-            <Grid.Col span={{ base: 12, sm: 6 }}>
+            <Grid.Col span={{ base: 12, sm: 12 }}>
               <TextInput
                 label="Peso Final / Tara (Kg):"
                 placeholder="Ingrese tara en Kilos"
@@ -311,19 +330,6 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
                 radius="lg"
                 size="xs"
                 required
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6 }}>
-              <Textarea
-                label="Observación Peso Final (Opcional):"
-                placeholder="Escriba alguna observación..."
-                value={observacionFinal}
-                onChange={(e) => setObservacionFinal(e.currentTarget.value)}
-                classNames={fieldClasses}
-                radius="lg"
-                size="xs"
-                minRows={2}
-                autosize
               />
             </Grid.Col>
           </Grid>
@@ -460,6 +466,19 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
             setNuevaZonaNombre("");
             setOpenZonaModal(false);
           }}
+        />
+      </ModalEstandar>
+
+      {/* Sub-Modal: Registro de Nuevo Proveedor Minero */}
+      <ModalEstandar
+        opened={openProveedorModal}
+        close={() => setOpenProveedorModal(false)}
+        title="Registrar Nuevo Proveedor Minero"
+        size="lg"
+      >
+        <RegistroProveedorMineroSimple
+          onCancel={() => setOpenProveedorModal(false)}
+          onSuccess={handleCreatedProveedor}
         />
       </ModalEstandar>
 

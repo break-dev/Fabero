@@ -54,6 +54,13 @@ export const ValidacionDistribucionService = {
     return data.data;
   },
 
+  getTicketBalanzaLote: async (
+    idLote: number
+  ): Promise<RES_TicketBalanzaData> => {
+    const { data } = await api.get(`${PATH}/lotes/${idLote}/ticket-balanza`);
+    return data.data;
+  },
+
   crearParticion: async (
     idLote: number,
     payload: DTO_CrearParticion

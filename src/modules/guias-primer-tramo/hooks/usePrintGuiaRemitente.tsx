@@ -19,14 +19,8 @@ export const usePrintGuiaRemitente = () => {
       prepare(`guia-remitente-${guia.id}`);
 
       try {
-        // En guia_remitente.php se generaba una URL en el QR.
-        // Si hay token de QR de remitente en la base de datos lo usamos,
-        // de lo contrario armamos la cadena con la serie y número de guía.
-        const qrText =
-          guia.qr_token_remitente ||
-          `Guia Remitente: ${guia.serie_guia_remitente ?? ""}-${guia.numero_guia_remitente ?? ""}`;
+        const qrText = `Guia Remitente: ${guia.guia_remitente ?? ""}`;
 
-        // Generar QR en base64 de forma asíncrona
         const qrCodeUrl = await QRCode.toDataURL(qrText, {
           margin: 1,
           width: 150,
@@ -35,7 +29,7 @@ export const usePrintGuiaRemitente = () => {
         print(
           <GuiaRemitentePdf guia={guia} qrCodeUrl={qrCodeUrl} />,
           {
-            documentTitle: `Guia_Remitente_${guia.serie_guia_remitente ?? ""}_${guia.numero_guia_remitente ?? ""}`,
+            documentTitle: `Guia_Remitente_${guia.guia_remitente ?? ""}`,
             target: `guia-remitente-${guia.id}`,
           }
         );

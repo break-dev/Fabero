@@ -15,6 +15,7 @@ import type { RES_EmpresaTransporte } from "../../../service/responses/empresa-t
 import type { RES_TipoVehiculo } from "../../../service/responses/tipo-vehiculo";
 import type { RES_Conductor } from "../../../service/responses/conductor";
 import type { RES_Empresa } from "../../../service/responses/empresa";
+import type { RES_Vehiculo } from "../../../service/responses/vehiculo";
 import type { RES_LoteMineral, RecepcionMineralResponse } from "../service/recepcion-mineral.responses";
 import { useUIStore } from "../../../stores/ui.store";
 import { useTicketBalanza } from "../hooks/useTicketBalanza";
@@ -52,6 +53,7 @@ export const RecepcionMineralPage = () => {
   // Catálogos para el panel de la unidad (izquierda) y modal de lote
   const [empresas, setEmpresas] = useState<RES_EmpresaTransporte[]>([]);
   const [tiposVehiculo, setTiposVehiculo] = useState<RES_TipoVehiculo[]>([]);
+  const [vehiculos, setVehiculos] = useState<RES_Vehiculo[]>([]);
   const [conductores, setConductores] = useState<RES_Conductor[]>([]);
   const [empresasTitulares, setEmpresasTitulares] = useState<RES_Empresa[]>([]);
 
@@ -70,15 +72,17 @@ export const RecepcionMineralPage = () => {
     let isMounted = true;
     const load = async () => {
       try {
-        const [resEmp, resTipos, resCond, resEmpTit] = await Promise.all([
+        const [resEmp, resTipos, resVeh, resCond, resEmpTit] = await Promise.all([
           AuxService.get_empresas_transporte(),
           AuxService.get_tipos_vehiculo(),
+          AuxService.get_vehiculos(),
           AuxService.get_conductores(),
           AuxService.get_empresas(),
         ]);
         if (isMounted) {
           setEmpresas(resEmp);
           setTiposVehiculo(resTipos);
+          setVehiculos(resVeh);
           setConductores(resCond);
           if (resEmpTit?.data) {
             setEmpresasTitulares(resEmpTit.data);
@@ -306,6 +310,7 @@ export const RecepcionMineralPage = () => {
                       ru={ru}
                       empresas={empresas}
                       tiposVehiculo={tiposVehiculo}
+                      vehiculos={vehiculos}
                       conductores={conductores}
                       setSelectedRecepcionIdForLote={
                         setSelectedRecepcionIdForLote

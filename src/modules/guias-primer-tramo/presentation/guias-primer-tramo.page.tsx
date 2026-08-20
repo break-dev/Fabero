@@ -4,7 +4,6 @@ import {
   Button,
   Stack,
   TextInput,
-  Table,
   Badge,
   Tooltip,
   ActionIcon,
@@ -22,17 +21,15 @@ import {
 import { useTitlePage } from "../../../hooks/useTitlePage";
 import { useUIStore } from "../../../stores/ui.store";
 import { useGuiasPrimerTramo } from "../hooks/useGuiasPrimerTramo";
-// Forzar a Vite a resolver usePrintGuiaRemitente como .tsx y no como el antiguo .ts
 import { usePrintGuiaRemitente } from "../hooks/usePrintGuiaRemitente";
 import { usePrintGuiaTransportista } from "../hooks/usePrintGuiaTransportista";
 import { ModalGuiaPrimerTramo } from "./components/modal-guia-primer-tramo";
 import { HistorialModal } from "./components/historial-modal";
 import { DataTableEstandar } from "../../../presentation/utils/datatable-estandar";
 import type { DTO_CrearGuiaPrimerTramo, DTO_ActualizarGuiaPrimerTramo } from "../service/guias-primer-tramo.requests";
-import type { RES_GuiaPrimerTramo } from "../service/guias-primer-tramo.responses";
+import type { RES_GuiaPrimerTramo, RES_DocumentoGuia } from "../service/guias-primer-tramo.responses";
 import { MotivoTraslado } from "../../../shared/enums/_generic/motivo-traslado";
 import { EstadoBase } from "../../../shared/enums/_generic/estado-base";
-import type { IArchivo } from "../../../shared/interfaces/archivo";
 import { mostrarConfirmacion } from "../../../presentation/utils/modal-confirmacion";
 import { ModalEstandar } from "../../../presentation/utils/modal-estandar";
 import { ArchivoCard } from "../../../presentation/utils/archivo/archivo-card";
@@ -69,19 +66,18 @@ export const GuiasPrimerTramoPage = () => {
     return `${y}-${m}-${day}`;
   };
 
-  // Filtros
   const [fechaInicio, setFechaInicio] = useState<string>(todayIso());
   const [fechaFin, setFechaFin] = useState<string>(todayIso());
 
-  // Modal
   const [openModal, setOpenModal] = useState(false);
   const [editingGuia, setEditingGuia] = useState<RES_GuiaPrimerTramo | null>(null);
 
-  // Visor de evidencias
-  const [selectedEvidencias, setSelectedEvidencias] = useState<IArchivo[] | null>(null);
-  const [evidenceModalOpen, setEvidenceModalOpen] = useState(false);
+  const [selectedDocumentos, setSelectedDocumentos] = useState<{
+    guia_remitente: RES_DocumentoGuia | null;
+    guia_transportista: RES_DocumentoGuia | null;
+  } | null>(null);
+  const [documentosModalOpen, setDocumentosModalOpen] = useState(false);
 
-  // Historial de cambios (modal independiente del de edición)
   const [historialModalOpen, setHistorialModalOpen] = useState(false);
   const [guiaHistorial, setGuiaHistorial] = useState<RES_GuiaPrimerTramo | null>(null);
 
@@ -140,7 +136,7 @@ export const GuiasPrimerTramoPage = () => {
       cancelLabel: "Cancelar",
       message: (
         <>
-          ¿Está seguro de que desea <strong className="text-red-400">ANULAR</strong> esta guía de primer tramo? Esta acción no se puede deshacer y liberará los lotes asociados.
+          ¿Está seguro de que desea <strong className="text-red-400">ANULAR</strong> esta guía de primer tramo? Esta acción no se puede deshacer y liberará los items asociados.
         </>
       ),
       onConfirm: async () => {
@@ -161,8 +157,6 @@ export const GuiasPrimerTramoPage = () => {
     });
   };
 
-
-
   const motivoColor = (m: string | null): string => {
     switch (m) {
       case MotivoTraslado.Venta:
@@ -174,11 +168,15 @@ export const GuiasPrimerTramoPage = () => {
     }
   };
 
-
+  const totalDocumentos = (g: RES_GuiaPrimerTramo): number => {
+    let n = 0;
+    if (g.documentos?.guia_remitente) n += 1;
+    if (g.documentos?.guia_transportista) n += 1;
+    return n;
+  };
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      {/* Filtros + Acciones (estilo compacto) */}
       <div className="flex flex-wrap items-end gap-3 justify-between">
         <div className="flex flex-wrap gap-3 items-end">
           <TextInput
@@ -236,7 +234,6 @@ export const GuiasPrimerTramoPage = () => {
         </div>
       </div>
 
-      {/* Tabla Estandar de guías */}
       <DataTableEstandar
         idAccessor="id"
         records={guias}
@@ -285,15 +282,11 @@ export const GuiasPrimerTramoPage = () => {
             accessor: "guia_remitente",
             title: "Guía Remitente",
             render: (g: RES_GuiaPrimerTramo) => {
-              const hasGuia = !!(
-                g.serie_guia_remitente || g.numero_guia_remitente
-              );
+              const hasGuia = !!g.guia_remitente;
               return (
                 <div className="flex items-center gap-2">
                   <Text size="xs" fw={500} className="text-zinc-200 font-mono">
-                    {hasGuia
-                      ? `${g.serie_guia_remitente ?? ""}-${g.numero_guia_remitente ?? ""}`
-                      : "—"}
+                    {hasGuia ? g.guia_remitente : "—"}
                   </Text>
                   {hasGuia && (
                     <Tooltip label="Imprimir Guía Remitente" withArrow>
@@ -324,15 +317,11 @@ export const GuiasPrimerTramoPage = () => {
                   </Badge>
                 );
               }
-              const hasGuia = !!(
-                g.serie_guia_transportista || g.numero_guia_transportista
-              );
+              const hasGuia = !!g.guia_transportista;
               return (
                 <div className="flex items-center gap-2">
                   <Text size="xs" className="text-zinc-300 font-mono">
-                    {hasGuia
-                      ? `${g.serie_guia_transportista ?? ""}-${g.numero_guia_transportista ?? ""}`
-                      : "—"}
+                    {hasGuia ? g.guia_transportista : "—"}
                   </Text>
                   {hasGuia && (
                     <Tooltip label="Imprimir Guía Transportista" withArrow>
@@ -436,18 +425,18 @@ export const GuiasPrimerTramoPage = () => {
             ),
           },
           {
-            accessor: "evidencias",
-            title: "Evidencias",
+            accessor: "documentos",
+            title: "Documentos",
             width: 130,
             render: (g: RES_GuiaPrimerTramo) => {
-              if (!Array.isArray(g.evidencias) || g.evidencias.length === 0) {
+              const total = totalDocumentos(g);
+              if (total === 0) {
                 return (
                   <Text size="xs" className="text-zinc-500 italic">
-                    Sin archivos
+                    Sin documentos
                   </Text>
                 );
               }
-
               return (
                 <Button
                   size="xs"
@@ -456,14 +445,12 @@ export const GuiasPrimerTramoPage = () => {
                   radius="xl"
                   leftSection={<IconPaperclip size={14} />}
                   onClick={() => {
-                    setSelectedEvidencias(
-                      g.evidencias as unknown as IArchivo[],
-                    );
-                    setEvidenceModalOpen(true);
+                    setSelectedDocumentos(g.documentos ?? null);
+                    setDocumentosModalOpen(true);
                   }}
                   className="bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/10"
                 >
-                  Ver ({g.evidencias.length})
+                  Ver ({total})
                 </Button>
               );
             },
@@ -546,81 +533,84 @@ export const GuiasPrimerTramoPage = () => {
         rowExpansion={{
           content: ({ record: g }: { record: RES_GuiaPrimerTramo }) => (
             <div className="p-4 border border-zinc-800/80 rounded-xl bg-transparent m-3">
-              {/* Lotes asociados */}
-              <div>
-                <Text
-                  size="xs"
-                  fw={700}
-                  c="blue.4"
-                  tt="uppercase"
-                  lts="0.1em"
-                  mb="xs"
-                >
-                  Lotes asociados
-                </Text>
-                {g.lotes && g.lotes.length > 0 ? (
-                  <div className="rounded-lg border border-zinc-800/85 overflow-hidden">
-                    <Table verticalSpacing="xs" className="w-full">
-                      <thead>
-                        <tr className="text-zinc-400 text-[10px] uppercase tracking-wider">
-                          <th
-                            style={{ width: 50 }}
-                            className="text-center py-2 pl-4"
-                          >
-                            #
-                          </th>
-                          <th className="text-left py-2">Lote Mineral</th>
-                          <th className="text-left py-2">Producto</th>
-                          <th className="text-left py-2">Mineral</th>
-                          <th className="text-right py-2">P. Bruto</th>
-                          <th className="text-right py-2">Tara</th>
-                          <th className="text-right py-2 pr-4">P. Neto</th>
+              <Text
+                size="xs"
+                fw={700}
+                c="blue.4"
+                tt="uppercase"
+                lts="0.1em"
+                mb="xs"
+              >
+                Items Asociados
+              </Text>
+              {g.lotes && g.lotes.length > 0 ? (
+                <div className="rounded-lg border border-zinc-800/85 overflow-hidden">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-zinc-400 text-[10px] uppercase tracking-wider">
+                        <th style={{ width: 50 }} className="text-center py-2 pl-4">#</th>
+                        <th className="text-left py-2">Tipo</th>
+                        <th className="text-left py-2">Correlativo</th>
+                        <th className="text-left py-2">Producto</th>
+                        <th className="text-left py-2">Mineral</th>
+                        <th className="text-right py-2">P. Bruto</th>
+                        <th className="text-right py-2">Tara</th>
+                        <th className="text-right py-2 pr-4">P. Neto</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {g.lotes.map((l, idx) => (
+                        <tr
+                          key={l.id}
+                          className="border-b border-zinc-900/40 bg-transparent hover:bg-transparent"
+                        >
+                          <td className="text-zinc-400 font-mono text-xs text-center py-2 pl-4">
+                            {idx + 1}
+                          </td>
+                          <td className="py-2 text-xs">
+                            <Badge
+                              variant="light"
+                              color={l.tipo_item === "PARTICION" ? "violet" : "teal"}
+                              size="sm"
+                              radius="md"
+                              className="font-bold uppercase"
+                            >
+                              {l.tipo_item}
+                            </Badge>
+                          </td>
+                          <td className="font-mono text-zinc-100 text-xs py-2 fw-semibold">
+                            {l.correlativo ?? "—"}
+                          </td>
+                          <td className="text-zinc-300 text-xs py-2">
+                            {l.tipo_producto ?? "—"}
+                          </td>
+                          <td className="text-zinc-300 text-xs py-2">
+                            {l.tipo_mineral ?? "—"}
+                          </td>
+                          <td className="text-right font-mono text-zinc-200 text-xs py-2">
+                            {l.peso_inicial?.toFixed(2) ?? "—"}
+                          </td>
+                          <td className="text-right font-mono text-zinc-200 text-xs py-2">
+                            {l.peso_final?.toFixed(2) ?? "—"}
+                          </td>
+                          <td className="text-right font-mono text-emerald-400 text-xs py-2 pr-4 fw-semibold">
+                            {l.peso_neto?.toFixed(2) ?? "—"}
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {g.lotes.map((l, idx) => (
-                          <tr
-                            key={l.id}
-                            className="border-b border-zinc-900/40 bg-transparent hover:bg-transparent"
-                          >
-                            <td className="text-zinc-400 font-mono text-xs text-center py-2 pl-4">
-                              {idx + 1}
-                            </td>
-                            <td className="font-mono text-zinc-100 text-xs py-2 fw-semibold">
-                              {l.lote_correlativo ?? "—"}
-                            </td>
-                            <td className="text-zinc-300 text-xs py-2">
-                              {l.tipo_producto ?? "—"}
-                            </td>
-                            <td className="text-zinc-300 text-xs py-2">
-                              {l.tipo_mineral ?? "—"}
-                            </td>
-                            <td className="text-right font-mono text-zinc-200 text-xs py-2">
-                              {l.peso_bruto?.toFixed(2) ?? "—"}
-                            </td>
-                            <td className="text-right font-mono text-zinc-200 text-xs py-2">
-                              {l.tara?.toFixed(2) ?? "—"}
-                            </td>
-                            <td className="text-right font-mono text-emerald-400 text-xs py-2 pr-4 fw-semibold">
-                              {l.peso_neto?.toFixed(2) ?? "—"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  </div>
-                ) : (
-                  <Text size="xs" c="dimmed">
-                    Esta guía no tiene lotes asociados.
-                  </Text>
-                )}
-              </div>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <Text size="xs" c="dimmed">
+                  Esta guía no tiene items asociados.
+                </Text>
+              )}
             </div>
           ),
         }}
       />
 
-      {/* Modal de creación/edición */}
       {idSucursal && (
         <ModalGuiaPrimerTramo
           opened={openModal}
@@ -635,24 +625,40 @@ export const GuiasPrimerTramoPage = () => {
         />
       )}
 
-      {/* Modal: Evidencias Registradas */}
       <ModalEstandar
-        opened={evidenceModalOpen}
+        opened={documentosModalOpen}
         close={() => {
-          setEvidenceModalOpen(false);
-          setSelectedEvidencias(null);
+          setDocumentosModalOpen(false);
+          setSelectedDocumentos(null);
         }}
-        title="Evidencias de la Guía"
+        title="Documentos de la Guía"
         size="md"
       >
         <div className="flex flex-col gap-3">
-          {selectedEvidencias?.map((e, idx) => (
-            <ArchivoCard key={idx} archivo={e} />
-          ))}
+          {selectedDocumentos?.guia_remitente && (
+            <div className="flex flex-col gap-1">
+              <Text size="xs" fw={700} c="indigo.4" tt="uppercase" lts="0.1em">
+                Guía Remitente
+              </Text>
+              <ArchivoCard archivo={selectedDocumentos.guia_remitente} />
+            </div>
+          )}
+          {selectedDocumentos?.guia_transportista && (
+            <div className="flex flex-col gap-1">
+              <Text size="xs" fw={700} c="indigo.4" tt="uppercase" lts="0.1em">
+                Guía Transportista
+              </Text>
+              <ArchivoCard archivo={selectedDocumentos.guia_transportista} />
+            </div>
+          )}
+          {!selectedDocumentos?.guia_remitente && !selectedDocumentos?.guia_transportista && (
+            <Text size="xs" c="dimmed" className="text-center">
+              Esta guía no tiene documentos adjuntos.
+            </Text>
+          )}
         </div>
       </ModalEstandar>
 
-      {/* Modal: Historial de cambios */}
       <HistorialModal
         guia={guiaHistorial}
         opened={historialModalOpen}

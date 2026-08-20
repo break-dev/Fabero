@@ -52,11 +52,15 @@ export const computeRebalance = (
   const normalized = arr.map(normalizeParticion);
   if (normalized.length === 0) return [];
 
-  const lockedSum = normalized
+  // Excluir particiones eliminadas lógicamente del cálculo de rebalanceo
+  const activas = normalized.filter((p) => p.estado !== "Eliminado");
+  if (activas.length === 0) return normalized;
+
+  const lockedSum = activas
     .filter((p) => p.es_bloqueado)
     .reduce((s, p) => s + (p.peso_neto ?? 0), 0);
 
-  const unlocked = normalized.filter((p) => !p.es_bloqueado);
+  const unlocked = activas.filter((p) => !p.es_bloqueado);
   if (unlocked.length === 0) return normalized;
 
   const unlockedWithWeight = unlocked.filter((p) => (p.peso_neto ?? 0) > 0);
@@ -159,6 +163,16 @@ export const useParticionesLote = (
   const [creating, setCreating] = useState(false);
   const { notifySuccess, notifyError } = useNotify();
 
+  const isDirty = useCallback(
+    (p: RES_Particion): boolean => {
+      if (p.estado === "Eliminado") return false;
+      const snap = snapshots[p.id];
+      if (!snap) return false;
+      return !snapshotEqual(snap, snapshotFrom(p));
+    },
+    [snapshots]
+  );
+
   const cargar = useCallback(async () => {
     setLoading(true);
     try {
@@ -173,7 +187,9 @@ export const useParticionesLote = (
       });
 
       const total = Number(lotePesoNeto) || 0;
-      const hasZeroPartitions = data.some((p) => (p.peso_neto ?? 0) === 0);
+      const hasZeroPartitions = data
+        .filter((p) => p.estado !== "Eliminado")
+        .some((p) => (p.peso_neto ?? 0) === 0);
       if (data.length > 0 && hasZeroPartitions && total > 0) {
         setParticiones(computeRebalance(data, total));
       } else {
@@ -189,6 +205,37 @@ export const useParticionesLote = (
   useEffect(() => {
     void cargar();
   }, [cargar]);
+
+  // Autoguardado debounced (500ms) de particiones modificadas o recalculadas
+  useEffect(() => {
+    if (particiones.length === 0) return;
+
+    const dirtyPartitions = particiones.filter(
+      (p) => p.estado !== "Eliminado" && isDirty(p)
+    );
+
+    if (dirtyPartitions.length === 0) return;
+
+    const timer = setTimeout(async () => {
+      for (const p of dirtyPartitions) {
+        try {
+          await ValidacionDistribucionService.updateParticion(p.id, {
+            peso_inicial: p.peso_inicial,
+            peso_final: p.peso_final,
+            peso_neto: p.peso_neto,
+          });
+          setSnapshots((prev) => ({
+            ...prev,
+            [p.id]: snapshotFrom(p),
+          }));
+        } catch {
+          // Fallo silencioso en autoguardado en segundo plano
+        }
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [particiones, isDirty]);
 
   const crearParticion = useCallback(async () => {
     setCreating(true);
@@ -219,15 +266,34 @@ export const useParticionesLote = (
     (id: number, field: PesoField, value: number) => {
       const total = Number(lotePesoNeto) || 0;
       setParticiones((prev) => {
+        // Calcular la suma de particiones bloqueadas que NO sean esta partición
+        const otherLockedSum = prev
+          .filter(
+            (p) => p.estado !== "Eliminado" && p.id !== id && p.es_bloqueado
+          )
+          .reduce((s, p) => s + (p.peso_neto ?? 0), 0);
+
+        const maxPermitido = round2(Math.max(0, total - otherLockedSum));
+
+        let finalValue = Math.max(0, value);
+        if (field === "peso_neto") {
+          finalValue = Math.min(finalValue, maxPermitido);
+        }
+
         const updated = prev.map((p) =>
-          p.id !== id ? p : applyWithinRule(p, field, value)
+          p.id !== id || p.estado === "Eliminado"
+            ? p
+            : applyWithinRule(p, field, finalValue)
         );
         if (field === "peso_neto") {
           const lockedSum = updated
-            .filter((p) => p.es_bloqueado || p.id === id)
+            .filter(
+              (p) =>
+                p.estado !== "Eliminado" && (p.es_bloqueado || p.id === id)
+            )
             .reduce((s, p) => s + (p.peso_neto ?? 0), 0);
           const others = updated.filter(
-            (p) => p.id !== id && !p.es_bloqueado
+            (p) => p.estado !== "Eliminado" && p.id !== id && !p.es_bloqueado
           );
           if (others.length === 0) return updated;
 
@@ -290,7 +356,9 @@ export const useParticionesLote = (
         });
 
         const total = Number(lotePesoNeto) || 0;
-        const hasZeroPartitions = data.some((p) => (p.peso_neto ?? 0) === 0);
+        const hasZeroPartitions = data
+          .filter((p) => p.estado !== "Eliminado")
+          .some((p) => (p.peso_neto ?? 0) === 0);
         if (data.length > 0 && hasZeroPartitions && total > 0) {
           setParticiones(computeRebalance(data, total));
         } else {
@@ -310,36 +378,34 @@ export const useParticionesLote = (
     [cargar, lotePesoNeto, notifyError, notifySuccess]
   );
 
-  const guardar = useCallback(
-    async (id: number) => {
-      const p = particiones.find((x) => x.id === id);
-      if (!p) return;
-      const snap = snapshots[id];
-      if (snap && snapshotEqual(snap, snapshotFrom(p))) return;
-      await persistOne(
-        id,
-        {
-          peso_inicial: p.peso_inicial,
-          peso_final: p.peso_final,
-          peso_neto: p.peso_neto,
-        },
-        `Partición ${p.particion} guardada.`,
-        "No se pudo guardar la partición."
-      );
-    },
-    [particiones, snapshots, persistOne]
-  );
-
   const eliminar = useCallback(
     async (p: RES_Particion) => {
-      await persistOne(
-        p.id,
-        { estado: "Eliminado" },
-        `Partición ${p.particion} eliminada.`,
-        "No se pudo eliminar la partición."
-      );
+      const total = Number(lotePesoNeto) || 0;
+      setParticiones((prev) => {
+        const nextArr = prev.map((x) =>
+          x.id === p.id ? { ...x, estado: "Eliminado" } : x
+        );
+        return computeRebalance(nextArr, total);
+      });
+
+      setSavingIds((s) => ({ ...s, [p.id]: true }));
+      try {
+        await ValidacionDistribucionService.updateParticion(p.id, {
+          estado: "Eliminado",
+        });
+        setSnapshots((prev) => ({
+          ...prev,
+          [p.id]: snapshotFrom({ ...p, estado: "Eliminado" }),
+        }));
+        notifySuccess(`Partición ${p.particion} eliminada.`);
+      } catch {
+        notifyError("No se pudo eliminar la partición.");
+        await cargar();
+      } finally {
+        setSavingIds((s) => ({ ...s, [p.id]: false }));
+      }
     },
-    [persistOne]
+    [lotePesoNeto, cargar, notifyError, notifySuccess]
   );
 
   const toggleBloqueo = useCallback(
@@ -405,7 +471,9 @@ export const useParticionesLote = (
       });
 
       const total = Number(lotePesoNeto) || 0;
-      const hasZeroPartitions = data.some((p) => (p.peso_neto ?? 0) === 0);
+      const hasZeroPartitions = data
+        .filter((p) => p.estado !== "Eliminado")
+        .some((p) => (p.peso_neto ?? 0) === 0);
       if (data.length > 0 && hasZeroPartitions && total > 0) {
         setParticiones(computeRebalance(data, total));
       } else {
@@ -437,12 +505,6 @@ export const useParticionesLote = (
 
   const isEliminada = (p: RES_Particion): boolean => p.estado === "Eliminado";
 
-  const isDirty = (p: RES_Particion): boolean => {
-    const snap = snapshots[p.id];
-    if (!snap) return false;
-    return !snapshotEqual(snap, snapshotFrom(p));
-  };
-
   return {
     particiones,
     snapshots,
@@ -452,7 +514,6 @@ export const useParticionesLote = (
     cargar,
     crearParticion,
     ajustarPeso,
-    guardar,
     eliminar,
     toggleBloqueo,
     cambiarFecha,

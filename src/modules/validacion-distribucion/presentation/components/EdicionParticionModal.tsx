@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import {
   Button,
   Group,
+  Loader,
+  NumberInput,
   Select,
   SimpleGrid,
   Stack,
@@ -9,10 +11,12 @@ import {
   Tooltip,
   ActionIcon,
 } from "@mantine/core";
+import { DateTimePicker } from "@mantine/dates";
 import { IconPlus } from "@tabler/icons-react";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
 import { AuxService } from "../../../../service/auxiliar.service";
 import { ValidacionDistribucionService } from "../../service/validacion-distribucion.service";
+import type { DTO_UpdateParticion } from "../../service/validacion-distribucion.requests";
 import type { RES_Particion } from "../../service/validacion-distribucion.responses";
 import type { RES_Vehiculo } from "../../../../service/responses/vehiculo";
 import type { RES_Conductor } from "../../../../service/responses/conductor";
@@ -20,7 +24,6 @@ import type { RES_EmpresaTransporte } from "../../../../service/responses/empres
 import type { RES_TipoVehiculo } from "../../../../service/responses/tipo-vehiculo";
 import type { RES_Proveedor } from "../../../../service/responses/proveedor";
 import { useNotify } from "../../../../hooks/useNotify";
-import { CustomDatePicker } from "../../../../presentation/utils/date-picker-input";
 import { RegistroConductor } from "../../../../presentation/utils/registro-conductor";
 import { RegistroVehiculoSimple } from "../../../../presentation/utils/registro-vehiculo-simple";
 import { RegistroEmpresaTransporte } from "../../../../presentation/utils/registro-empresa-transporte";
@@ -63,11 +66,14 @@ export const EdicionParticionModal = ({
       ? String(particion.id_proveedor_minero)
       : null
   );
-  const [fechaHoraIngreso, setFechaHoraIngreso] = useState<Date | null>(() => {
-    if (!particion.fecha_hora_ingreso) return null;
-    const d = new Date(particion.fecha_hora_ingreso);
-    return Number.isNaN(d.getTime()) ? null : d;
-  });
+  const [fechaHoraIngreso, setFechaHoraIngreso] = useState<Date | null>(
+    () => (particion.fecha_hora_ingreso ? new Date(particion.fecha_hora_ingreso) : new Date())
+  );
+
+
+  const [capacidadVehiculo, setCapacidadVehiculo] = useState<number | string | null>(
+    particion.vehiculo_capacidad ?? null
+  );
 
   const [vehiculos, setVehiculos] = useState<RES_Vehiculo[]>([]);
   const [conductores, setConductores] = useState<RES_Conductor[]>([]);
@@ -77,6 +83,13 @@ export const EdicionParticionModal = ({
   const [tiposVehiculo, setTiposVehiculo] = useState<RES_TipoVehiculo[]>([]);
   const [proveedores, setProveedores] = useState<RES_Proveedor[]>([]);
 
+  const [loadingVehiculos, setLoadingVehiculos] = useState(false);
+  const [loadingConductores, setLoadingConductores] = useState(false);
+  const [loadingEmpresasTransporte, setLoadingEmpresasTransporte] =
+    useState(false);
+  const [loadingTiposVehiculo, setLoadingTiposVehiculo] = useState(false);
+  const [loadingProveedores, setLoadingProveedores] = useState(false);
+
   const [subModal, setSubModal] = useState<SubModal>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -85,6 +98,7 @@ export const EdicionParticionModal = ({
   useEffect(() => {
     if (!opened) return;
     setIdVehiculo(particion.id_vehiculo != null ? String(particion.id_vehiculo) : null);
+    setCapacidadVehiculo(particion.vehiculo_capacidad ?? null);
     setIdConductor(
       particion.id_conductor != null ? String(particion.id_conductor) : null
     );
@@ -102,46 +116,65 @@ export const EdicionParticionModal = ({
         : null
     );
     setFechaHoraIngreso(
-      !particion.fecha_hora_ingreso
-        ? null
-        : (() => {
-            const d = new Date(particion.fecha_hora_ingreso);
-            return Number.isNaN(d.getTime()) ? null : d;
-          })()
+      particion.fecha_hora_ingreso
+        ? new Date(particion.fecha_hora_ingreso)
+        : new Date()
     );
+
+    setLoadingVehiculos(true);
+    setLoadingConductores(true);
+    setLoadingEmpresasTransporte(true);
+    setLoadingProveedores(true);
+    setLoadingTiposVehiculo(true);
 
     AuxService.get_vehiculos()
       .then((data) => {
         setVehiculos(data as RES_Vehiculo[]);
       })
-      .catch(() => notifyError("No se pudo cargar el catálogo de vehículos."));
+      .catch(() => notifyError("No se pudo cargar el catálogo de vehículos."))
+      .finally(() => setLoadingVehiculos(false));
 
     AuxService.get_conductores()
       .then((data) => {
         setConductores(data as RES_Conductor[]);
       })
-      .catch(() => notifyError("No se pudo cargar el catálogo de conductores."));
+      .catch(() => notifyError("No se pudo cargar el catálogo de conductores."))
+      .finally(() => setLoadingConductores(false));
 
     AuxService.get_empresas_transporte()
       .then((data) => {
         setEmpresasTransporte(data as RES_EmpresaTransporte[]);
       })
-      .catch(() => notifyError("No se pudo cargar el catálogo de empresas de transporte."));
+      .catch(() =>
+        notifyError("No se pudo cargar el catálogo de empresas de transporte.")
+      )
+      .finally(() => setLoadingEmpresasTransporte(false));
 
     AuxService.get_proveedores()
       .then((res) => {
         setProveedores(res.data ?? (res as unknown as RES_Proveedor[]));
       })
-      .catch(() => notifyError("No se pudo cargar el catálogo de proveedores."));
+      .catch(() => notifyError("No se pudo cargar el catálogo de proveedores."))
+      .finally(() => setLoadingProveedores(false));
 
     AuxService.get_tipos_vehiculo()
       .then((data) => {
         setTiposVehiculo(data as RES_TipoVehiculo[]);
       })
-      .catch(() => notifyError("No se pudo cargar el catálogo de tipos de vehículo."));
+      .catch(() => notifyError("No se pudo cargar el catálogo de tipos de vehículo."))
+      .finally(() => setLoadingTiposVehiculo(false));
   }, [opened, particion, catalogKey, notifyError]);
 
   const refreshCatalog = async (kind: SubModal) => {
+    const setLoading = (val: boolean) => {
+      if (kind === "vehiculo") setLoadingVehiculos(val);
+      else if (kind === "conductor") setLoadingConductores(val);
+      else if (kind === "empresa") setLoadingEmpresasTransporte(val);
+      else if (kind === "tipo_vehiculo") setLoadingTiposVehiculo(val);
+      else if (kind === "proveedor") setLoadingProveedores(val);
+    };
+
+    setLoading(true);
     try {
       if (kind === "vehiculo") {
         const data = await AuxService.get_vehiculos();
@@ -161,30 +194,41 @@ export const EdicionParticionModal = ({
       }
     } catch {
       /* silent */
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleGuardar = async () => {
     setSubmitting(true);
     try {
+      if (idVehiculo && capacidadVehiculo != null) {
+        const capNum = typeof capacidadVehiculo === "number" ? capacidadVehiculo : parseFloat(String(capacidadVehiculo));
+        if (Number.isFinite(capNum)) {
+          await ValidacionDistribucionService.updateCapacidadVehiculo(Number(idVehiculo), { capacidad: capNum });
+        }
+      }
+
+      const payload: DTO_UpdateParticion = {
+        recepcion: {
+          id_vehiculo: idVehiculo ? Number(idVehiculo) : null,
+          id_conductor: idConductor ? Number(idConductor) : null,
+          id_empresa_transporte: idEmpresaTransporte
+            ? Number(idEmpresaTransporte)
+            : null,
+          id_tipo_vehiculo: idTipoVehiculo ? Number(idTipoVehiculo) : null,
+          id_proveedor_minero: idProveedorMinero
+            ? Number(idProveedorMinero)
+            : null,
+          fecha_hora_ingreso: fechaHoraIngreso
+            ? fechaHoraIngreso.toISOString()
+            : null,
+        },
+      };
+
       const actualizadas = await ValidacionDistribucionService.updateParticion(
         particion.id,
-        {
-          recepcion: {
-            id_vehiculo: idVehiculo ? Number(idVehiculo) : null,
-            id_conductor: idConductor ? Number(idConductor) : null,
-            id_empresa_transporte: idEmpresaTransporte
-              ? Number(idEmpresaTransporte)
-              : null,
-            id_tipo_vehiculo: idTipoVehiculo ? Number(idTipoVehiculo) : null,
-            id_proveedor_minero: idProveedorMinero
-              ? Number(idProveedorMinero)
-              : null,
-            fecha_hora_ingreso: fechaHoraIngreso
-              ? fechaHoraIngreso.toISOString()
-              : null,
-          },
-        }
+        payload
       );
       notifySuccess("Recepción actualizada correctamente.");
       onSaved(actualizadas);
@@ -220,7 +264,25 @@ export const EdicionParticionModal = ({
               value={idVehiculo}
               onChange={setIdVehiculo}
               onPlus={() => setSubModal("vehiculo")}
+              loading={loadingVehiculos}
             />
+            <Stack gap={4}>
+              <Text size="xs" c="dimmed">
+                Capacidad del Vehículo (TN)
+              </Text>
+              <NumberInput
+                placeholder="0.00"
+                value={capacidadVehiculo ?? 0}
+                onChange={setCapacidadVehiculo}
+                min={0}
+                decimalScale={2}
+                fixedDecimalScale
+                hideControls
+                radius="lg"
+                size="xs"
+                disabled={!idVehiculo}
+              />
+            </Stack>
             <SelectField
               label="Conductor"
               data={conductores.map((c) => ({
@@ -230,6 +292,7 @@ export const EdicionParticionModal = ({
               value={idConductor}
               onChange={setIdConductor}
               onPlus={() => setSubModal("conductor")}
+              loading={loadingConductores}
             />
             <SelectField
               label="Empresa de transporte"
@@ -240,6 +303,7 @@ export const EdicionParticionModal = ({
               value={idEmpresaTransporte}
               onChange={setIdEmpresaTransporte}
               onPlus={() => setSubModal("empresa")}
+              loading={loadingEmpresasTransporte}
             />
             <SelectField
               label="Tipo de vehículo"
@@ -250,6 +314,7 @@ export const EdicionParticionModal = ({
               value={idTipoVehiculo}
               onChange={setIdTipoVehiculo}
               onPlus={() => setSubModal("tipo_vehiculo")}
+              loading={loadingTiposVehiculo}
             />
             <SelectField
               label="Proveedor minero"
@@ -260,22 +325,19 @@ export const EdicionParticionModal = ({
               value={idProveedorMinero}
               onChange={setIdProveedorMinero}
               onPlus={() => setSubModal("proveedor")}
+              loading={loadingProveedores}
             />
             <Stack gap={4}>
               <Text size="xs" c="dimmed">
-                Fecha de ingreso
+                Fecha y hora de ingreso
               </Text>
-              <CustomDatePicker
+              <DateTimePicker
                 value={fechaHoraIngreso}
-                onChange={(d) => {
-                  if (d) {
-                    d.setHours(12, 0, 0, 0);
-                  }
-                  setFechaHoraIngreso(d);
-                }}
+                onChange={(v) => setFechaHoraIngreso(v ? new Date(v) : null)}
+                valueFormat="DD/MM/YYYY HH:mm"
                 radius="lg"
                 size="sm"
-                placeholder="Seleccione fecha"
+                popoverProps={{ withinPortal: true }}
               />
             </Stack>
           </SimpleGrid>
@@ -394,9 +456,17 @@ interface SelectFieldProps {
   value: string | null;
   onChange: (v: string | null) => void;
   onPlus: () => void;
+  loading: boolean;
 }
 
-const SelectField = ({ label, data, value, onChange, onPlus }: SelectFieldProps) => {
+const SelectField = ({
+  label,
+  data,
+  value,
+  onChange,
+  onPlus,
+  loading,
+}: SelectFieldProps) => {
   return (
     <Stack gap={4}>
       <Text size="xs" c="dimmed">
@@ -404,7 +474,7 @@ const SelectField = ({ label, data, value, onChange, onPlus }: SelectFieldProps)
       </Text>
       <Group gap={4} align="center">
         <Select
-          placeholder="Seleccione"
+          placeholder={loading ? "Cargando..." : "Seleccione"}
           data={data}
           value={value}
           onChange={onChange}
@@ -413,6 +483,8 @@ const SelectField = ({ label, data, value, onChange, onPlus }: SelectFieldProps)
           radius="lg"
           size="xs"
           style={{ flex: 1 }}
+          disabled={loading}
+          rightSection={loading ? <Loader size={16} /> : undefined}
           comboboxProps={{ withinPortal: true }}
         />
         <Tooltip label={`Registrar ${label.toLowerCase()}`} withArrow>
@@ -421,6 +493,7 @@ const SelectField = ({ label, data, value, onChange, onPlus }: SelectFieldProps)
             color="gray"
             size="sm"
             onClick={onPlus}
+            disabled={loading}
             aria-label={`Agregar ${label}`}
           >
             <IconPlus size={16} />

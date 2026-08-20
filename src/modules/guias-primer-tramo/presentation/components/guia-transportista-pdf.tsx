@@ -138,24 +138,17 @@ export interface GuiaTransportistaPdfProps {
 }
 
 export const GuiaTransportistaPdf = ({ guia, qrCodeUrl, rucTransportista }: GuiaTransportistaPdfProps) => {
-  const fullGuiaNumber =
-    guia.serie_guia_transportista || guia.numero_guia_transportista
-      ? `${guia.serie_guia_transportista ?? "—"}-${guia.numero_guia_transportista ?? "—"}`
-      : "—";
-
-  const fullGuiaRemitente =
-    guia.serie_guia_remitente || guia.numero_guia_remitente
-      ? `${guia.serie_guia_remitente ?? "—"}-${guia.numero_guia_remitente ?? "—"}`
-      : "—";
+  const fullGuiaNumber = guia.guia_transportista ?? "—";
+  const fullGuiaRemitente = guia.guia_remitente ?? "—";
 
   const rucProveedor = guia.proveedor_documento || "—";
   const razonSocialProveedor = (guia.proveedor_razon_social || "PROVEEDOR MINERO").toUpperCase();
   const razonSocialTransportista = (guia.empresa_transporte_razon_social || "EMPRESA DE TRANSPORTE").toUpperCase();
 
-  // Calcular el total del peso neto sumando los lotes asociados
+  // Calcular el total del peso neto sumando los lotes/particiones asociadas
   const lotesList = guia.lotes || [];
   const totalPesoNeto = lotesList.reduce((acc, curr) => {
-    const peso = curr.peso_neto !== null ? curr.peso_neto : (curr.peso_bruto ?? 0) - (curr.tara ?? 0);
+    const peso = curr.peso_neto !== null ? curr.peso_neto : 0;
     return acc + peso;
   }, 0);
 

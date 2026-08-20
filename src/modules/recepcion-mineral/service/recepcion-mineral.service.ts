@@ -98,9 +98,6 @@ export const RecepcionMineralService = {
     formData.append("tipo_producto", dto.tipo_producto);
     formData.append("tipo_mineral", dto.tipo_mineral);
     formData.append("peso_inicial", String(dto.peso_inicial));
-    if (dto.observacion_peso_inicial) {
-      formData.append("observacion_peso_inicial", dto.observacion_peso_inicial);
-    }
 
     if (dto.evidencias && dto.evidencias.length > 0) {
       dto.evidencias.forEach((file) => {
@@ -125,9 +122,6 @@ export const RecepcionMineralService = {
   ): Promise<RES_LoteMineral> => {
     const formData = new FormData();
     formData.append("peso_final", String(dto.peso_final));
-    if (dto.observacion_peso_final) {
-      formData.append("observacion_peso_final", dto.observacion_peso_final);
-    }
 
     if (dto.id_proveedor_minero !== null && dto.id_proveedor_minero !== undefined) {
       formData.append("id_proveedor_minero", String(dto.id_proveedor_minero));
@@ -146,9 +140,6 @@ export const RecepcionMineralService = {
     }
     if (dto.peso_inicial !== undefined) {
       formData.append("peso_inicial", String(dto.peso_inicial));
-    }
-    if (dto.observacion_peso_inicial !== undefined) {
-      formData.append("observacion_peso_inicial", dto.observacion_peso_inicial);
     }
     if (dto.id_vehiculo !== null && dto.id_vehiculo !== undefined) {
       formData.append("id_vehiculo", String(dto.id_vehiculo));
@@ -192,9 +183,6 @@ export const RecepcionMineralService = {
     if (dto.peso_final !== undefined && dto.peso_final !== null) {
       formData.append("peso_final", String(dto.peso_final));
     }
-    if (dto.observacion_peso_final !== undefined) {
-      formData.append("observacion_peso_final", dto.observacion_peso_final);
-    }
     if (dto.id_proveedor_minero !== null && dto.id_proveedor_minero !== undefined) {
       formData.append("id_proveedor_minero", String(dto.id_proveedor_minero));
     }
@@ -212,9 +200,6 @@ export const RecepcionMineralService = {
     }
     if (dto.peso_inicial !== undefined && dto.peso_inicial !== null) {
       formData.append("peso_inicial", String(dto.peso_inicial));
-    }
-    if (dto.observacion_peso_inicial !== undefined) {
-      formData.append("observacion_peso_inicial", dto.observacion_peso_inicial);
     }
     if (dto.id_vehiculo !== null && dto.id_vehiculo !== undefined) {
       formData.append("id_vehiculo", String(dto.id_vehiculo));

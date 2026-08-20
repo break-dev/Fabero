@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Select, TextInput, Textarea, Button, ActionIcon, Tooltip, Stack, Text, Grid, Loader } from "@mantine/core";
-import { IconPlus, IconWeight } from "@tabler/icons-react";
+import { Select, TextInput, Button, ActionIcon, Tooltip, Stack, Text, Grid, Loader, Group } from "@mantine/core";
+import { IconPlus, IconWeight, IconUserPlus } from "@tabler/icons-react";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
 import { FormZonaOrigen } from "../../../../presentation/utils/form-zona-origen";
 import { MultiFilePicker } from "../../../../presentation/utils/archivo/multifile-picker";
+import { RegistroProveedorMineroSimple } from "../../../../presentation/utils/registro-proveedor-minero-simple";
 import { AuxService } from "../../../../service/auxiliar.service";
 import type { RES_Proveedor } from "../../../../service/responses/proveedor";
 import type { RES_ZonaOrigen } from "../../../../service/responses/zona-origen";
@@ -26,7 +27,6 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
   const [contacto, setContacto] = useState<string>("");
   const [producto, setProducto] = useState<string | null>(null);
   const [material, setMaterial] = useState<string | null>(null);
-  const [observacion, setObservacion] = useState<string>("");
   const [pesoInicial, setPesoInicial] = useState<string>("");
   const [evidencias, setEvidencias] = useState<File[]>([]);
 
@@ -39,6 +39,7 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
   // Sub-Modals
   const [openZonaModal, setOpenZonaModal] = useState(false);
   const [nuevaZonaNombre, setNuevaZonaNombre] = useState("");
+  const [openProveedorModal, setOpenProveedorModal] = useState(false);
 
   const fetchCatalogos = async () => {
     setLoadingCatalogos(true);
@@ -98,7 +99,6 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
         tipo_producto: producto,
         tipo_mineral: material,
         peso_inicial: Number(pesoInicial),
-        observacion_peso_inicial: observacion,
         evidencias: evidencias,
       };
 
@@ -109,6 +109,18 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleCreatedProveedor = (nuevo: RES_Proveedor) => {
+    setProveedores((prev) => {
+      const sinDuplicado = prev.filter((p) => p.id_proveedor !== nuevo.id_proveedor);
+      return [nuevo, ...sinDuplicado];
+    });
+    setIdProveedor(String(nuevo.id_proveedor));
+    if (nuevo.telefono) {
+      setContacto(nuevo.telefono);
+    }
+    setOpenProveedorModal(false);
   };
 
   const fieldClasses = {
@@ -125,18 +137,44 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
           <Grid.Col span={{ base: 12, md: 6 }}>
             <Stack gap="md">
               {/* Proveedor Minero */}
-              <Select
-                label="Proveedor Minero:"
-                placeholder={loadingCatalogos ? "Cargando..." : "Seleccione proveedor"}
-                searchable
-                disabled={loadingCatalogos}
-                rightSection={loadingCatalogos ? <Loader size={16} /> : undefined}
-                data={proveedores.map((p) => ({ value: String(p.id_proveedor), label: `${p.razon_social} (${p.documento})` }))}
-                value={idProveedor}
-                onChange={handleProveedorChange}
-                classNames={fieldClasses}
-                radius="lg"
-              />
+              <div>
+                <Group gap="xs" align="flex-end" wrap="nowrap">
+                  <Select
+                    label="Proveedor Minero:"
+                    placeholder={loadingCatalogos ? "Cargando..." : "Seleccione proveedor"}
+                    searchable
+                    disabled={loadingCatalogos}
+                    rightSection={loadingCatalogos ? <Loader size={16} /> : undefined}
+                    data={proveedores
+                      .filter(
+                        (p): p is RES_Proveedor & { id_proveedor: number } =>
+                          typeof p.id_proveedor === "number",
+                      )
+                      .map((p) => ({
+                        value: String(p.id_proveedor),
+                        label: `${p.razon_social} (${p.documento})`,
+                      }))}
+                    value={idProveedor}
+                    onChange={handleProveedorChange}
+                    classNames={fieldClasses}
+                    radius="lg"
+                    className="flex-1"
+                  />
+                  <Tooltip label="Registrar Proveedor Minero" withArrow>
+                    <ActionIcon
+                      type="button"
+                      variant="filled"
+                      color="indigo"
+                      radius="lg"
+                      size="lg"
+                      onClick={() => setOpenProveedorModal(true)}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white h-9.5 w-9.5 mb-0.5"
+                    >
+                      <IconUserPlus size={16} />
+                    </ActionIcon>
+                  </Tooltip>
+                </Group>
+              </div>
 
               {/* Producto */}
               <Select
@@ -225,17 +263,6 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
                 classNames={fieldClasses}
                 radius="lg"
               />
-
-              {/* Observación */}
-              <Textarea
-                label="Observación:"
-                placeholder="Escriba alguna observación sobre el peso inicial..."
-                value={observacion}
-                onChange={(e) => setObservacion(e.currentTarget.value)}
-                classNames={fieldClasses}
-                radius="lg"
-                minRows={2}
-              />
             </Stack>
           </Grid.Col>
 
@@ -311,6 +338,19 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
             setNuevaZonaNombre("");
             setOpenZonaModal(false);
           }}
+        />
+      </ModalEstandar>
+
+      {/* Sub-Modal: Registro de Nuevo Proveedor Minero */}
+      <ModalEstandar
+        opened={openProveedorModal}
+        close={() => setOpenProveedorModal(false)}
+        title="Registrar Nuevo Proveedor Minero"
+        size="lg"
+      >
+        <RegistroProveedorMineroSimple
+          onCancel={() => setOpenProveedorModal(false)}
+          onSuccess={handleCreatedProveedor}
         />
       </ModalEstandar>
 

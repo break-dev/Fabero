@@ -1,4 +1,5 @@
 import type { RES_CambiosLog } from "../../../service/responses/_generic/cambios-log";
+import type { EstadoBase } from "../../../shared/enums/_generic/estado-base";
 
 export interface RES_LoteMineral {
   id: number;
@@ -18,6 +19,7 @@ export interface RES_LoteMineral {
   tipo_producto: string | null;
   tipo_mineral: string | null;
   condicion_ingreso: string | null;
+  estado?: EstadoBase | string;
   log_cambios?: RES_CambiosLog[] | null;
   evidencias: Array<{
     url: string;

@@ -4,10 +4,25 @@ import type {
   RES_ConcesionPorProveedor,
   RES_FiltrosMetadataGuia,
   RES_GuiaPrimerTramo,
-  RES_LoteMineralDisponible,
+  RES_ItemMineralDisponible,
 } from "./guias-primer-tramo.responses";
 
 const PATH = "/guias-primer-tramo";
+
+const appendIfPresent = (formData: FormData, key: string, value: string | number | null | undefined): void => {
+  if (value === null || value === undefined || value === "") return;
+  formData.append(key, String(value));
+};
+
+const appendDocumento = (
+  formData: FormData,
+  key: string,
+  file: File | null,
+): void => {
+  if (file) {
+    formData.append(key, file);
+  }
+};
 
 export const GuiasPrimerTramoService = {
   /**
@@ -45,64 +60,38 @@ export const GuiasPrimerTramoService = {
   },
 
   /**
-   * Crear una guía de primer tramo (multipart con evidencias + lotes JSON).
+   * Crear una guía de primer tramo (multipart con documentos + items).
    */
   crear_guia: async (dto: DTO_CrearGuiaPrimerTramo): Promise<RES_GuiaPrimerTramo> => {
     const formData = new FormData();
 
-    formData.append("id_sucursal", String(dto.id_sucursal));
-    formData.append("id_proveedor", String(dto.id_proveedor));
-    formData.append("id_concesion", String(dto.id_concesion));
-    formData.append("id_conductor", String(dto.id_conductor));
-    formData.append("id_vehiculo", String(dto.id_vehiculo));
-
-    if (dto.id_empresa_transporte !== null && dto.id_empresa_transporte !== undefined) {
-      formData.append("id_empresa_transporte", String(dto.id_empresa_transporte));
+    appendIfPresent(formData, "id_sucursal", dto.id_sucursal);
+    appendIfPresent(formData, "id_proveedor", dto.id_proveedor);
+    appendIfPresent(formData, "id_concesion", dto.id_concesion);
+    appendIfPresent(formData, "id_conductor", dto.id_conductor);
+    appendIfPresent(formData, "id_vehiculo", dto.id_vehiculo);
+    appendIfPresent(formData, "id_empresa_transporte", dto.id_empresa_transporte);
+    appendIfPresent(formData, "id_vehiculo_carreta", dto.id_vehiculo_carreta);
+    appendIfPresent(formData, "id_empresa_transporte_carreta", dto.id_empresa_transporte_carreta);
+    appendIfPresent(formData, "motivo_traslado", dto.motivo_traslado);
+    appendIfPresent(formData, "condicion_ingreso", dto.condicion_ingreso);
+    appendIfPresent(formData, "fecha_inicio_traslado", dto.fecha_inicio_traslado);
+    appendIfPresent(formData, "fecha_emision", dto.fecha_emision);
+    appendIfPresent(formData, "fecha_en_planta", dto.fecha_en_planta);
+    appendIfPresent(formData, "guia_remitente", dto.guia_remitente);
+    if (dto.sin_guia_transportista) {
+      formData.append("sin_guia_transportista", "1");
+    } else {
+      formData.append("sin_guia_transportista", "0");
+      appendIfPresent(formData, "guia_transportista", dto.guia_transportista);
     }
-    if (
-      dto.id_vehiculo_carreta !== null &&
-      dto.id_vehiculo_carreta !== undefined
-    ) {
-      formData.append("id_vehiculo_carreta", String(dto.id_vehiculo_carreta));
-    }
-    if (
-      dto.id_empresa_transporte_carreta !== null &&
-      dto.id_empresa_transporte_carreta !== undefined
-    ) {
-      formData.append("id_empresa_transporte_carreta", String(dto.id_empresa_transporte_carreta));
-    }
-
-    formData.append("motivo_traslado", String(dto.motivo_traslado));
-
-    if (dto.fecha_inicio_traslado) {
-      formData.append("fecha_inicio_traslado", dto.fecha_inicio_traslado);
-    }
-    if (dto.fecha_emision) {
-      formData.append("fecha_emision", dto.fecha_emision);
-    }
-    if (dto.fecha_en_planta) {
-      formData.append("fecha_en_planta", dto.fecha_en_planta);
-    }
-
-    if (dto.serie_guia_remitente) {
-      formData.append("serie_guia_remitente", dto.serie_guia_remitente);
-    }
-    if (dto.numero_guia_remitente) {
-      formData.append("numero_guia_remitente", dto.numero_guia_remitente);
-    }
-    if (dto.serie_guia_transportista) {
-      formData.append("serie_guia_transportista", dto.serie_guia_transportista);
-    }
-    if (dto.numero_guia_transportista) {
-      formData.append("numero_guia_transportista", dto.numero_guia_transportista);
-    }
-    formData.append("sin_guia_transportista", dto.sin_guia_transportista ? "1" : "0");
 
     formData.append("lotes", JSON.stringify(dto.lotes));
 
-    dto.evidencias.forEach((file) => {
-      formData.append("evidencias[]", file);
-    });
+    appendDocumento(formData, "documento_guia_remitente", dto.documento_guia_remitente);
+    if (!dto.sin_guia_transportista) {
+      appendDocumento(formData, "documento_guia_transportista", dto.documento_guia_transportista);
+    }
 
     const { data } = await api.post(PATH, formData, {
       headers: { "Content-Type": "multipart/form-data" },
@@ -111,7 +100,7 @@ export const GuiasPrimerTramoService = {
   },
 
   /**
-   * Actualizar una guía de primer tramo (multipart con evidencias + lotes JSON).
+   * Actualizar una guía de primer tramo (multipart con documentos + items).
    */
   actualizar_guia: async (
     id: number,
@@ -119,63 +108,34 @@ export const GuiasPrimerTramoService = {
   ): Promise<RES_GuiaPrimerTramo> => {
     const formData = new FormData();
 
-    formData.append("id_sucursal", String(dto.id_sucursal));
-    formData.append("id_proveedor", String(dto.id_proveedor));
-    formData.append("id_concesion", String(dto.id_concesion));
-    formData.append("id_conductor", String(dto.id_conductor));
-    formData.append("id_vehiculo", String(dto.id_vehiculo));
-
-    if (dto.id_empresa_transporte !== null && dto.id_empresa_transporte !== undefined) {
-      formData.append("id_empresa_transporte", String(dto.id_empresa_transporte));
+    appendIfPresent(formData, "id_sucursal", dto.id_sucursal);
+    appendIfPresent(formData, "id_proveedor", dto.id_proveedor);
+    appendIfPresent(formData, "id_concesion", dto.id_concesion);
+    appendIfPresent(formData, "id_conductor", dto.id_conductor);
+    appendIfPresent(formData, "id_vehiculo", dto.id_vehiculo);
+    appendIfPresent(formData, "id_empresa_transporte", dto.id_empresa_transporte);
+    appendIfPresent(formData, "id_vehiculo_carreta", dto.id_vehiculo_carreta);
+    appendIfPresent(formData, "id_empresa_transporte_carreta", dto.id_empresa_transporte_carreta);
+    appendIfPresent(formData, "motivo_traslado", dto.motivo_traslado);
+    appendIfPresent(formData, "condicion_ingreso", dto.condicion_ingreso);
+    appendIfPresent(formData, "fecha_inicio_traslado", dto.fecha_inicio_traslado);
+    appendIfPresent(formData, "fecha_emision", dto.fecha_emision);
+    appendIfPresent(formData, "fecha_en_planta", dto.fecha_en_planta);
+    appendIfPresent(formData, "guia_remitente", dto.guia_remitente);
+    if (dto.sin_guia_transportista) {
+      formData.append("sin_guia_transportista", "1");
+    } else {
+      formData.append("sin_guia_transportista", "0");
+      appendIfPresent(formData, "guia_transportista", dto.guia_transportista);
     }
-    if (
-      dto.id_vehiculo_carreta !== null &&
-      dto.id_vehiculo_carreta !== undefined
-    ) {
-      formData.append("id_vehiculo_carreta", String(dto.id_vehiculo_carreta));
-    }
-    if (
-      dto.id_empresa_transporte_carreta !== null &&
-      dto.id_empresa_transporte_carreta !== undefined
-    ) {
-      formData.append("id_empresa_transporte_carreta", String(dto.id_empresa_transporte_carreta));
-    }
-
-    formData.append("motivo_traslado", String(dto.motivo_traslado));
-
-    if (dto.fecha_inicio_traslado) {
-      formData.append("fecha_inicio_traslado", dto.fecha_inicio_traslado);
-    }
-    if (dto.fecha_emision) {
-      formData.append("fecha_emision", dto.fecha_emision);
-    }
-    if (dto.fecha_en_planta) {
-      formData.append("fecha_en_planta", dto.fecha_en_planta);
-    }
-
-    if (dto.serie_guia_remitente) {
-      formData.append("serie_guia_remitente", dto.serie_guia_remitente);
-    }
-    if (dto.numero_guia_remitente) {
-      formData.append("numero_guia_remitente", dto.numero_guia_remitente);
-    }
-    if (dto.serie_guia_transportista) {
-      formData.append("serie_guia_transportista", dto.serie_guia_transportista);
-    }
-    if (dto.numero_guia_transportista) {
-      formData.append("numero_guia_transportista", dto.numero_guia_transportista);
-    }
-    formData.append("sin_guia_transportista", dto.sin_guia_transportista ? "1" : "0");
+    appendIfPresent(formData, "motivo", dto.motivo);
 
     formData.append("lotes", JSON.stringify(dto.lotes));
 
-    if (dto.evidencias_existentes) {
-      formData.append("evidencias_existentes", JSON.stringify(dto.evidencias_existentes));
+    appendDocumento(formData, "documento_guia_remitente", dto.documento_guia_remitente);
+    if (!dto.sin_guia_transportista) {
+      appendDocumento(formData, "documento_guia_transportista", dto.documento_guia_transportista);
     }
-
-    dto.evidencias.forEach((file) => {
-      formData.append("evidencias[]", file);
-    });
 
     const { data } = await api.post(`${PATH}/${id}/update`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
@@ -192,22 +152,25 @@ export const GuiasPrimerTramoService = {
 };
 
 /**
- * Servicio auxiliar para lotes minerales disponibles.
+ * Servicio para items de mineral disponibles (lotes sin particiones y particiones).
  */
-export const LotesMineralService = {
-  get_lotes_disponibles: async (
+export const ItemsMineralService = {
+  get_items_disponibles: async (
     idSucursal: number,
     idProveedor?: number | null,
-  ): Promise<RES_LoteMineralDisponible[]> => {
+  ): Promise<RES_ItemMineralDisponible[]> => {
     const { data } = await api.get(`/aux/lotes-mineral-disponibles`, {
-      params: { id_sucursal: idSucursal, id_proveedor: idProveedor ?? undefined },
+      params: {
+        id_sucursal: idSucursal,
+        id_proveedor: idProveedor ?? undefined,
+      },
     });
     return data.data;
   },
 };
 
 /**
- * Servicio auxiliar para concesiones por proveedor.
+ * Servicio para concesiones por proveedor.
  */
 export const ConcesionesPorProveedorService = {
   get_concesiones_by_proveedor: async (

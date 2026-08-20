@@ -1,4 +1,5 @@
 import type { MotivoTraslado } from "../../../shared/enums/_generic/motivo-traslado";
+import type { CondicionIngreso } from "../../../shared/enums/_generic/condicion-ingreso";
 import { EstadoBase } from "../../../shared/enums/_generic/estado-base";
 
 export interface RES_ConcesionPorProveedor {
@@ -17,17 +18,33 @@ export interface RES_ConcesionPorProveedor {
 
 import type { RES_CambiosLog } from "../../../service/responses/_generic/cambios-log";
 
+export type TipoItem = "LOTE" | "PARTICION";
+
 export interface RES_LoteGuia {
   id: number;
   id_guia_primer_tramo: number;
-  id_lote_mineral: number;
-  peso_bruto: number | null;
-  tara: number | null;
-  peso_neto: number | null;
-  lote_correlativo: string | null;
+  id_lote_mineral: number | null;
+  id_particion_lote_mineral: number | null;
+  tipo_item: TipoItem;
+  correlativo: string | null;
   tipo_producto: string | null;
   tipo_mineral: string | null;
-  log_cambios?: RES_CambiosLog[] | null;
+  peso_inicial: number | null;
+  peso_final: number | null;
+  peso_neto: number | null;
+  created_at: string | null;
+}
+
+export interface RES_DocumentoGuia {
+  url: string;
+  path_relativo: string;
+  nombre_original: string;
+  extension: string;
+}
+
+export interface RES_GuiaDocumentos {
+  guia_remitente: RES_DocumentoGuia | null;
+  guia_transportista: RES_DocumentoGuia | null;
 }
 
 export interface RES_GuiaPrimerTramo {
@@ -53,18 +70,15 @@ export interface RES_GuiaPrimerTramo {
   vehiculo_carreta_placa?: string | null;
   id_empresa_transporte_carreta: number | null;
   empresa_transporte_carreta_razon_social?: string | null;
-  qr_token_transportista: string | null;
-  qr_token_remitente: string | null;
   motivo_traslado: MotivoTraslado | string | null;
-  evidencias: Array<{ nombre: string; ruta: string }> | string[] | null;
+  condicion_ingreso: CondicionIngreso | string | null;
   fecha_inicio_traslado: string | null;
   fecha_emision: string | null;
   fecha_en_planta: string | null;
-  serie_guia_remitente: string | null;
-  numero_guia_remitente: string | null;
-  serie_guia_transportista: string | null;
-  numero_guia_transportista: string | null;
+  guia_remitente: string | null;
+  guia_transportista: string | null;
   sin_guia_transportista: boolean;
+  documentos: RES_GuiaDocumentos | null;
   id_empleado_registro: number | null;
   log_cambios: RES_CambiosLog[] | null;
   estado: EstadoBase;
@@ -72,15 +86,17 @@ export interface RES_GuiaPrimerTramo {
   lotes: RES_LoteGuia[];
 }
 
-export interface RES_LoteMineralDisponible {
+export interface RES_ItemMineralDisponible {
   id: number;
+  id_lote_mineral: number | null;
+  id_particion_lote_mineral: number | null;
   id_recepcion_unidad: number;
   id_proveedor_minero: number | null;
+  tipo_item: TipoItem;
   correlativo: string;
   numero_correlativo: number;
   tipo_producto: string | null;
   tipo_mineral: string | null;
-  tipo_carga: string | null;
   peso_inicial: number | null;
   peso_final: number | null;
   peso_neto: number | null;

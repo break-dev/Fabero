@@ -4,16 +4,19 @@ import {
   Box,
   Button,
   Container,
+  Group,
   SegmentedControl,
   Stack,
   Switch,
   Text,
   TextInput,
+  Tooltip,
 } from "@mantine/core";
-import { IconSearch, IconX } from "@tabler/icons-react";
+import { IconPrinter, IconSearch, IconX } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { useTitlePage } from "../../../hooks/useTitlePage";
 import { useNotify } from "../../../hooks/useNotify";
+import { usePrint } from "../../../hooks/usePrint";
 import { DataTableEstandar } from "../../../presentation/utils/datatable-estandar";
 import { CustomDatePicker } from "../../../presentation/utils/date-picker-input";
 import { useLotesPendientes, getTodayString } from "../hooks/useLotesPendientes";
@@ -23,6 +26,8 @@ import {
 } from "./components/ParticionesExpandible";
 import { formatTn, formatDateTime } from "./utils/format-units";
 import type { RES_LotePendiente } from "../service/validacion-distribucion.responses";
+import { ValidacionDistribucionService } from "../service/validacion-distribucion.service";
+import { TicketBalanzaPdf } from "../../recepcion-mineral/presentation/components/ticket-balanza-pdf";
 
 type Row = RES_LotePendiente;
 type EstadoParticion = "TODOS" | "CON" | "SIN";
@@ -41,9 +46,11 @@ export const ValidacionDistribucionPage = () => {
     resetFilters,
   } = useLotesPendientes();
   const { notifyError } = useNotify();
+  const { print, prepare } = usePrint();
   const [creatingParticionId, setCreatingParticionId] = useState<number | null>(
     null
   );
+  const [printingLoteId, setPrintingLoteId] = useState<number | null>(null);
   const expandibleRefs = useRef<Map<number, ParticionesExpandibleRef>>(new Map());
 
   const [placa, setPlaca] = useState("");
@@ -94,6 +101,27 @@ export const ValidacionDistribucionPage = () => {
       notifyError("No se pudo crear la partición.");
     } finally {
       setCreatingParticionId(null);
+    }
+  };
+
+  const handlePrintTicketLote = async (idLote: number) => {
+    setPrintingLoteId(idLote);
+    try {
+      const ticketData =
+        await ValidacionDistribucionService.getTicketBalanzaLote(idLote);
+      const targetId = `ticket-balanza-lote-${idLote}`;
+      prepare(targetId);
+      print(
+        <TicketBalanzaPdf data={ticketData} />,
+        {
+          documentTitle: `Ticket Balanza ${ticketData.correlativo || idLote}`,
+          target: targetId,
+        }
+      );
+    } catch {
+      notifyError("No se pudo obtener la información para el ticket de balanza.");
+    } finally {
+      setPrintingLoteId(null);
     }
   };
 
@@ -251,6 +279,33 @@ export const ValidacionDistribucionPage = () => {
                 <span className="font-semibold font-mono text-sm">
                   {r.lote_correlativo}
                 </span>
+              ),
+            },
+            {
+              accessor: "ticket_correlativo",
+              title: "Ticket",
+              textAlign: "center",
+              render: (r: Row) => (
+                <Group gap={4} wrap="nowrap" justify="center" align="center">
+                  <Text size="xs" ff="monospace">
+                    {r.ticket_correlativo ?? "—"}
+                  </Text>
+                  {r.ticket_correlativo && (
+                    <Tooltip label="Imprimir ticket de balanza" withArrow>
+                      <ActionIcon
+                        variant="subtle"
+                        color="teal"
+                        size="xs"
+                        loading={printingLoteId === r.id_lote_mineral}
+                        onClick={() =>
+                          void handlePrintTicketLote(r.id_lote_mineral)
+                        }
+                      >
+                        <IconPrinter size={13} />
+                      </ActionIcon>
+                    </Tooltip>
+                  )}
+                </Group>
               ),
             },
             {

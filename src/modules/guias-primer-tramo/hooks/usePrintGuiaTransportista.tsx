@@ -20,7 +20,6 @@ export const usePrintGuiaTransportista = () => {
       prepare(`guia-transportista-${guia.id}`);
 
       try {
-        // Cargar el RUC del transportista de forma dinámica
         let rucTransportista: string | null = null;
         if (guia.id_empresa_transporte) {
           try {
@@ -36,12 +35,8 @@ export const usePrintGuiaTransportista = () => {
           }
         }
 
-        // Generar QR a partir de qr_token_transportista si existe
-        const qrText =
-          guia.qr_token_transportista ||
-          `Guia Transportista: ${guia.serie_guia_transportista ?? ""}-${guia.numero_guia_transportista ?? ""}`;
+        const qrText = `Guia Transportista: ${guia.guia_transportista ?? ""}`;
 
-        // Generar QR en base64 de forma asíncrona
         const qrCodeUrl = await QRCode.toDataURL(qrText, {
           margin: 1,
           width: 150,
@@ -54,7 +49,7 @@ export const usePrintGuiaTransportista = () => {
             rucTransportista={rucTransportista}
           />,
           {
-            documentTitle: `Guia_Transportista_${guia.serie_guia_transportista ?? ""}_${guia.numero_guia_transportista ?? ""}`,
+            documentTitle: `Guia_Transportista_${guia.guia_transportista ?? ""}`,
             target: `guia-transportista-${guia.id}`,
           }
         );

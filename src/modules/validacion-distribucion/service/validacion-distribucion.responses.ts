@@ -12,6 +12,7 @@ export interface RES_LotePendiente {
   vehiculo_placa: string;
   vehiculo_capacidad: number;
   excedente: number;
+  ticket_correlativo: string | null;
   // Cuando vehiculo_capacidad es NULL, el backend retorna excedente = NULL.
   lote_fecha_creacion: string;
 }

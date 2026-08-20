@@ -13,6 +13,9 @@ import {
   Table,
   Text,
   Loader,
+  Badge,
+  FileButton,
+  Group as MGroup,
 } from "@mantine/core";
 import {
   IconCalendar,
@@ -21,25 +24,36 @@ import {
   IconArrowUp,
   IconArrowDown,
   IconFileText,
+  IconX,
+  IconFile,
 } from "@tabler/icons-react";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
 import { ModalRegistroProveedor } from "../../../../presentation/utils/modal-registro-proveedor";
 import { ModalConcesionesProveedor } from "../../../../presentation/utils/modal-concesiones-proveedor";
-import { MultiFilePicker } from "../../../../presentation/utils/archivo/multifile-picker";
+import { RegistroVehiculoSimple } from "../../../../presentation/utils/registro-vehiculo-simple";
+import { RegistroEmpresaTransporte } from "../../../../presentation/utils/registro-empresa-transporte";
+import { RegistroConductor } from "../../../../presentation/utils/registro-conductor";
 import { AuxService } from "../../../../service/auxiliar.service";
 import { useNotify } from "../../../../hooks/useNotify";
-import { ConcesionesPorProveedorService, LotesMineralService } from "../../service/guias-primer-tramo.service";
+import {
+  ConcesionesPorProveedorService,
+  ItemsMineralService,
+} from "../../service/guias-primer-tramo.service";
 import type { RES_ConcesionPorProveedor } from "../../service/guias-primer-tramo.responses";
-import type { RES_LoteMineralDisponible } from "../../service/guias-primer-tramo.responses";
+import type { RES_ItemMineralDisponible } from "../../service/guias-primer-tramo.responses";
 import type { RES_Proveedor } from "../../../../service/responses/proveedor";
 import type { ProveedorResponse } from "../../../proveedores-mineros/service/proveedores.responses";
 import type { RES_Vehiculo } from "../../../../service/responses/vehiculo";
 import type { RES_EmpresaTransporte } from "../../../../service/responses/empresa-transporte";
 import type { RES_Conductor } from "../../../../service/responses/conductor";
 import { MOTIVO_TRASLADO_OPTIONS } from "../../../../shared/enums/_generic/motivo-traslado";
-import type { DTO_CrearGuiaPrimerTramo, DTO_ActualizarGuiaPrimerTramo } from "../../service/guias-primer-tramo.requests";
+import { CONDICION_INGRESO_OPTIONS } from "../../../../shared/enums/_generic/condicion-ingreso";
+import type {
+  DTO_CrearGuiaPrimerTramo,
+  DTO_ActualizarGuiaPrimerTramo,
+  DTO_ItemGuiaInput,
+} from "../../service/guias-primer-tramo.requests";
 import type { RES_GuiaPrimerTramo } from "../../service/guias-primer-tramo.responses";
-import type { IArchivo } from "../../../../shared/interfaces/archivo";
 
 interface Props {
   opened: boolean;
@@ -50,13 +64,17 @@ interface Props {
   onUpdate?: (id: number, dto: DTO_ActualizarGuiaPrimerTramo) => Promise<void>;
 }
 
-interface LoteFormItem {
+interface ItemFormItem {
   tempId: string;
-  id_lote_mineral: number;
+  id_lote_mineral: number | null;
+  id_particion_lote_mineral: number | null;
+  tipo_item: "LOTE" | "PARTICION";
   correlativo: string;
-  peso_bruto: number;
-  tara: number;
-  peso_neto: number;
+  peso_inicial: number | null;
+  peso_final: number | null;
+  peso_neto: number | null;
+  tipo_producto: string | null;
+  tipo_mineral: string | null;
 }
 
 const fieldClasses = {
@@ -65,23 +83,39 @@ const fieldClasses = {
   label: "text-zinc-400 font-medium text-xs mb-1 whitespace-nowrap",
 };
 
+/**
+ * Identifica unívocamente un item (lote entero o partición).
+ *
+ * Crítico: una PARTICION tiene `id_lote_mineral` (padre) y `id_particion_lote_mineral`
+ * ambos poblados. Si colapsáramos a `id_lote_mineral ?? id_particion_lote_mineral`,
+ * dos particiones del mismo lote compartirían key, y seleccionar una marcaría
+ * la otra. Acá discriminamos por tipo.
+ */
+const itemKey = (i: {
+  tipo_item: "LOTE" | "PARTICION";
+  id_lote_mineral: number | null;
+  id_particion_lote_mineral: number | null;
+}): string => {
+  if (i.tipo_item === "PARTICION") {
+    return `PARTICION:${i.id_particion_lote_mineral ?? ""}`;
+  }
+  return `LOTE:${i.id_lote_mineral ?? ""}`;
+};
+
 export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubmit, onUpdate }: Props) => {
   const { notifyError } = useNotify();
 
-  // Catálogos
   const [proveedores, setProveedores] = useState<RES_Proveedor[]>([]);
   const [vehiculos, setVehiculos] = useState<RES_Vehiculo[]>([]);
   const [carretas, setCarretas] = useState<RES_Vehiculo[]>([]);
   const [empresasTransporte, setEmpresasTransporte] = useState<RES_EmpresaTransporte[]>([]);
   const [conductores, setConductores] = useState<RES_Conductor[]>([]);
 
-  // Loading por catálogo
   const [loadingProveedores, setLoadingProveedores] = useState(false);
   const [loadingVehiculos, setLoadingVehiculos] = useState(false);
   const [loadingEmpresasTransporte, setLoadingEmpresasTransporte] = useState(false);
   const [loadingConductores, setLoadingConductores] = useState(false);
 
-  // Estados del formulario
   const [idProveedor, setIdProveedor] = useState<string | null>(null);
   const [concesiones, setConcesiones] = useState<RES_ConcesionPorProveedor[]>([]);
   const [loadingConcesiones, setLoadingConcesiones] = useState(false);
@@ -95,29 +129,32 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
   const [idEmpresaTransporteCarreta, setIdEmpresaTransporteCarreta] = useState<string | null>(null);
 
   const [motivoTraslado, setMotivoTraslado] = useState<string | null>(null);
+  const [condicionIngreso, setCondicionIngreso] = useState<string | null>(null);
   const [fechaInicioTraslado, setFechaInicioTraslado] = useState<string | null>(null);
   const [fechaEmision, setFechaEmision] = useState<string | null>(null);
   const [fechaEnPlanta, setFechaEnPlanta] = useState<string | null>(null);
 
-  const [serieGuiaRemitente, setSerieGuiaRemitente] = useState("");
-  const [numeroGuiaRemitente, setNumeroGuiaRemitente] = useState("");
-  const [serieGuiaTransportista, setSerieGuiaTransportista] = useState("");
-  const [numeroGuiaTransportista, setNumeroGuiaTransportista] = useState("");
+  const [guiaRemitente, setGuiaRemitente] = useState("");
+  const [guiaTransportista, setGuiaTransportista] = useState("");
   const [sinGuiaTransportista, setSinGuiaTransportista] = useState(false);
 
-  const [evidencias, setEvidencias] = useState<File[]>([]);
-  const [evidenciasExistentes, setEvidenciasExistentes] = useState<IArchivo[]>([]);
-  const [lotes, setLotes] = useState<LoteFormItem[]>([]);
-  // Sub-modal selección de lote
-  const [openLoteModal, setOpenLoteModal] = useState(false);
-  const [lotesDisponibles, setLotesDisponibles] = useState<RES_LoteMineralDisponible[]>([]);
-  const [loadingLotes, setLoadingLotes] = useState(false);
+  const [documentoGuiaRemitente, setDocumentoGuiaRemitente] = useState<File | null>(null);
+  const [documentoGuiaTransportista, setDocumentoGuiaTransportista] = useState<File | null>(null);
+
+  const [items, setItems] = useState<ItemFormItem[]>([]);
+  const [openItemModal, setOpenItemModal] = useState(false);
+  const [itemsDisponibles, setItemsDisponibles] = useState<RES_ItemMineralDisponible[]>([]);
+  const [loadingItems, setLoadingItems] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
 
-  // Sub-modales de registro rápido de proveedor y concesión
   const [openedModalProveedor, setOpenedModalProveedor] = useState(false);
   const [openedModalConcesion, setOpenedModalConcesion] = useState(false);
+
+  // Para distinguir tractor/carreta cuando se registra un vehículo o empresa
+  const [openedModalVehiculo, setOpenedModalVehiculo] = useState<null | "tractor" | "carreta">(null);
+  const [openedModalEmpresa, setOpenedModalEmpresa] = useState<null | "tractor" | "carreta">(null);
+  const [openedModalConductor, setOpenedModalConductor] = useState(false);
 
   const reloadProveedores = async () => {
     setLoadingProveedores(true);
@@ -155,6 +192,68 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
     }
   };
 
+  // Refresca el catálogo de vehículos (tractores/carretas) tras un registro exitoso
+  const handleVehiculoCreado = async (
+    vehiculo: { id_vehiculo: number; es_carreta?: number | boolean | null },
+    destino: "tractor" | "carreta",
+  ) => {
+    // Re-cargar ambos catálogos desde el backend
+    const [tractorRes, carretaRes] = await Promise.all([
+      AuxService.get_vehiculos(),
+      AuxService.get_vehiculos(),
+    ]);
+    setVehiculos(tractorRes.filter((v) => !v.es_carreta || Number(v.es_carreta) === 0));
+    setCarretas(carretaRes.filter((v) => !!v.es_carreta && Number(v.es_carreta) === 1));
+    const idStr = String(vehiculo.id_vehiculo);
+    if (destino === "tractor") {
+      setIdVehiculo(idStr);
+      // Auto-completar empresa si aún no hay
+      if (!idEmpresaTransporte) {
+        const v = tractorRes.find((x) => x.id_vehiculo === vehiculo.id_vehiculo);
+        if (v && v.id_empresa_transporte) {
+          setIdEmpresaTransporte(String(v.id_empresa_transporte));
+        }
+      }
+    } else {
+      setIdVehiculoCarreta(idStr);
+    }
+    setOpenedModalVehiculo(null);
+  };
+
+  const handleEmpresaCreada = async (
+    empresa: { id: number; razon_social?: string },
+    destino: "tractor" | "carreta",
+  ) => {
+    try {
+      const lista = await AuxService.get_empresas_transporte();
+      setEmpresasTransporte(lista);
+    } catch (e) {
+      console.error("Error al refrescar empresas de transporte", e);
+    }
+    const idStr = String(empresa.id);
+    if (destino === "tractor") {
+      setIdEmpresaTransporte(idStr);
+    } else {
+      setIdEmpresaTransporteCarreta(idStr);
+    }
+    setOpenedModalEmpresa(null);
+  };
+
+  const handleConductorCreado = (conductor: { id_conductor: number }) => {
+    // El hook useRegistroConductor ya hace notifySuccess y refresca el catálogo del módulo.
+    // Aquí solo recargamos el nuestro y seleccionamos el nuevo.
+    (async () => {
+      try {
+        const lista = await AuxService.get_conductores();
+        setConductores(lista);
+      } catch (e) {
+        console.error("Error al refrescar conductores", e);
+      }
+      setIdConductor(String(conductor.id_conductor));
+    })();
+    setOpenedModalConductor(false);
+  };
+
   // Cargar datos al abrir en modo Edición o limpiar en creación
   useEffect(() => {
     if (opened) {
@@ -165,28 +264,35 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
         setIdVehiculo(guia.id_vehiculo ? String(guia.id_vehiculo) : null);
         setIdEmpresaTransporte(guia.id_empresa_transporte ? String(guia.id_empresa_transporte) : null);
         setIdVehiculoCarreta(guia.id_vehiculo_carreta ? String(guia.id_vehiculo_carreta) : null);
-        setIdEmpresaTransporteCarreta(guia.id_empresa_transporte_carreta ? String(guia.id_empresa_transporte_carreta) : null);
+        setIdEmpresaTransporteCarreta(
+          guia.id_empresa_transporte_carreta ? String(guia.id_empresa_transporte_carreta) : null,
+        );
         setMotivoTraslado(guia.motivo_traslado || null);
+        setCondicionIngreso(guia.condicion_ingreso || null);
         setFechaInicioTraslado(guia.fecha_inicio_traslado ? guia.fecha_inicio_traslado.slice(0, 10) : null);
         setFechaEmision(guia.fecha_emision ? guia.fecha_emision.slice(0, 10) : null);
         setFechaEnPlanta(guia.fecha_en_planta ? guia.fecha_en_planta.slice(0, 10) : null);
-        setSerieGuiaRemitente(guia.serie_guia_remitente || "");
-        setNumeroGuiaRemitente(guia.numero_guia_remitente || "");
-        setSerieGuiaTransportista(guia.serie_guia_transportista || "");
-        setNumeroGuiaTransportista(guia.numero_guia_transportista || "");
-        setSinGuiaTransportista(!!guia.sin_guia_transportista);
-        setEvidencias([]);
-        setEvidenciasExistentes((guia.evidencias as unknown as IArchivo[]) || []);
 
-        const mappedLotes: LoteFormItem[] = (guia.lotes || []).map((l) => ({
-          tempId: `${l.id_lote_mineral}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        // guia_remitente y guia_transportista son strings únicos almacenados en la BD.
+        setGuiaRemitente(guia.guia_remitente ?? "");
+        setGuiaTransportista(guia.guia_transportista ?? "");
+        setSinGuiaTransportista(!!guia.sin_guia_transportista);
+        setDocumentoGuiaRemitente(null);
+        setDocumentoGuiaTransportista(null);
+
+        const mappedItems: ItemFormItem[] = (guia.lotes || []).map((l) => ({
+          tempId: `${itemKey(l)}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           id_lote_mineral: l.id_lote_mineral,
-          correlativo: l.lote_correlativo || "",
-          peso_bruto: l.peso_bruto ?? 0,
-          tara: l.tara ?? 0,
-          peso_neto: (l.peso_bruto ?? 0) - (l.tara ?? 0),
+          id_particion_lote_mineral: l.id_particion_lote_mineral,
+          tipo_item: l.tipo_item,
+          correlativo: l.correlativo || "",
+          peso_inicial: l.peso_inicial,
+          peso_final: l.peso_final,
+          peso_neto: l.peso_neto,
+          tipo_producto: l.tipo_producto,
+          tipo_mineral: l.tipo_mineral,
         }));
-        setLotes(mappedLotes);
+        setItems(mappedItems);
       } else {
         resetForm();
       }
@@ -295,7 +401,7 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
     };
   }, [idProveedor]);
 
-  // Al seleccionar vehículo tractor, autocompletar la empresa de transporte
+  // Autocompletar empresa de transporte al elegir vehículo
   useEffect(() => {
     if (!idVehiculo) {
       setIdEmpresaTransporte(null);
@@ -307,7 +413,6 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
     }
   }, [idVehiculo, vehiculos]);
 
-  // Al seleccionar vehículo carreta, autocompletar la empresa de transporte carreta
   useEffect(() => {
     if (!idVehiculoCarreta) {
       setIdEmpresaTransporteCarreta(null);
@@ -319,110 +424,61 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
     }
   }, [idVehiculoCarreta, carretas]);
 
-  // Cuando cambia fecha_inicio_traslado, sincronizar fecha_emision y fecha_en_planta
   const setFechas = (value: string | null) => {
     setFechaInicioTraslado(value);
     setFechaEmision(value);
     setFechaEnPlanta(value);
   };
 
-  // Cargar lotes disponibles (sin filtrar por proveedor) cuando se abre el sub-modal
-  const handleOpenLoteModal = async () => {
-    setOpenLoteModal(true);
-    setLoadingLotes(true);
+  // Cargar items disponibles (lotes o particiones) sin filtrar por proveedor
+  const handleOpenItemModal = async () => {
+    setOpenItemModal(true);
+    setLoadingItems(true);
     try {
-      const data = await LotesMineralService.get_lotes_disponibles(idSucursal);
-      const yaSeleccionados = new Set(lotes.map((l) => l.id_lote_mineral));
-      setLotesDisponibles(data.filter((l) => !yaSeleccionados.has(l.id) && !l.en_guia));
+      const data = await ItemsMineralService.get_items_disponibles(idSucursal);
+      const yaSeleccionados = new Set(items.map(itemKey));
+      setItemsDisponibles(
+        data.filter((i) => !yaSeleccionados.has(itemKey(i)) && !i.en_guia),
+      );
     } catch (e) {
-      console.error("Error al cargar lotes disponibles", e);
-      notifyError("No se pudieron cargar los lotes de mineral disponibles.");
+      console.error("Error al cargar items disponibles", e);
+      notifyError("No se pudieron cargar los items de mineral disponibles.");
     } finally {
-      setLoadingLotes(false);
+      setLoadingItems(false);
     }
   };
 
-  /**
-   * Iguala los peso_neto de todos los lotes al del lote `anchorIndex`.
-   * Cada lote mantiene su propio `peso_bruto`; se recalcula su `tara`
-   * para que `bruto - tara = netoCompartido`.
-   *
-   * Por qué: cada lote representa una pesada del mismo camión en una balanza;
-   * el peso de la carga (neto) debe ser idéntico en todas las pesadas.
-   */
-  const propagarNetoIgual = (lista: LoteFormItem[], anchorIndex: number): LoteFormItem[] => {
-    if (lista.length === 0) return [];
-    const copia = lista.map((l) => ({ ...l }));
-    const k = Math.min(Math.max(0, anchorIndex), copia.length - 1);
-
-    const netoCompartido = Number(copia[k].peso_bruto ?? 0) - Number(copia[k].tara ?? 0);
-
-    return copia.map((l) => {
-      const tara = Number(l.peso_bruto ?? 0) - netoCompartido;
-      return {
-        ...l,
-        tara,
-        peso_neto: netoCompartido,
-      };
-    });
+  const handleAgregarItems = (seleccionados: RES_ItemMineralDisponible[]) => {
+    const nuevos: ItemFormItem[] = seleccionados.map((i) => ({
+      tempId: `${itemKey(i)}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      id_lote_mineral: i.id_lote_mineral,
+      id_particion_lote_mineral: i.id_particion_lote_mineral,
+      tipo_item: i.tipo_item,
+      correlativo: i.correlativo,
+      peso_inicial: i.peso_inicial,
+      peso_final: i.peso_final,
+      peso_neto: i.peso_neto,
+      tipo_producto: i.tipo_producto,
+      tipo_mineral: i.tipo_mineral,
+    }));
+    setItems((prev) => [...prev, ...nuevos]);
+    setOpenItemModal(false);
   };
 
-  const handleAgregarLotes = (seleccionados: RES_LoteMineralDisponible[]) => {
-    const nuevos: LoteFormItem[] = seleccionados.map((l) => {
-      const bruto = l.peso_inicial ?? 0;
-      const tara = l.peso_final ?? 0;
-      return {
-        tempId: `${l.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        id_lote_mineral: l.id,
-        correlativo: l.correlativo,
-        peso_bruto: bruto,
-        tara: tara,
-        peso_neto: bruto - tara,
-      };
-    });
-    setLotes((prev) => {
-      const combinada = [...prev, ...nuevos];
-      const anchor = Math.max(0, prev.length - 1);
-      return propagarNetoIgual(combinada, anchor);
-    });
-    setOpenLoteModal(false);
+  const handleEliminarItem = (tempId: string) => {
+    setItems((prev) => prev.filter((i) => i.tempId !== tempId));
   };
 
-  const handleEliminarLote = (tempId: string) => {
-    setLotes((prev) => {
-      const idx = prev.findIndex((l) => l.tempId === tempId);
-      if (idx < 0) return prev;
-      const filtered = prev.filter((l) => l.tempId !== tempId);
-      const anchor = Math.max(0, idx - 1);
-      return propagarNetoIgual(filtered, anchor);
-    });
-  };
-
-  const handleMoverLote = (tempId: string, dir: -1 | 1) => {
-    setLotes((prev) => {
-      const idx = prev.findIndex((l) => l.tempId === tempId);
+  const handleMoverItem = (tempId: string, dir: -1 | 1) => {
+    setItems((prev) => {
+      const idx = prev.findIndex((i) => i.tempId === tempId);
       if (idx < 0) return prev;
       const nuevoIdx = idx + dir;
       if (nuevoIdx < 0 || nuevoIdx >= prev.length) return prev;
       const copia = [...prev];
       const [item] = copia.splice(idx, 1);
       copia.splice(nuevoIdx, 0, item);
-      return propagarNetoIgual(copia, nuevoIdx);
-    });
-  };
-
-  const handleLoteChange = (
-    tempId: string,
-    field: keyof Pick<LoteFormItem, "peso_bruto" | "tara">,
-    value: number,
-  ) => {
-    setLotes((prev) => {
-      const idx = prev.findIndex((l) => l.tempId === tempId);
-      if (idx < 0) return prev;
-      const nuevaLista = prev.map((l) =>
-        l.tempId === tempId ? { ...l, [field]: value } : l,
-      );
-      return propagarNetoIgual(nuevaLista, idx);
+      return copia;
     });
   };
 
@@ -436,17 +492,16 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
     setIdVehiculoCarreta(null);
     setIdEmpresaTransporteCarreta(null);
     setMotivoTraslado("Venta");
+    setCondicionIngreso(null);
     setFechaInicioTraslado(null);
     setFechaEmision(null);
     setFechaEnPlanta(null);
-    setSerieGuiaRemitente("");
-    setNumeroGuiaRemitente("");
-    setSerieGuiaTransportista("");
-    setNumeroGuiaTransportista("");
+    setGuiaRemitente("");
+    setGuiaTransportista("");
     setSinGuiaTransportista(false);
-    setEvidencias([]);
-    setEvidenciasExistentes([]);
-    setLotes([]);
+    setDocumentoGuiaRemitente(null);
+    setDocumentoGuiaTransportista(null);
+    setItems([]);
   };
 
   const handleClose = () => {
@@ -461,14 +516,20 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
     if (!idConductor) return notifyError("Seleccione un conductor.");
     if (!idVehiculo) return notifyError("Seleccione un vehículo.");
     if (!motivoTraslado) return notifyError("Seleccione el motivo de traslado.");
-    if (lotes.length === 0) return notifyError("Debe agregar al menos un lote a la guía.");
-    if (!serieGuiaRemitente && !numeroGuiaRemitente) {
-      return notifyError("Debe ingresar la serie y número de guía del remitente.");
+    if (items.length === 0) return notifyError("Debe agregar al menos un item a la guía.");
+
+    const guiaRemitenteTrim = guiaRemitente.trim();
+    if (!guiaRemitenteTrim) {
+      return notifyError("Debe ingresar el número de guía del remitente.");
     }
+
+    const numeroGuiaTransportista = sinGuiaTransportista
+      ? null
+      : guiaTransportista.trim() || null;
 
     const getFinalDateTime = (
       currentVal: string | null,
-      originalVal: string | null | undefined
+      originalVal: string | null | undefined,
     ): string | null => {
       if (!currentVal) return null;
       if (originalVal && originalVal.startsWith(currentVal)) {
@@ -480,6 +541,11 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
       const secs = String(now.getSeconds()).padStart(2, "0");
       return `${currentVal} ${hrs}:${mins}:${secs}`;
     };
+
+    const itemsDto: DTO_ItemGuiaInput[] = items.map((i) => ({
+      id_lote_mineral: i.id_lote_mineral,
+      id_particion_lote_mineral: i.id_particion_lote_mineral,
+    }));
 
     setSubmitting(true);
     try {
@@ -497,21 +563,17 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
             ? Number(idEmpresaTransporteCarreta)
             : null,
           motivo_traslado: motivoTraslado,
+          condicion_ingreso: condicionIngreso,
           fecha_inicio_traslado: getFinalDateTime(fechaInicioTraslado, guia.fecha_inicio_traslado),
           fecha_emision: getFinalDateTime(fechaEmision, guia.fecha_emision),
           fecha_en_planta: getFinalDateTime(fechaEnPlanta, guia.fecha_en_planta),
-          serie_guia_remitente: serieGuiaRemitente || null,
-          numero_guia_remitente: numeroGuiaRemitente || null,
-          serie_guia_transportista: serieGuiaTransportista || null,
-          numero_guia_transportista: numeroGuiaTransportista || null,
+          guia_remitente: guiaRemitenteTrim,
+          guia_transportista: numeroGuiaTransportista,
           sin_guia_transportista: sinGuiaTransportista,
-          lotes: lotes.map((l) => ({
-            id_lote_mineral: l.id_lote_mineral,
-            peso_bruto: l.peso_bruto,
-            tara: l.tara,
-          })),
-          evidencias,
-          evidencias_existentes: evidenciasExistentes,
+          lotes: itemsDto,
+          documento_guia_remitente: documentoGuiaRemitente,
+          documento_guia_transportista: sinGuiaTransportista ? null : documentoGuiaTransportista,
+          motivo: null,
         };
         await onUpdate(guia.id, dto);
       } else {
@@ -527,20 +589,16 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
             ? Number(idEmpresaTransporteCarreta)
             : null,
           motivo_traslado: motivoTraslado,
+          condicion_ingreso: condicionIngreso,
           fecha_inicio_traslado: getFinalDateTime(fechaInicioTraslado, null),
           fecha_emision: getFinalDateTime(fechaEmision, null),
           fecha_en_planta: getFinalDateTime(fechaEnPlanta, null),
-          serie_guia_remitente: serieGuiaRemitente || null,
-          numero_guia_remitente: numeroGuiaRemitente || null,
-          serie_guia_transportista: serieGuiaTransportista || null,
-          numero_guia_transportista: numeroGuiaTransportista || null,
+          guia_remitente: guiaRemitenteTrim,
+          guia_transportista: numeroGuiaTransportista,
           sin_guia_transportista: sinGuiaTransportista,
-          lotes: lotes.map((l) => ({
-            id_lote_mineral: l.id_lote_mineral,
-            peso_bruto: l.peso_bruto,
-            tara: l.tara,
-          })),
-          evidencias,
+          lotes: itemsDto,
+          documento_guia_remitente: documentoGuiaRemitente,
+          documento_guia_transportista: sinGuiaTransportista ? null : documentoGuiaTransportista,
         };
         await onSubmit(dto);
       }
@@ -556,6 +614,16 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
     () => (loadingConcesiones ? "Concesión: (cargando...)" : "Concesión:"),
     [loadingConcesiones],
   );
+
+  const fileRemitenteLabel = documentoGuiaRemitente
+    ? documentoGuiaRemitente.name
+    : guia?.documentos?.guia_remitente?.nombre_original ?? null;
+
+  const fileTransportistaLabel = sinGuiaTransportista
+    ? null
+    : documentoGuiaTransportista
+    ? documentoGuiaTransportista.name
+    : guia?.documentos?.guia_transportista?.nombre_original ?? null;
 
   return (
     <>
@@ -685,53 +753,36 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
 
           {/* ========== 3. Guías Remitente y Transportista ========== */}
           <Grid gutter="sm">
-            <Grid.Col span={{ base: 6, sm: 2 }}>
+            <Grid.Col span={{ base: 12, sm: 5 }}>
               <TextInput
-                label="Serie Remitente:"
-                value={serieGuiaRemitente}
-                onChange={(e) => setSerieGuiaRemitente(e.currentTarget.value.toUpperCase())}
+                label="N° Guía Remitente:"
+                placeholder="Ej. 001-12345"
+                value={guiaRemitente}
+                onChange={(e) => setGuiaRemitente(e.currentTarget.value.toUpperCase())}
                 classNames={fieldClasses}
                 radius="lg"
                 size="xs"
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 6, sm: 3 }}>
-              <TextInput
-                label="Número Remitente:"
-                value={numeroGuiaRemitente}
-                onChange={(e) => setNumeroGuiaRemitente(e.currentTarget.value)}
-                classNames={fieldClasses}
-                radius="lg"
-                size="xs"
+                maxLength={20}
                 required
               />
             </Grid.Col>
-            <Grid.Col span={{ base: 6, sm: 2 }}>
+            <Grid.Col span={{ base: 12, sm: 5 }}>
               <TextInput
-                label="Serie Transportista:"
-                value={serieGuiaTransportista}
-                onChange={(e) => setSerieGuiaTransportista(e.currentTarget.value.toUpperCase())}
+                label="N° Guía Transportista:"
+                placeholder="Ej. 001-12345"
+                value={guiaTransportista}
+                onChange={(e) => setGuiaTransportista(e.currentTarget.value.toUpperCase())}
                 classNames={fieldClasses}
                 radius="lg"
                 size="xs"
-                disabled={sinGuiaTransportista}
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 6, sm: 3 }}>
-              <TextInput
-                label="Número Transportista:"
-                value={numeroGuiaTransportista}
-                onChange={(e) => setNumeroGuiaTransportista(e.currentTarget.value)}
-                classNames={fieldClasses}
-                radius="lg"
-                size="xs"
+                maxLength={20}
                 disabled={sinGuiaTransportista}
               />
             </Grid.Col>
             <Grid.Col span={{ base: 12, sm: 2 }}>
               <div className="flex flex-col">
                 <span className="text-zinc-400 font-medium text-xs mb-1 whitespace-nowrap overflow-hidden text-ellipsis" title="Sin Guía Transportista">
-                  Sin Guía Transportista:
+                  Sin Guía Transp.:
                 </span>
                 <div className="flex items-center h-8">
                   <Switch
@@ -748,101 +799,176 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
           {/* ========== 4. Vehículos y Empresas ========== */}
           <Grid gutter="sm">
             <Grid.Col span={{ base: 12, sm: 6 }}>
-              <Select
-                label="Vehículo (Tractor):"
-                placeholder={loadingVehiculos ? "Cargando..." : "Seleccione"}
-                searchable
-                clearable
-                data={vehiculos.map((v) => ({
-                  value: String(v.id_vehiculo),
-                  label: String(v.placa || `Vehículo #${v.id_vehiculo}`),
-                }))}
-                value={idVehiculo}
-                onChange={setIdVehiculo}
-                classNames={fieldClasses}
-                radius="lg"
-                size="xs"
-                disabled={loadingVehiculos}
-                rightSection={loadingVehiculos ? <Loader size={16} /> : undefined}
-                required
-              />
+              <Group gap="xs" align="flex-end" wrap="nowrap">
+                <Select
+                  label="Vehículo (Tractor):"
+                  placeholder={loadingVehiculos ? "Cargando..." : "Seleccione"}
+                  searchable
+                  clearable
+                  data={vehiculos.map((v) => ({
+                    value: String(v.id_vehiculo),
+                    label: String(v.placa || `Vehículo #${v.id_vehiculo}`),
+                  }))}
+                  value={idVehiculo}
+                  onChange={setIdVehiculo}
+                  classNames={fieldClasses}
+                  radius="lg"
+                  size="xs"
+                  disabled={loadingVehiculos}
+                  rightSection={loadingVehiculos ? <Loader size={16} /> : undefined}
+                  required
+                  className="flex-1"
+                />
+                <Tooltip label="Registrar nuevo Vehículo" withArrow radius="md">
+                  <ActionIcon
+                    size="30px"
+                    radius="lg"
+                    variant="filled"
+                    color="indigo"
+                    onClick={() => setOpenedModalVehiculo("tractor")}
+                    className="mb-0.5"
+                  >
+                    <IconPlus size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              </Group>
             </Grid.Col>
             <Grid.Col span={{ base: 12, sm: 6 }}>
-              <Select
-                label="Empresa de Transporte:"
-                placeholder={loadingEmpresasTransporte ? "Cargando..." : "Seleccione"}
-                searchable
-                clearable
-                data={empresasTransporte.map((e) => ({ value: String(e.id_empresa_transporte), label: e.razon_social }))}
-                value={idEmpresaTransporte}
-                onChange={setIdEmpresaTransporte}
-                classNames={fieldClasses}
-                radius="lg"
-                size="xs"
-                disabled={loadingEmpresasTransporte}
-                rightSection={loadingEmpresasTransporte ? <Loader size={16} /> : undefined}
-              />
+              <Group gap="xs" align="flex-end" wrap="nowrap">
+                <Select
+                  label="Empresa de Transporte:"
+                  placeholder={loadingEmpresasTransporte ? "Cargando..." : "Seleccione"}
+                  searchable
+                  clearable
+                  data={empresasTransporte.map((e) => ({ value: String(e.id_empresa_transporte), label: e.razon_social }))}
+                  value={idEmpresaTransporte}
+                  onChange={setIdEmpresaTransporte}
+                  classNames={fieldClasses}
+                  radius="lg"
+                  size="xs"
+                  disabled={loadingEmpresasTransporte}
+                  rightSection={loadingEmpresasTransporte ? <Loader size={16} /> : undefined}
+                  className="flex-1"
+                />
+                <Tooltip label="Registrar nueva Empresa de Transporte" withArrow radius="md">
+                  <ActionIcon
+                    size="30px"
+                    radius="lg"
+                    variant="filled"
+                    color="indigo"
+                    onClick={() => setOpenedModalEmpresa("tractor")}
+                    className="mb-0.5"
+                  >
+                    <IconPlus size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              </Group>
             </Grid.Col>
             <Grid.Col span={{ base: 12, sm: 6 }}>
-              <Select
-                label="Vehículo Carreta:"
-                placeholder={loadingVehiculos ? "Cargando..." : "Seleccione (opcional)"}
-                searchable
-                clearable
-                data={carretas.map((v) => ({
-                  value: String(v.id_vehiculo),
-                  label: String(v.placa || `Vehículo #${v.id_vehiculo}`),
-                }))}
-                value={idVehiculoCarreta}
-                onChange={setIdVehiculoCarreta}
-                classNames={fieldClasses}
-                radius="lg"
-                size="xs"
-                disabled={loadingVehiculos}
-                rightSection={loadingVehiculos ? <Loader size={16} /> : undefined}
-              />
+              <Group gap="xs" align="flex-end" wrap="nowrap">
+                <Select
+                  label="Vehículo Carreta:"
+                  placeholder={loadingVehiculos ? "Cargando..." : "Seleccione (opcional)"}
+                  searchable
+                  clearable
+                  data={carretas.map((v) => ({
+                    value: String(v.id_vehiculo),
+                    label: String(v.placa || `Vehículo #${v.id_vehiculo}`),
+                  }))}
+                  value={idVehiculoCarreta}
+                  onChange={setIdVehiculoCarreta}
+                  classNames={fieldClasses}
+                  radius="lg"
+                  size="xs"
+                  disabled={loadingVehiculos}
+                  rightSection={loadingVehiculos ? <Loader size={16} /> : undefined}
+                  className="flex-1"
+                />
+                <Tooltip label="Registrar nuevo Vehículo Carreta" withArrow radius="md">
+                  <ActionIcon
+                    size="30px"
+                    radius="lg"
+                    variant="filled"
+                    color="indigo"
+                    onClick={() => setOpenedModalVehiculo("carreta")}
+                    className="mb-0.5"
+                  >
+                    <IconPlus size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              </Group>
             </Grid.Col>
             <Grid.Col span={{ base: 12, sm: 6 }}>
-              <Select
-                label="Empresa de Transporte Carreta:"
-                placeholder={loadingEmpresasTransporte ? "Cargando..." : "Seleccione (opcional)"}
-                searchable
-                clearable
-                data={empresasTransporte.map((e) => ({ value: String(e.id_empresa_transporte), label: e.razon_social }))}
-                value={idEmpresaTransporteCarreta}
-                onChange={setIdEmpresaTransporteCarreta}
-                classNames={fieldClasses}
-                radius="lg"
-                size="xs"
-                disabled={loadingEmpresasTransporte}
-                rightSection={loadingEmpresasTransporte ? <Loader size={16} /> : undefined}
-              />
+              <Group gap="xs" align="flex-end" wrap="nowrap">
+                <Select
+                  label="Empresa de Transporte Carreta:"
+                  placeholder={loadingEmpresasTransporte ? "Cargando..." : "Seleccione (opcional)"}
+                  searchable
+                  clearable
+                  data={empresasTransporte.map((e) => ({ value: String(e.id_empresa_transporte), label: e.razon_social }))}
+                  value={idEmpresaTransporteCarreta}
+                  onChange={setIdEmpresaTransporteCarreta}
+                  classNames={fieldClasses}
+                  radius="lg"
+                  size="xs"
+                  disabled={loadingEmpresasTransporte}
+                  rightSection={loadingEmpresasTransporte ? <Loader size={16} /> : undefined}
+                  className="flex-1"
+                />
+                <Tooltip label="Registrar nueva Empresa de Transporte Carreta" withArrow radius="md">
+                  <ActionIcon
+                    size="30px"
+                    radius="lg"
+                    variant="filled"
+                    color="indigo"
+                    onClick={() => setOpenedModalEmpresa("carreta")}
+                    className="mb-0.5"
+                  >
+                    <IconPlus size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              </Group>
             </Grid.Col>
           </Grid>
 
-          {/* ========== 5. Conductor y Motivo de Traslado ========== */}
+          {/* ========== 5. Conductor, Motivo, Condición ========== */}
           <Grid gutter="sm">
-            <Grid.Col span={{ base: 12, sm: 6 }}>
-              <Select
-                label="Conductor:"
-                placeholder={loadingConductores ? "Cargando..." : "Seleccione"}
-                searchable
-                clearable
-                data={conductores.map((c) => ({
-                  value: String(c.id_conductor),
-                  label: `${c.nombre_completo} (${c.dni})`,
-                }))}
-                value={idConductor}
-                onChange={setIdConductor}
-                classNames={fieldClasses}
-                radius="lg"
-                size="xs"
-                disabled={loadingConductores}
-                rightSection={loadingConductores ? <Loader size={16} /> : undefined}
-                required
-              />
+            <Grid.Col span={{ base: 12, sm: 4 }}>
+              <Group gap="xs" align="flex-end" wrap="nowrap">
+                <Select
+                  label="Conductor:"
+                  placeholder={loadingConductores ? "Cargando..." : "Seleccione"}
+                  searchable
+                  clearable
+                  data={conductores.map((c) => ({
+                    value: String(c.id_conductor),
+                    label: `${c.nombre_completo} (${c.dni})`,
+                  }))}
+                  value={idConductor}
+                  onChange={setIdConductor}
+                  classNames={fieldClasses}
+                  radius="lg"
+                  size="xs"
+                  disabled={loadingConductores}
+                  rightSection={loadingConductores ? <Loader size={16} /> : undefined}
+                  required
+                  className="flex-1"
+                />
+                <Tooltip label="Registrar nuevo Conductor" withArrow radius="md">
+                  <ActionIcon
+                    size="30px"
+                    radius="lg"
+                    variant="filled"
+                    color="indigo"
+                    onClick={() => setOpenedModalConductor(true)}
+                    className="mb-0.5"
+                  >
+                    <IconPlus size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              </Group>
             </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6 }}>
+            <Grid.Col span={{ base: 12, sm: 4 }}>
               <Select
                 label="Motivo de Traslado:"
                 data={MOTIVO_TRASLADO_OPTIONS}
@@ -854,21 +980,126 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
                 required
               />
             </Grid.Col>
+            <Grid.Col span={{ base: 12, sm: 4 }}>
+              <Select
+                label="Condición de Ingreso:"
+                placeholder="Seleccione (opcional)"
+                clearable
+                data={CONDICION_INGRESO_OPTIONS}
+                value={condicionIngreso}
+                onChange={setCondicionIngreso}
+                classNames={fieldClasses}
+                radius="lg"
+                size="xs"
+              />
+            </Grid.Col>
           </Grid>
 
-          {/* ========== 7. Lotes Asociados ========== */}
+          {/* ========== 6. Documentos de las Guías (subidos por separado) ========== */}
+          <Grid gutter="sm">
+            <Grid.Col span={{ base: 12, sm: 6 }}>
+              <div className="flex flex-col gap-1">
+                <span className="text-zinc-400 font-medium text-xs mb-1">Documento Guía Remitente:</span>
+                <MGroup gap="xs" wrap="nowrap">
+                  <FileButton
+                    onChange={(file) => setDocumentoGuiaRemitente(file)}
+                    accept="application/pdf,image/*"
+                  >
+                    {(props) => (
+                      <Button
+                        {...props}
+                        variant="light"
+                        color="indigo"
+                        radius="md"
+                        size="xs"
+                        leftSection={<IconFile size={14} />}
+                      >
+                        {documentoGuiaRemitente ? "Reemplazar" : "Subir PDF / Imagen"}
+                      </Button>
+                    )}
+                  </FileButton>
+                  {fileRemitenteLabel && (
+                    <div className="flex items-center gap-1 text-xs text-zinc-300 truncate">
+                      <IconFileText size={14} className="text-zinc-500" />
+                      <span className="truncate max-w-50" title={fileRemitenteLabel}>
+                        {fileRemitenteLabel}
+                      </span>
+                      {documentoGuiaRemitente && (
+                        <ActionIcon
+                          size="xs"
+                          variant="subtle"
+                          color="gray"
+                          onClick={() => setDocumentoGuiaRemitente(null)}
+                          title="Quitar"
+                        >
+                          <IconX size={12} />
+                        </ActionIcon>
+                      )}
+                    </div>
+                  )}
+                </MGroup>
+              </div>
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, sm: 6 }}>
+              <div className="flex flex-col gap-1">
+                <span className="text-zinc-400 font-medium text-xs mb-1">Documento Guía Transportista:</span>
+                <MGroup gap="xs" wrap="nowrap">
+                  <FileButton
+                    onChange={(file) => setDocumentoGuiaTransportista(file)}
+                    accept="application/pdf,image/*"
+                    disabled={sinGuiaTransportista}
+                  >
+                    {(props) => (
+                      <Button
+                        {...props}
+                        variant="light"
+                        color="indigo"
+                        radius="md"
+                        size="xs"
+                        leftSection={<IconFile size={14} />}
+                        disabled={sinGuiaTransportista}
+                      >
+                        {documentoGuiaTransportista ? "Reemplazar" : "Subir PDF / Imagen"}
+                      </Button>
+                    )}
+                  </FileButton>
+                  {fileTransportistaLabel && (
+                    <div className="flex items-center gap-1 text-xs text-zinc-300 truncate">
+                      <IconFileText size={14} className="text-zinc-500" />
+                      <span className="truncate max-w-50" title={fileTransportistaLabel}>
+                        {fileTransportistaLabel}
+                      </span>
+                      {documentoGuiaTransportista && (
+                        <ActionIcon
+                          size="xs"
+                          variant="subtle"
+                          color="gray"
+                          onClick={() => setDocumentoGuiaTransportista(null)}
+                          title="Quitar"
+                        >
+                          <IconX size={12} />
+                        </ActionIcon>
+                      )}
+                    </div>
+                  )}
+                </MGroup>
+              </div>
+            </Grid.Col>
+          </Grid>
+
+          {/* ========== 7. Items Asociados ========== */}
           <div className="flex items-center justify-between">
             <Text size="sm" fw={700} className="text-zinc-200">
-              Información de Lotes
+              Items Asociados (Lotes o Particiones)
             </Text>
             <Button
               size="xs"
               radius="md"
               leftSection={<IconPlus size={14} />}
-              onClick={handleOpenLoteModal}
+              onClick={handleOpenItemModal}
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
-              Agregar Lote
+              Agregar Item
             </Button>
           </div>
 
@@ -876,141 +1107,110 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
             <Table verticalSpacing="sm" horizontalSpacing="md" className="w-full">
               <thead>
                 <tr className="border-b border-zinc-800/80 bg-zinc-900/40 text-zinc-300 text-xs font-semibold">
-                  <th className="text-center py-3" style={{ width: 160 }}>N° / Orden</th>
-                  <th className="text-left py-3 pl-3">Lote (Correlativo)</th>
-                  <th className="text-center py-3" style={{ width: 130 }}>P. Bruto (kg)</th>
-                  <th className="text-center py-3" style={{ width: 130 }}>Tara (kg)</th>
-                  <th className="text-center py-3" style={{ width: 130 }}>P. Neto (kg)</th>
+                  <th className="text-center py-3" style={{ width: 140 }}>Orden</th>
+                  <th className="text-left py-3 pl-3">Tipo</th>
+                  <th className="text-left py-3">Correlativo</th>
+                  <th className="text-left py-3">Producto</th>
+                  <th className="text-left py-3">Mineral</th>
+                  <th className="text-right py-3">P. Bruto</th>
+                  <th className="text-right py-3">Tara</th>
+                  <th className="text-right py-3 pr-3">P. Neto</th>
                 </tr>
               </thead>
               <tbody>
-                {lotes.length === 0 ? (
+                {items.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="text-center py-6 text-zinc-500 text-xs">
-                      No hay lotes agregados. Haga clic en "+ Agregar Lote" para seleccionar.
+                    <td colSpan={8} className="text-center py-6 text-zinc-500 text-xs">
+                      No hay items agregados. Haga clic en "+ Agregar Item" para seleccionar.
                     </td>
                   </tr>
                 ) : (
-                  lotes.map((l, idx) => {
-                    const neto = Number(l.peso_bruto) - Number(l.tara);
-                    return (
-                      <tr
-                        key={l.tempId}
-                        className="border-b border-zinc-900/60 hover:bg-zinc-900/20 transition-colors"
-                      >
-                        <td className="text-center py-2.5">
-                          <div className="flex items-center justify-center gap-3">
-                            <span className="font-bold text-zinc-400 text-xs w-4">{idx + 1}</span>
-                            <div className="flex items-center gap-1 bg-zinc-900/60 p-0.5 rounded-lg border border-zinc-800/80">
-                              <Tooltip label="Subir" withArrow position="top">
-                                <ActionIcon
-                                  size="xs"
-                                  variant="subtle"
-                                  color="blue"
-                                  onClick={() => handleMoverLote(l.tempId, -1)}
-                                  disabled={idx === 0}
-                                  className="text-zinc-400 hover:text-blue-400 disabled:opacity-20 disabled:hover:bg-transparent"
-                                >
-                                  <IconArrowUp size={13} />
-                                </ActionIcon>
-                              </Tooltip>
-                              <Tooltip label="Bajar" withArrow position="top">
-                                <ActionIcon
-                                  size="xs"
-                                  variant="subtle"
-                                  color="blue"
-                                  onClick={() => handleMoverLote(l.tempId, 1)}
-                                  disabled={idx === lotes.length - 1}
-                                  className="text-zinc-400 hover:text-blue-400 disabled:opacity-20 disabled:hover:bg-transparent"
-                                >
-                                  <IconArrowDown size={13} />
-                                </ActionIcon>
-                              </Tooltip>
-                              <div className="w-px h-3.5 bg-zinc-800 mx-0.5" />
-                              <Tooltip label="Eliminar" withArrow position="top">
-                                <ActionIcon
-                                  size="xs"
-                                  variant="subtle"
-                                  color="red"
-                                  onClick={() => handleEliminarLote(l.tempId)}
-                                  className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
-                                >
-                                  <IconTrash size={13} />
-                                </ActionIcon>
-                              </Tooltip>
-                            </div>
+                  items.map((it, idx) => (
+                    <tr
+                      key={it.tempId}
+                      className="border-b border-zinc-900/60 hover:bg-zinc-900/20 transition-colors"
+                    >
+                      <td className="text-center py-2.5">
+                        <div className="flex items-center justify-center gap-3">
+                          <span className="font-bold text-zinc-400 text-xs w-4">{idx + 1}</span>
+                          <div className="flex items-center gap-1 bg-zinc-900/60 p-0.5 rounded-lg border border-zinc-800/80">
+                            <Tooltip label="Subir" withArrow position="top">
+                              <ActionIcon
+                                size="xs"
+                                variant="subtle"
+                                color="blue"
+                                onClick={() => handleMoverItem(it.tempId, -1)}
+                                disabled={idx === 0}
+                                className="text-zinc-400 hover:text-blue-400 disabled:opacity-20 disabled:hover:bg-transparent"
+                              >
+                                <IconArrowUp size={13} />
+                              </ActionIcon>
+                            </Tooltip>
+                            <Tooltip label="Bajar" withArrow position="top">
+                              <ActionIcon
+                                size="xs"
+                                variant="subtle"
+                                color="blue"
+                                onClick={() => handleMoverItem(it.tempId, 1)}
+                                disabled={idx === items.length - 1}
+                                className="text-zinc-400 hover:text-blue-400 disabled:opacity-20 disabled:hover:bg-transparent"
+                              >
+                                <IconArrowDown size={13} />
+                              </ActionIcon>
+                            </Tooltip>
+                            <div className="w-px h-3.5 bg-zinc-800 mx-0.5" />
+                            <Tooltip label="Eliminar" withArrow position="top">
+                              <ActionIcon
+                                size="xs"
+                                variant="subtle"
+                                color="red"
+                                onClick={() => handleEliminarItem(it.tempId)}
+                                className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+                              >
+                                <IconTrash size={13} />
+                              </ActionIcon>
+                            </Tooltip>
                           </div>
-                        </td>
-                        <td className="py-2.5 text-left pl-3">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                              <IconFileText size={14} />
-                            </div>
-                            <Text size="xs" fw={600} className="text-zinc-200 font-mono tracking-wider">
-                              {l.correlativo}
-                            </Text>
+                        </div>
+                      </td>
+                      <td className="py-2.5">
+                        <Badge
+                          variant="light"
+                          color={it.tipo_item === "PARTICION" ? "violet" : "teal"}
+                          size="sm"
+                          radius="md"
+                          className="font-bold uppercase"
+                        >
+                          {it.tipo_item}
+                        </Badge>
+                      </td>
+                      <td className="py-2.5 text-left">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            <IconFileText size={14} />
                           </div>
-                        </td>
-                        <td className="py-2.5 px-2">
-                          <TextInput
-                            size="xs"
-                            type="number"
-                            step="0.01"
-                            value={String(l.peso_bruto ?? "")}
-                            onChange={(e) => handleLoteChange(l.tempId, "peso_bruto", Number(e.currentTarget.value) || 0)}
-                            disabled={idx > 0}
-                            classNames={{
-                              input: idx > 0
-                                ? "bg-zinc-950/40 border-transparent text-zinc-400 text-center h-8 cursor-not-allowed select-none opacity-90 font-medium"
-                                : "bg-zinc-900/40 border-zinc-800 text-white font-medium focus:border-emerald-500 focus:bg-zinc-900/80 transition-all text-center h-8",
-                            }}
-                            radius="md"
-                          />
-                        </td>
-                        <td className="py-2.5 px-2">
-                          <TextInput
-                            size="xs"
-                            type="number"
-                            step="0.01"
-                            value={String(l.tara ?? "")}
-                            onChange={(e) => handleLoteChange(l.tempId, "tara", Number(e.currentTarget.value) || 0)}
-                            classNames={{
-                              input:
-                                "bg-zinc-900/40 border-zinc-800 text-white font-medium focus:border-emerald-500 focus:bg-zinc-900/80 transition-all text-center h-8",
-                            }}
-                            radius="md"
-                          />
-                        </td>
-                        <td className="py-2.5 px-2">
-                          <TextInput
-                            size="xs"
-                            type="number"
-                            value={neto.toFixed(2)}
-                            disabled
-                            classNames={{
-                              input:
-                                "bg-zinc-950/40 border-transparent text-emerald-400 font-bold text-center font-mono h-8 cursor-not-allowed select-none opacity-90",
-                            }}
-                            radius="md"
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })
+                          <Text size="xs" fw={600} className="text-zinc-200 font-mono tracking-wider">
+                            {it.correlativo}
+                          </Text>
+                        </div>
+                      </td>
+                      <td className="py-2.5 text-xs text-zinc-300">{it.tipo_producto ?? "—"}</td>
+                      <td className="py-2.5 text-xs text-zinc-300">{it.tipo_mineral ?? "—"}</td>
+                      <td className="py-2.5 text-right font-mono text-zinc-200 text-xs">
+                        {it.peso_inicial?.toFixed(2) ?? "—"}
+                      </td>
+                      <td className="py-2.5 text-right font-mono text-zinc-200 text-xs">
+                        {it.peso_final?.toFixed(2) ?? "—"}
+                      </td>
+                      <td className="py-2.5 text-right font-mono text-emerald-400 text-xs fw-semibold pr-3">
+                        {it.peso_neto?.toFixed(2) ?? "—"}
+                      </td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </Table>
           </div>
-
-          {/* ========== 8. Evidencias ========== */}
-          <MultiFilePicker
-            files={evidencias}
-            onFilesChange={setEvidencias}
-            existingFiles={evidenciasExistentes}
-            onRemoveExisting={(path: string) => setEvidenciasExistentes((prev) => prev.filter((e) => e.path_relativo !== path))}
-            label="Evidencias de la Guía"
-            description="Adjunte imágenes/fotos de la guía (opcional)"
-          />
 
           <Divider my="xs" color="zinc.8" />
 
@@ -1050,32 +1250,73 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
         />
       )}
 
-      {/* Sub-modal selección de lote */}
-      <ModalSeleccionarLote
-        opened={openLoteModal}
-        loading={loadingLotes}
-        lotes={lotesDisponibles}
-        onClose={() => setOpenLoteModal(false)}
-        onConfirm={handleAgregarLotes}
+      {/* Submodal para registrar un vehículo (tractor o carreta) */}
+      <ModalEstandar
+        opened={openedModalVehiculo !== null}
+        close={() => setOpenedModalVehiculo(null)}
+        title={openedModalVehiculo === "carreta" ? "Registrar Vehículo Carreta" : "Registrar Vehículo Tractor"}
+        size="md"
+      >
+        <RegistroVehiculoSimple
+          idEmpresaTransporte={idEmpresaTransporte ? Number(idEmpresaTransporte) : null}
+          idTipoVehiculo={null}
+          onCancel={() => setOpenedModalVehiculo(null)}
+          onSuccess={(vehiculo) => handleVehiculoCreado(vehiculo, openedModalVehiculo ?? "tractor")}
+        />
+      </ModalEstandar>
+
+      {/* Submodal para registrar una empresa de transporte (tractor o carreta) */}
+      <ModalEstandar
+        opened={openedModalEmpresa !== null}
+        close={() => setOpenedModalEmpresa(null)}
+        title={openedModalEmpresa === "carreta" ? "Registrar Empresa de Transporte (Carreta)" : "Registrar Empresa de Transporte"}
+        size="lg"
+      >
+        <RegistroEmpresaTransporte
+          onCancel={() => setOpenedModalEmpresa(null)}
+          onSuccess={(e) => handleEmpresaCreada(e, openedModalEmpresa ?? "tractor")}
+        />
+      </ModalEstandar>
+
+      {/* Submodal para registrar un conductor */}
+      <ModalEstandar
+        opened={openedModalConductor}
+        close={() => setOpenedModalConductor(false)}
+        title="Registrar Conductor"
+        size="md"
+      >
+        <RegistroConductor
+          onCancel={() => setOpenedModalConductor(false)}
+          onSuccess={handleConductorCreado}
+        />
+      </ModalEstandar>
+
+      {/* Sub-modal selección de items */}
+      <ModalSeleccionarItem
+        opened={openItemModal}
+        loading={loadingItems}
+        items={itemsDisponibles}
+        onClose={() => setOpenItemModal(false)}
+        onConfirm={handleAgregarItems}
       />
     </>
   );
 };
 
 // ============================================================
-// Sub-modal para seleccionar lotes de mineral
+// Sub-modal para seleccionar items (lotes o particiones)
 // ============================================================
 
-interface ModalSeleccionarLoteProps {
+interface ModalSeleccionarItemProps {
   opened: boolean;
   loading: boolean;
-  lotes: RES_LoteMineralDisponible[];
+  items: RES_ItemMineralDisponible[];
   onClose: () => void;
-  onConfirm: (seleccionados: RES_LoteMineralDisponible[]) => void;
+  onConfirm: (seleccionados: RES_ItemMineralDisponible[]) => void;
 }
 
-const ModalSeleccionarLote = ({ opened, loading, lotes, onClose, onConfirm }: ModalSeleccionarLoteProps) => {
-  const [seleccionados, setSeleccionados] = useState<Set<number>>(new Set());
+const ModalSeleccionarItem = ({ opened, loading, items, onClose, onConfirm }: ModalSeleccionarItemProps) => {
+  const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
   const [busqueda, setBusqueda] = useState("");
 
   const handleClose = () => {
@@ -1084,36 +1325,36 @@ const ModalSeleccionarLote = ({ opened, loading, lotes, onClose, onConfirm }: Mo
     onClose();
   };
 
-  const toggle = (id: number) => {
+  const toggle = (key: string) => {
     setSeleccionados((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
+      if (next.has(key)) {
+        next.delete(key);
       } else {
-        next.add(id);
+        next.add(key);
       }
       return next;
     });
   };
 
   const handleConfirm = () => {
-    const items = lotes.filter((l) => seleccionados.has(l.id));
-    onConfirm(items);
+    const seleccionItems = items.filter((i) => seleccionados.has(itemKey(i)));
+    onConfirm(seleccionItems);
     setSeleccionados(new Set());
     setBusqueda("");
   };
 
-  const filtrados = lotes.filter((l) => {
+  const filtrados = items.filter((i) => {
     if (busqueda.trim() === "") return true;
     const query = busqueda.toLowerCase();
-    const matchesCorrelativo = l.correlativo.toLowerCase().includes(query);
-    const matchesProveedor = l.proveedor_nombre?.toLowerCase().includes(query) ?? false;
-    const matchesPlaca = l.vehiculo_placa?.toLowerCase().includes(query) ?? false;
+    const matchesCorrelativo = i.correlativo.toLowerCase().includes(query);
+    const matchesProveedor = i.proveedor_nombre?.toLowerCase().includes(query) ?? false;
+    const matchesPlaca = i.vehiculo_placa?.toLowerCase().includes(query) ?? false;
     return matchesCorrelativo || matchesProveedor || matchesPlaca;
   });
 
   return (
-    <ModalEstandar opened={opened} close={handleClose} title="Seleccionar Lotes de Mineral" size="lg">
+    <ModalEstandar opened={opened} close={handleClose} title="Seleccionar Lotes o Particiones" size="xl">
       <Stack gap="md">
         <TextInput
           placeholder="Buscar por correlativo, placa o proveedor..."
@@ -1129,6 +1370,7 @@ const ModalSeleccionarLote = ({ opened, loading, lotes, onClose, onConfirm }: Mo
             <thead className="sticky top-0 bg-zinc-900/95 backdrop-blur z-10">
               <tr className="text-zinc-300 text-xs">
                 <th style={{ width: 40 }}></th>
+                <th>Tipo</th>
                 <th>Correlativo</th>
                 <th>Placa</th>
                 <th className="text-right">P. Bruto</th>
@@ -1139,38 +1381,52 @@ const ModalSeleccionarLote = ({ opened, loading, lotes, onClose, onConfirm }: Mo
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-4 text-zinc-400 text-xs">Cargando lotes...</td>
+                  <td colSpan={7} className="text-center py-4 text-zinc-400 text-xs">Cargando items...</td>
                 </tr>
               ) : filtrados.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-4 text-zinc-500 text-xs">
-                    No hay lotes disponibles para los filtros aplicados.
+                  <td colSpan={7} className="text-center py-4 text-zinc-500 text-xs">
+                    No hay items disponibles para los filtros aplicados.
                   </td>
                 </tr>
               ) : (
-                filtrados.map((l) => (
-                  <tr
-                    key={l.id}
-                    className={`border-b border-zinc-900/40 cursor-pointer hover:bg-zinc-900/30 ${seleccionados.has(l.id) ? "bg-emerald-950/20" : ""}`}
-                    onClick={() => toggle(l.id)}
-                  >
-                    <td className="text-center" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={seleccionados.has(l.id)}
-                        onChange={() => toggle(l.id)}
-                        className="accent-emerald-500"
-                      />
-                    </td>
-                    <td className="font-mono text-zinc-100 text-xs">{l.correlativo}</td>
-                    <td className="text-zinc-300 text-xs">
-                      {l.vehiculo_placa ? l.vehiculo_placa.toUpperCase() : "—"}
-                    </td>
-                    <td className="text-right font-mono text-zinc-200 text-xs">{l.peso_inicial?.toFixed(2) ?? "—"}</td>
-                    <td className="text-right font-mono text-zinc-200 text-xs">{l.peso_final?.toFixed(2) ?? "—"}</td>
-                    <td className="text-right font-mono text-emerald-300 text-xs">{l.peso_neto?.toFixed(2) ?? "—"}</td>
-                  </tr>
-                ))
+                filtrados.map((i) => {
+                  const key = itemKey(i);
+                  return (
+                    <tr
+                      key={key}
+                      className={`border-b border-zinc-900/40 cursor-pointer hover:bg-zinc-900/30 ${seleccionados.has(key) ? "bg-emerald-950/20" : ""}`}
+                      onClick={() => toggle(key)}
+                    >
+                      <td className="text-center" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={seleccionados.has(key)}
+                          onChange={() => toggle(key)}
+                          className="accent-emerald-500"
+                        />
+                      </td>
+                      <td>
+                        <Badge
+                          variant="light"
+                          color={i.tipo_item === "PARTICION" ? "violet" : "teal"}
+                          size="sm"
+                          radius="md"
+                          className="font-bold uppercase"
+                        >
+                          {i.tipo_item}
+                        </Badge>
+                      </td>
+                      <td className="font-mono text-zinc-100 text-xs">{i.correlativo}</td>
+                      <td className="text-zinc-300 text-xs">
+                        {i.vehiculo_placa ? i.vehiculo_placa.toUpperCase() : "—"}
+                      </td>
+                      <td className="text-right font-mono text-zinc-200 text-xs">{i.peso_inicial?.toFixed(2) ?? "—"}</td>
+                      <td className="text-right font-mono text-zinc-200 text-xs">{i.peso_final?.toFixed(2) ?? "—"}</td>
+                      <td className="text-right font-mono text-emerald-300 text-xs">{i.peso_neto?.toFixed(2) ?? "—"}</td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </Table>

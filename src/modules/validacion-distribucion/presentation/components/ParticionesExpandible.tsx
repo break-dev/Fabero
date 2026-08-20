@@ -11,12 +11,10 @@ import {
 } from "@mantine/core";
 import {
   IconClock,
-  IconDeviceFloppy,
   IconLock,
   IconLockOpen,
   IconPencil,
   IconPrinter,
-  IconSettings,
   IconTrash,
 } from "@tabler/icons-react";
 import {
@@ -26,7 +24,6 @@ import {
 import { formatDateTime, formatTn } from "../utils/format-units";
 import type { RES_Particion } from "../../service/validacion-distribucion.responses";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
-import { CapacidadVehiculoModal } from "./CapacidadVehiculoModal";
 import { EdicionParticionModal } from "./EdicionParticionModal";
 import { FechaHoraModal } from "./FechaHoraModal";
 import { usePrint } from "../../../../hooks/usePrint";
@@ -89,13 +86,6 @@ export const ParticionesExpandible = forwardRef<
     particion: RES_Particion | null;
   }>({ open: false, particion: null });
 
-  const [capacidadModal, setCapacidadModal] = useState<{
-    open: boolean;
-    idVehiculo: number | null;
-    capacidad: number | null;
-    placa: string | null;
-  }>({ open: false, idVehiculo: null, capacidad: null, placa: null });
-
   const [fechaModal, setFechaModal] = useState<{
     open: boolean;
     idParticion: number;
@@ -114,26 +104,26 @@ export const ParticionesExpandible = forwardRef<
   };
 
   return (
-    <Stack gap="md" p="xs">
+    <Stack gap="xs" p="xs">
       {hooks.particiones.length === 0 ? (
         <Text c="dimmed" size="xs">
           Aún no se ha creado ninguna partición.
         </Text>
       ) : (
-        <Table withTableBorder striped highlightOnHover verticalSpacing="xs">
+        <Table withTableBorder striped highlightOnHover verticalSpacing="2xs">
           <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Partición</Table.Th>
-              <Table.Th>Ticket</Table.Th>
-              <Table.Th>Vehículo (Capacidad)</Table.Th>
-              <Table.Th style={{ minWidth: 180 }}>P. Inicial</Table.Th>
-              <Table.Th>F. inicial</Table.Th>
-              <Table.Th style={{ minWidth: 180 }}>P. Final</Table.Th>
-              <Table.Th>F. final</Table.Th>
-              <Table.Th ta="right" style={{ minWidth: 130 }}>
+            <Table.Tr className="text-[11px] uppercase tracking-wider text-zinc-400">
+              <Table.Th ta="center" style={{ fontSize: 11, padding: "6px 8px" }}>Partición</Table.Th>
+              <Table.Th ta="center" style={{ fontSize: 11, padding: "6px 8px" }}>Ticket</Table.Th>
+              <Table.Th ta="center" style={{ fontSize: 11, padding: "6px 8px" }}>Vehículo (Capacidad)</Table.Th>
+              <Table.Th ta="center" style={{ minWidth: 140, fontSize: 11, padding: "6px 8px" }}>P. Inicial</Table.Th>
+              <Table.Th ta="center" style={{ fontSize: 11, padding: "6px 8px" }}>F. inicial</Table.Th>
+              <Table.Th ta="center" style={{ minWidth: 140, fontSize: 11, padding: "6px 8px" }}>P. Final</Table.Th>
+              <Table.Th ta="center" style={{ fontSize: 11, padding: "6px 8px" }}>F. final</Table.Th>
+              <Table.Th ta="center" style={{ minWidth: 110, fontSize: 11, padding: "6px 8px" }}>
                 P. Neto
               </Table.Th>
-              <Table.Th ta="right" style={{ width: 150 }}>
+              <Table.Th ta="center" style={{ width: 100, fontSize: 11, padding: "6px 8px" }}>
                 Acciones
               </Table.Th>
             </Table.Tr>
@@ -143,7 +133,6 @@ export const ParticionesExpandible = forwardRef<
               const saving = Boolean(hooks.savingIds[p.id]);
               const consistente = hooks.esConsistente(p);
               const eliminada = hooks.isEliminada(p);
-              const hasChanges = hooks.isDirty(p);
               const diferencia = round2(
                 (p.peso_inicial ?? 0) -
                   (p.peso_final ?? 0) -
@@ -166,41 +155,36 @@ export const ParticionesExpandible = forwardRef<
                       : undefined
                   }
                 >
-                  <Table.Td>
-                    <Group gap={4} wrap="nowrap" align="center">
-                      <Text fw={600} size="xs">
+                  <Table.Td ta="center" style={{ padding: "4px 8px" }}>
+                    <Group gap={4} wrap="nowrap" align="center" justify="center">
+                      <Text fw={600} className="text-[11px]">
                         {p.particion}
                       </Text>
-                      {hasChanges && (
-                        <Tooltip label="Cambios sin guardar" withArrow>
-                          <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
-                        </Tooltip>
-                      )}
                       {!consistente && !eliminada && (
                         <Tooltip
                           label={`Pesos no cuadran: P.Inicial - P.Final ≠ P.Neto (${diferencia >= 0 ? "+" : ""}${diferencia})`}
                           withArrow
                         >
-                          <Text size="xs" c="yellow">
+                          <Text className="text-[11px]" c="yellow">
                             ⚠
                           </Text>
                         </Tooltip>
                       )}
                       {eliminada && (
                         <Tooltip label="Partición eliminada" withArrow>
-                          <Text size="xs" c="red">
+                          <Text className="text-[11px]" c="red">
                             🗑
                           </Text>
                         </Tooltip>
                       )}
                     </Group>
-                    <Text size="xs" c="dimmed" ff="monospace">
+                    <Text className="text-[10px] text-zinc-400 font-mono text-center">
                       {p.correlativo}
                     </Text>
                   </Table.Td>
-                  <Table.Td>
-                    <Group gap={4} wrap="nowrap" align="center">
-                      <Text size="xs" ff="monospace">
+                  <Table.Td ta="center" style={{ padding: "4px 8px" }}>
+                    <Group gap={4} wrap="nowrap" align="center" justify="center">
+                      <Text className="text-[10px] font-mono">
                         {p.ticket_correlativo ?? "—"}
                       </Text>
                       {p.ticket_correlativo && (
@@ -213,69 +197,57 @@ export const ParticionesExpandible = forwardRef<
                             loading={printingId === p.id}
                             disabled={eliminada}
                           >
-                            <IconPrinter size={13} />
+                            <IconPrinter size={12} />
                           </ActionIcon>
                         </Tooltip>
                       )}
                     </Group>
                   </Table.Td>
-                  <Table.Td>
-                    <Group gap={4} wrap="nowrap" align="center">
-                      <Text size="xs">{p.vehiculo_placa ?? "FICTICIA"}</Text>
+                  <Table.Td ta="center" style={{ padding: "4px 8px" }}>
+                    <Group gap={4} wrap="nowrap" align="center" justify="center">
+                      <Text className="text-[11px]">{p.vehiculo_placa ?? "FICTICIA"}</Text>
                       {p.vehiculo_capacidad != null ? (
-                        <Text size="xs" c="dimmed">
+                        <Text className="text-[10px] text-zinc-400">
                           ({formatTn(p.vehiculo_capacidad)})
                         </Text>
                       ) : null}
-                      {p.id_vehiculo != null && (
-                        <Tooltip label="Actualizar capacidad" withArrow>
-                          <ActionIcon
-                            variant="subtle"
-                            color="gray"
-                            size="sm"
-                            onClick={() =>
-                              setCapacidadModal({
-                                open: true,
-                                idVehiculo: p.id_vehiculo ?? null,
-                                capacidad: p.vehiculo_capacidad ?? null,
-                                placa: p.vehiculo_placa ?? null,
-                              })
-                            }
-                          >
-                            <IconSettings size={14} />
-                          </ActionIcon>
-                        </Tooltip>
-                      )}
                       <Tooltip label="Editar recepción" withArrow>
                         <ActionIcon
                           variant="subtle"
                           color="indigo"
-                          size="sm"
+                          size="xs"
                           onClick={() =>
                             setEdicionModal({ open: true, particion: p })
                           }
                           disabled={eliminada}
                         >
-                          <IconPencil size={14} />
+                          <IconPencil size={13} />
                         </ActionIcon>
                       </Tooltip>
                     </Group>
                   </Table.Td>
-                  <Table.Td>
-                    <Group gap={4} align="center" wrap="nowrap">
+                  <Table.Td ta="center" style={{ padding: "4px 8px" }}>
+                    <div className="flex justify-center">
                       <PesoInput
                         partition={p}
                         field="peso_inicial"
                         onAutoAdjust={(field, value) =>
                           hooks.ajustarPeso(p.id, field, value)
                         }
-                        disabled={saving || eliminada || p.es_bloqueado}
+                        disabled={eliminada || p.es_bloqueado}
                       />
+                    </div>
+                  </Table.Td>
+                  <Table.Td ta="center" style={{ padding: "4px 8px" }}>
+                    <Group gap={4} align="center" justify="center" wrap="nowrap">
+                      <Text className="text-[10px] font-mono text-zinc-300">
+                        {formatDateTime(p.fecha_hora_peso_inicial)}
+                      </Text>
                       <Tooltip label="Cambiar fecha" withArrow>
                         <ActionIcon
                           variant="subtle"
                           color="gray"
-                          size="sm"
+                          size="xs"
                           onClick={() =>
                             setFechaModal({
                               open: true,
@@ -286,31 +258,33 @@ export const ParticionesExpandible = forwardRef<
                           }
                           disabled={eliminada || p.es_bloqueado}
                         >
-                          <IconClock size={14} />
+                          <IconClock size={13} />
                         </ActionIcon>
                       </Tooltip>
                     </Group>
                   </Table.Td>
-                  <Table.Td>
-                    <Text size="xs" className="font-mono">
-                      {formatDateTime(p.fecha_hora_peso_inicial)}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Group gap={4} align="center" wrap="nowrap">
+                  <Table.Td ta="center" style={{ padding: "4px 8px" }}>
+                    <div className="flex justify-center">
                       <PesoInput
                         partition={p}
                         field="peso_final"
                         onAutoAdjust={(field, value) =>
                           hooks.ajustarPeso(p.id, field, value)
                         }
-                        disabled={saving || eliminada || p.es_bloqueado}
+                        disabled={eliminada || p.es_bloqueado}
                       />
+                    </div>
+                  </Table.Td>
+                  <Table.Td ta="center" style={{ padding: "4px 8px" }}>
+                    <Group gap={4} align="center" justify="center" wrap="nowrap">
+                      <Text className="text-[10px] font-mono text-zinc-300">
+                        {formatDateTime(p.fecha_hora_peso_final)}
+                      </Text>
                       <Tooltip label="Cambiar fecha" withArrow>
                         <ActionIcon
                           variant="subtle"
                           color="gray"
-                          size="sm"
+                          size="xs"
                           onClick={() =>
                             setFechaModal({
                               open: true,
@@ -321,65 +295,40 @@ export const ParticionesExpandible = forwardRef<
                           }
                           disabled={eliminada || p.es_bloqueado}
                         >
-                          <IconClock size={14} />
+                          <IconClock size={13} />
                         </ActionIcon>
                       </Tooltip>
                     </Group>
                   </Table.Td>
-                  <Table.Td>
-                    <Text size="xs" className="font-mono">
-                      {formatDateTime(p.fecha_hora_peso_final)}
-                    </Text>
+                  <Table.Td ta="center" style={{ padding: "4px 8px" }}>
+                    <div className="flex justify-center">
+                      <PesoInput
+                        partition={p}
+                        field="peso_neto"
+                        onAutoAdjust={(field, value) =>
+                          hooks.ajustarPeso(p.id, field, value)
+                        }
+                        disabled={eliminada || p.es_bloqueado}
+                        max={lote.lote_peso_neto}
+                      />
+                    </div>
                   </Table.Td>
-                  <Table.Td ta="right">
-                    <PesoInput
-                      partition={p}
-                      field="peso_neto"
-                      onAutoAdjust={(field, value) =>
-                        hooks.ajustarPeso(p.id, field, value)
-                      }
-                      disabled={saving || eliminada || p.es_bloqueado}
-                    />
-                  </Table.Td>
-                  <Table.Td ta="right">
-                    <Group gap="xs" justify="flex-end" wrap="nowrap">
-                      <Tooltip label="Ver / Imprimir Ticket de Balanza">
-                        <ActionIcon
-                          color="teal"
-                          variant="subtle"
-                          onClick={() => void handlePrintTicketParticion(p)}
-                          loading={printingId === p.id}
-                          disabled={eliminada}
-                          aria-label="Ver Ticket"
-                        >
-                          <IconPrinter size={16} />
-                        </ActionIcon>
-                      </Tooltip>
-                      <Tooltip label="Guardar pesos">
-                        <ActionIcon
-                          color="indigo"
-                          variant="subtle"
-                          onClick={() => void hooks.guardar(p.id)}
-                          loading={saving}
-                          disabled={!hasChanges || eliminada}
-                          aria-label="Guardar"
-                        >
-                          <IconDeviceFloppy size={16} />
-                        </ActionIcon>
-                      </Tooltip>
+                  <Table.Td ta="center" style={{ padding: "4px 8px" }}>
+                    <Group gap={4} justify="center" wrap="nowrap">
                       <Tooltip label={p.es_bloqueado ? "Desbloquear" : "Bloquear"}>
                         <ActionIcon
                           color={p.es_bloqueado ? "yellow" : "gray"}
                           variant="subtle"
+                          size="xs"
                           onClick={() => void hooks.toggleBloqueo(p)}
                           loading={saving}
                           disabled={eliminada}
                           aria-label="Bloquear"
                         >
                           {p.es_bloqueado ? (
-                            <IconLock size={16} />
+                            <IconLock size={14} />
                           ) : (
-                            <IconLockOpen size={16} />
+                            <IconLockOpen size={14} />
                           )}
                         </ActionIcon>
                       </Tooltip>
@@ -387,11 +336,12 @@ export const ParticionesExpandible = forwardRef<
                         <ActionIcon
                           color="red"
                           variant="subtle"
+                          size="xs"
                           onClick={() => setConfirmEliminar(p)}
                           disabled={eliminada}
                           aria-label="Eliminar"
                         >
-                          <IconTrash size={16} />
+                          <IconTrash size={14} />
                         </ActionIcon>
                       </Tooltip>
                     </Group>
@@ -414,47 +364,53 @@ export const ParticionesExpandible = forwardRef<
         />
       )}
 
-      {capacidadModal.open && capacidadModal.idVehiculo != null && (
-        <CapacidadVehiculoModal
-          opened={capacidadModal.open}
-          onClose={() =>
-            setCapacidadModal({
-              open: false,
-              idVehiculo: null,
-              capacidad: null,
-              placa: null,
-            })
-          }
-          idVehiculo={capacidadModal.idVehiculo}
-          placa={capacidadModal.placa}
-          capacidadInicial={capacidadModal.capacidad}
-          onUpdated={(nueva) => {
-            if (capacidadModal.idVehiculo != null) {
-              hooks.actualizarCapacidadLocal(
-                capacidadModal.idVehiculo,
-                nueva
-              );
-            }
-          }}
-        />
-      )}
+      {fechaModal && (() => {
+        const particionEnModal = hooks.particiones.find(
+          (p) => p.id === fechaModal.idParticion
+        );
 
-      {fechaModal && (
-        <FechaHoraModal
-          opened={fechaModal.open}
-          onClose={() => setFechaModal(null)}
-          value={fechaModal.value}
-          title={
-            fechaModal.campo === "fecha_hora_peso_inicial"
-              ? "Fecha/hora peso inicial"
-              : "Fecha/hora peso final"
-          }
-          onConfirm={(iso) => {
-            void hooks.cambiarFecha(fechaModal.idParticion, fechaModal.campo, iso);
-            setFechaModal(null);
-          }}
-        />
-      )}
+        const fechaIngresoBase = particionEnModal?.fecha_hora_ingreso
+          ? new Date(particionEnModal.fecha_hora_ingreso)
+          : new Date();
+
+        const defaultFechaInicial = new Date(
+          fechaIngresoBase.getTime() + 30 * 60 * 1000
+        );
+
+        const fechaInicialBase = particionEnModal?.fecha_hora_peso_inicial
+          ? new Date(particionEnModal.fecha_hora_peso_inicial)
+          : defaultFechaInicial;
+
+        const defaultFechaFinal = new Date(
+          fechaInicialBase.getTime() + 30 * 60 * 1000
+        );
+
+        const defaultValue =
+          fechaModal.campo === "fecha_hora_peso_inicial"
+            ? defaultFechaInicial
+            : defaultFechaFinal;
+        return (
+          <FechaHoraModal
+            opened={fechaModal.open}
+            onClose={() => setFechaModal(null)}
+            value={fechaModal.value}
+            defaultValue={fechaModal.value ? null : defaultValue}
+            title={
+              fechaModal.campo === "fecha_hora_peso_inicial"
+                ? "Fecha/hora peso inicial"
+                : "Fecha/hora peso final"
+            }
+            onConfirm={(iso) => {
+              void hooks.cambiarFecha(
+                fechaModal.idParticion,
+                fechaModal.campo,
+                iso
+              );
+              setFechaModal(null);
+            }}
+          />
+        );
+      })()}
 
       {confirmEliminar && (
         <ModalEstandar
@@ -504,6 +460,7 @@ interface PesoInputProps {
   field: PesoField;
   onAutoAdjust: (field: PesoField, value: number) => void;
   disabled?: boolean;
+  max?: number;
 }
 
 const PesoInput = ({
@@ -511,6 +468,7 @@ const PesoInput = ({
   field,
   onAutoAdjust,
   disabled,
+  max,
 }: PesoInputProps) => {
   const propVal = partition[field] ?? 0;
   const [localVal, setLocalVal] = useState(propVal);
@@ -530,8 +488,11 @@ const PesoInput = ({
     <NumberInput
       value={currentValue}
       onChange={(v) => {
-        const parsed = typeof v === "number" ? v : parseFloat(String(v));
+        let parsed = typeof v === "number" ? v : parseFloat(String(v));
         if (!Number.isFinite(parsed)) return;
+        if (max != null && parsed > max) {
+          parsed = max;
+        }
         setLocalVal(parsed);
         onAutoAdjust(field, parsed);
       }}
@@ -542,12 +503,17 @@ const PesoInput = ({
       onBlur={() => setIsFocused(false)}
       disabled={disabled}
       min={0}
+      max={max}
+      clampBehavior="strict"
       decimalScale={2}
       fixedDecimalScale
       hideControls
       radius="lg"
       size="xs"
-      style={{ width: 110 }}
+      style={{ width: 95 }}
+      classNames={{
+        input: "text-[11px] h-7 px-2 font-mono text-center bg-zinc-900/60 border-zinc-800",
+      }}
     />
   );
 };

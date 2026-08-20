@@ -204,18 +204,15 @@ export interface GuiaRemitentePdfProps {
 }
 
 export const GuiaRemitentePdf = ({ guia, qrCodeUrl }: GuiaRemitentePdfProps) => {
-  const fullGuiaNumber =
-    guia.serie_guia_remitente || guia.numero_guia_remitente
-      ? `${guia.serie_guia_remitente ?? "—"}-${guia.numero_guia_remitente ?? "—"}`
-      : "—";
+  const fullGuiaNumber = guia.guia_remitente ?? "—";
 
   const rucProveedor = guia.proveedor_documento || "—";
   const razonSocialProveedor = (guia.proveedor_razon_social || "PROVEEDOR MINERO").toUpperCase();
 
-  // Calcular el total del peso neto (Cantidad) sumando los lotes asociados
+  // Calcular el total del peso neto (Cantidad) sumando los lotes/particiones asociadas
   const lotesList = guia.lotes || [];
   const totalPesoNeto = lotesList.reduce((acc, curr) => {
-    const peso = curr.peso_neto !== null ? curr.peso_neto : (curr.peso_bruto ?? 0) - (curr.tara ?? 0);
+    const peso = curr.peso_neto !== null ? curr.peso_neto : 0;
     return acc + peso;
   }, 0);
 
@@ -322,10 +319,11 @@ export const GuiaRemitentePdf = ({ guia, qrCodeUrl }: GuiaRemitentePdfProps) => 
           {/* Body */}
           {lotesList.length > 0 ? (
             lotesList.map((l, index) => {
-              const pesoLote = l.peso_neto !== null ? l.peso_neto : (l.peso_bruto ?? 0) - (l.tara ?? 0);
-              const desc = l.tipo_producto 
-                ? `${l.tipo_producto.toUpperCase()} - LOTE: ${l.lote_correlativo || ""}`
-                : `MINERAL AURÍFERO EN BRUTO SIN PROCESAR - LOTE: ${l.lote_correlativo || ""}`;
+              const pesoLote = l.peso_neto !== null ? l.peso_neto : 0;
+              const prefijo = l.tipo_item === "PARTICION" ? "PARTICIÓN" : "LOTE";
+              const desc = l.tipo_producto
+                ? `${l.tipo_producto.toUpperCase()} - ${prefijo}: ${l.correlativo || ""}`
+                : `MINERAL AURÍFERO EN BRUTO SIN PROCESAR - ${prefijo}: ${l.correlativo || ""}`;
 
               return (
                 <View key={l.id || index} style={styles.tableRow}>

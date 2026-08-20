@@ -10,6 +10,7 @@ interface Props {
   onConfirm: (iso: string | null) => void;
   title?: string;
   label?: string;
+  defaultValue?: Date | null;
 }
 
 const toDate = (iso: string | null | undefined): Date | null => {
@@ -25,14 +26,17 @@ export const FechaHoraModal = ({
   onConfirm,
   title = "Seleccionar fecha y hora",
   label = "Fecha y hora",
+  defaultValue = null,
 }: Props) => {
-  const [local, setLocal] = useState<Date | null>(toDate(value));
+  const [local, setLocal] = useState<Date | null>(
+    toDate(value) ?? defaultValue
+  );
 
   useEffect(() => {
     if (opened) {
-      setLocal(toDate(value));
+      setLocal(toDate(value) ?? defaultValue);
     }
-  }, [opened, value]);
+  }, [opened, value, defaultValue]);
 
   const handleConfirm = () => {
     if (local) {

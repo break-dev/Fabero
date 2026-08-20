@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import {
   TextInput,
-  Textarea,
   Button,
   Stack,
   Text,
@@ -66,11 +65,9 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
   const [contacto, setContacto] = useState<string>(lote.lote_numero_contacto || "");
   const [producto, setProducto] = useState<string>(lote.lote_tipo_producto || TipoMineral.Aurifero);
   const [material, setMaterial] = useState<string>(lote.lote_tipo_mineral || "Mixto");
-  const [observacionInicial, setObservacionInicial] = useState<string>(lote.observacion_peso_inicial || "");
   const [pesoInicial, setPesoInicial] = useState<string>(lote.peso_inicial ? String(lote.peso_inicial) : "");
   
   const [pesoFinal, setPesoFinal] = useState<string>(lote.peso_final ? String(lote.peso_final) : "");
-  const [observacionFinal, setObservacionFinal] = useState<string>(lote.observacion_peso_final || "");
 
   // Transporte
   const [idVehiculo, setIdVehiculo] = useState<string | null>(lote.id_vehiculo ? String(lote.id_vehiculo) : null);
@@ -124,10 +121,8 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
       setContacto(lote.lote_numero_contacto || "");
       setProducto(lote.lote_tipo_producto || TipoMineral.Aurifero);
       setMaterial(lote.lote_tipo_mineral || "Mixto");
-      setObservacionInicial(lote.observacion_peso_inicial || "");
       setPesoInicial(lote.peso_inicial ? String(lote.peso_inicial) : "");
       setPesoFinal(lote.peso_final ? String(lote.peso_final) : "");
-      setObservacionFinal(lote.observacion_peso_final || "");
       setIdVehiculo(lote.id_vehiculo ? String(lote.id_vehiculo) : null);
       setIdEmpresaTransporte(lote.id_empresa_transporte ? String(lote.id_empresa_transporte) : null);
       setIdConductor(lote.id_conductor ? String(lote.id_conductor) : null);
@@ -174,9 +169,7 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
     try {
       const dto: DTO_PesoFinal = {
         peso_inicial: pesoBruto,
-        observacion_peso_inicial: observacionInicial,
         peso_final: pesoFinal ? Number(pesoFinal) : 0,
-        observacion_peso_final: observacionFinal,
         evidencias: evidencias,
         evidencias_existentes: evidenciasExistentes,
         id_proveedor_minero: idProveedor ? Number(idProveedor) : null,
@@ -366,29 +359,6 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
                   </div>
                 </Tooltip>
               </Input.Wrapper>
-            </Grid.Col>
-
-            <Grid.Col span={12}>
-              <Textarea
-                label="Observación Peso Inicial:"
-                placeholder="Observaciones de ingreso..."
-                value={observacionInicial}
-                onChange={(e) => setObservacionInicial(e.currentTarget.value)}
-                classNames={fieldClasses}
-                radius="lg"
-                minRows={1}
-              />
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <Textarea
-                label="Observación Peso Final:"
-                placeholder="Observaciones de salida..."
-                value={observacionFinal}
-                onChange={(e) => setObservacionFinal(e.currentTarget.value)}
-                classNames={fieldClasses}
-                radius="lg"
-                minRows={1}
-              />
             </Grid.Col>
           </Grid>
         </Paper>

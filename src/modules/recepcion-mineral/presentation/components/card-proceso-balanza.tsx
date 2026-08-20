@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Grid,
   Paper,
@@ -18,13 +18,19 @@ import {
   IconCalendarTime,
   IconUserPlus,
   IconScale,
+  IconTruck,
+  IconBuildingFactory,
+  IconCar,
 } from "@tabler/icons-react";
 import { useNotify } from "../../../../hooks/useNotify";
-import { AuxService } from "../../../../service/auxiliar.service";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
 import { RegistroConductor } from "../../../../presentation/utils/registro-conductor";
+import { RegistroVehiculoSimple } from "../../../../presentation/utils/registro-vehiculo-simple";
+import { RegistroTipoVehiculoSimple } from "../../../../presentation/utils/registro-tipo-vehiculo-simple";
+import { RegistroEmpresaTransporte } from "../../../../presentation/utils/registro-empresa-transporte";
 import type { RES_EmpresaTransporte } from "../../../../service/responses/empresa-transporte";
 import type { RES_TipoVehiculo } from "../../../../service/responses/tipo-vehiculo";
+import type { RES_Vehiculo } from "../../../../service/responses/vehiculo";
 import type { RES_Conductor } from "../../../../service/responses/conductor";
 import type {
   RES_LoteMineral,
@@ -35,6 +41,7 @@ interface CardProcesoBalanzaProps {
   ru: RecepcionMineralResponse;
   empresas: RES_EmpresaTransporte[];
   tiposVehiculo: RES_TipoVehiculo[];
+  vehiculos: RES_Vehiculo[];
   conductores: RES_Conductor[];
   setSelectedRecepcionIdForLote: (id: number) => void;
   setCondicionModalOpen: (val: boolean) => void;
@@ -59,6 +66,7 @@ export const CardProcesoBalanza = ({
   ru,
   empresas,
   tiposVehiculo,
+  vehiculos,
   conductores,
   setSelectedRecepcionIdForLote,
   setCondicionModalOpen,
@@ -90,7 +98,9 @@ export const CardProcesoBalanza = ({
 
   // Los inputs siempre son editables; el guardado es automático al cambiar select (onChange) o al perder foco (onBlur).
   const [condIng, setCondIng] = useState(ru.tipo_ingreso || "");
-  const [segPlaca, setSegPlaca] = useState(formatPlacaInput(ru.vehiculo_placa || ""));
+  const [selectedPlaca, setSelectedPlaca] = useState<string>(
+    formatPlacaInput(ru.vehiculo_placa || ""),
+  );
   const [segPlaca2, setSegPlaca2] = useState(formatPlacaInput(ru.segunda_placa || ""));
   const [idEmp, setIdEmp] = useState<string>(
     ru.id_empresa_transporte ? String(ru.id_empresa_transporte) : "",
@@ -103,7 +113,60 @@ export const CardProcesoBalanza = ({
   );
 
   const [openNewConductorModal, setOpenNewConductorModal] = useState(false);
-  const [conductoresLocal, setConductoresLocal] = useState<RES_Conductor[]>(conductores);
+  const [openNewVehiculoModal, setOpenNewVehiculoModal] = useState(false);
+  const [openNewTipoVehiculoModal, setOpenNewTipoVehiculoModal] = useState(false);
+  const [openNewEmpresaTransporteModal, setOpenNewEmpresaTransporteModal] = useState(false);
+
+  // Listas de "recién agregados" para que aparezcan en el Select sin esperar un re-fetch del padre.
+  const [conductoresAdded, setConductoresAdded] = useState<RES_Conductor[]>([]);
+  const [vehiculosAdded, setVehiculosAdded] = useState<RES_Vehiculo[]>([]);
+  const [empresasAdded, setEmpresasAdded] = useState<RES_EmpresaTransporte[]>([]);
+  const [tiposVehiculoAdded, setTiposVehiculoAdded] = useState<RES_TipoVehiculo[]>([]);
+
+  // Fusionar prop (catálogo del padre) + recién agregados en este card, deduplicando por id.
+  const empresasData = useMemo(() => {
+    const map = new Map<number, RES_EmpresaTransporte>();
+    for (const e of empresas) {
+      if (typeof e.id_empresa_transporte === "number") map.set(e.id_empresa_transporte, e);
+    }
+    for (const e of empresasAdded) {
+      map.set(e.id_empresa_transporte, e);
+    }
+    return Array.from(map.values());
+  }, [empresas, empresasAdded]);
+
+  const tiposVehiculoData = useMemo(() => {
+    const map = new Map<number, RES_TipoVehiculo>();
+    for (const t of tiposVehiculo) {
+      if (typeof t.id_tipo_vehiculo === "number") map.set(t.id_tipo_vehiculo, t);
+    }
+    for (const t of tiposVehiculoAdded) {
+      map.set(t.id_tipo_vehiculo, t);
+    }
+    return Array.from(map.values());
+  }, [tiposVehiculo, tiposVehiculoAdded]);
+
+  const vehiculosData = useMemo(() => {
+    const map = new Map<number, RES_Vehiculo>();
+    for (const v of vehiculos) {
+      if (typeof v.id_vehiculo === "number") map.set(v.id_vehiculo, v);
+    }
+    for (const v of vehiculosAdded) {
+      map.set(v.id_vehiculo, v);
+    }
+    return Array.from(map.values());
+  }, [vehiculos, vehiculosAdded]);
+
+  const conductoresData = useMemo(() => {
+    const map = new Map<number, RES_Conductor>();
+    for (const c of conductores) {
+      if (typeof c.id_conductor === "number") map.set(c.id_conductor, c);
+    }
+    for (const c of conductoresAdded) {
+      map.set(c.id_conductor, c);
+    }
+    return Array.from(map.values());
+  }, [conductores, conductoresAdded]);
 
   const handleSaveField = async (field: string, value: unknown) => {
     try {
@@ -115,16 +178,55 @@ export const CardProcesoBalanza = ({
   };
 
   const handleCreatedConductor = (c: RES_Conductor) => {
-    setConductoresLocal((prev) => [c, ...prev]);
+    setConductoresAdded((prev) => {
+      const sinDuplicado = prev.filter((x) => x.id_conductor !== c.id_conductor);
+      return [c, ...sinDuplicado];
+    });
     setIdCond(String(c.id_conductor));
     handleSaveField("conductor", c.id_conductor);
     setOpenNewConductorModal(false);
   };
 
-  const refreshConductores = async () => {
-    const res = await AuxService.get_conductores();
-    setConductoresLocal(res);
+  const handleCreatedVehiculo = (v: RES_Vehiculo) => {
+    setVehiculosAdded((prev) => {
+      const sinDuplicado = prev.filter((x) => x.id_vehiculo !== v.id_vehiculo);
+      return [v, ...sinDuplicado];
+    });
+    const placa = v.placa || "";
+    setSelectedPlaca(placa);
+    handleSaveField("placa", placa);
+    setOpenNewVehiculoModal(false);
   };
+
+  const handleCreatedTipoVehiculo = (t: RES_TipoVehiculo) => {
+    setTiposVehiculoAdded((prev) => {
+      const sinDuplicado = prev.filter((x) => x.id_tipo_vehiculo !== t.id_tipo_vehiculo);
+      return [t, ...sinDuplicado];
+    });
+    setIdTip(String(t.id_tipo_vehiculo));
+    handleSaveField("tipo_vehiculo", t.id_tipo_vehiculo);
+    setOpenNewTipoVehiculoModal(false);
+  };
+
+  const handleCreatedEmpresaTransporte = (e: RES_EmpresaTransporte) => {
+    setEmpresasAdded((prev) => {
+      const sinDuplicado = prev.filter((x) => x.id_empresa_transporte !== e.id_empresa_transporte);
+      return [e, ...sinDuplicado];
+    });
+    setIdEmp(String(e.id_empresa_transporte));
+    handleSaveField("empresa_transporte", e.id_empresa_transporte);
+    setOpenNewEmpresaTransporteModal(false);
+  };
+
+  const handleVehiculoChange = (val: string | null) => {
+    setSelectedPlaca(val || "");
+    if (val) {
+      handleSaveField("placa", val);
+    }
+  };
+
+  const idEmpresaTransporteActual = idEmp ? Number(idEmp) : null;
+  const idTipoVehiculoActual = idTip ? Number(idTip) : null;
 
   const fieldClasses = {
     input:
@@ -218,67 +320,134 @@ export const CardProcesoBalanza = ({
                 />
               </Grid.Col>
 
-              {/* Placa 1 */}
+              {/* Vehículo (Placa 1) */}
               <Grid.Col span={{ base: 12, sm: 6 }}>
-                <TextInput
-                  label="Placa 1"
-                  placeholder="ABC-123"
-                  value={segPlaca}
-                  onChange={(e) => setSegPlaca(formatPlacaInput(e.target.value))}
-                  onBlur={() => {
-                    if (segPlaca !== (ru.vehiculo_placa ?? "")) {
-                      handleSaveField("placa", segPlaca);
+                <div className="flex items-end gap-1">
+                  <Select
+                    label="Vehículo"
+                    placeholder={
+                      vehiculosData.length === 0 ? "Cargando..." : "Seleccione placa"
                     }
-                  }}
-                  size="xs"
-                  maxLength={7}
-                  style={{ maxWidth: 180 }}
-                  classNames={fieldClasses}
-                />
+                    searchable
+                    data={vehiculosData
+                      .filter((v): v is typeof v & { placa: string } =>
+                        typeof v.placa === "string" && v.placa.length > 0,
+                      )
+                      .map((v) => ({
+                        value: v.placa,
+                        label: v.placa,
+                      }))}
+                    value={selectedPlaca || null}
+                    onChange={handleVehiculoChange}
+                    nothingFoundMessage="Sin vehículos registrados"
+                    size="xs"
+                    style={{ maxWidth: 180 }}
+                    classNames={selectInputClasses}
+                    comboboxProps={{ withinPortal: true }}
+                    className="flex-1"
+                  />
+                  <Tooltip label="Registrar Vehículo" withArrow>
+                    <ActionIcon
+                      variant="filled"
+                      color="indigo"
+                      radius="md"
+                      size="sm"
+                      className="mb-0.5 bg-indigo-600 hover:bg-indigo-700"
+                      onClick={() => setOpenNewVehiculoModal(true)}
+                    >
+                      <IconTruck size={12} />
+                    </ActionIcon>
+                  </Tooltip>
+                </div>
               </Grid.Col>
 
               {/* Empresa Transporte */}
               <Grid.Col span={{ base: 12, sm: 6 }}>
-                <Select
-                  label="Empresa Transporte"
-                  placeholder={empresas.length === 0 ? "Cargando..." : "Seleccione"}
-                  searchable
-                  data={empresas.map((e) => ({
-                    value: String(e.id_empresa_transporte),
-                    label: e.razon_social,
-                  }))}
-                  value={idEmp || null}
-                  onChange={(val) => {
-                    setIdEmp(val || "");
-                    if (val) handleSaveField("empresa_transporte", Number(val));
-                  }}
-                  size="xs"
-                  style={{ maxWidth: 180 }}
-                  classNames={selectInputClasses}
-                  comboboxProps={{ withinPortal: true }}
-                />
+                <div className="flex items-end gap-1">
+                  <Select
+                    label="Empresa Transporte"
+                    placeholder={
+                      empresasData.length === 0 ? "Cargando..." : "Seleccione"
+                    }
+                    searchable
+                    data={empresasData
+                      .filter(
+                        (e) =>
+                          typeof e.id_empresa_transporte === "number" &&
+                          e.razon_social,
+                      )
+                      .map((e) => ({
+                        value: String(e.id_empresa_transporte),
+                        label: e.razon_social,
+                      }))}
+                    value={idEmp || null}
+                    onChange={(val) => {
+                      setIdEmp(val || "");
+                      if (val) handleSaveField("empresa_transporte", Number(val));
+                    }}
+                    size="xs"
+                    style={{ maxWidth: 180 }}
+                    classNames={selectInputClasses}
+                    comboboxProps={{ withinPortal: true }}
+                    className="flex-1"
+                  />
+                  <Tooltip label="Registrar Empresa de Transporte" withArrow>
+                    <ActionIcon
+                      variant="filled"
+                      color="indigo"
+                      radius="md"
+                      size="sm"
+                      className="mb-0.5 bg-indigo-600 hover:bg-indigo-700"
+                      onClick={() => setOpenNewEmpresaTransporteModal(true)}
+                    >
+                      <IconBuildingFactory size={12} />
+                    </ActionIcon>
+                  </Tooltip>
+                </div>
               </Grid.Col>
 
               {/* Tipo Vehículo */}
               <Grid.Col span={{ base: 12, sm: 6 }}>
-                <Select
-                  label="Tipo Vehículo"
-                  placeholder={tiposVehiculo.length === 0 ? "Cargando..." : "Seleccione"}
-                  searchable
-                  data={tiposVehiculo.map((t) => ({
-                    value: String(t.id_tipo_vehiculo),
-                    label: t.nombre,
-                  }))}
-                  value={idTip || null}
-                  onChange={(val) => {
-                    setIdTip(val || "");
-                    if (val) handleSaveField("tipo_vehiculo", Number(val));
-                  }}
-                  size="xs"
-                  style={{ maxWidth: 180 }}
-                  classNames={selectInputClasses}
-                  comboboxProps={{ withinPortal: true }}
-                />
+                <div className="flex items-end gap-1">
+                  <Select
+                    label="Tipo Vehículo"
+                    placeholder={
+                      tiposVehiculoData.length === 0 ? "Cargando..." : "Seleccione"
+                    }
+                    searchable
+                    data={tiposVehiculoData
+                      .filter(
+                        (t): t is RES_TipoVehiculo & { id_tipo_vehiculo: number } =>
+                          typeof t.id_tipo_vehiculo === "number",
+                      )
+                      .map((t) => ({
+                        value: String(t.id_tipo_vehiculo),
+                        label: t.nombre,
+                      }))}
+                    value={idTip || null}
+                    onChange={(val) => {
+                      setIdTip(val || "");
+                      if (val) handleSaveField("tipo_vehiculo", Number(val));
+                    }}
+                    size="xs"
+                    style={{ maxWidth: 180 }}
+                    classNames={selectInputClasses}
+                    comboboxProps={{ withinPortal: true }}
+                    className="flex-1"
+                  />
+                  <Tooltip label="Registrar Tipo de Vehículo" withArrow>
+                    <ActionIcon
+                      variant="filled"
+                      color="indigo"
+                      radius="md"
+                      size="sm"
+                      className="mb-0.5 bg-indigo-600 hover:bg-indigo-700"
+                      onClick={() => setOpenNewTipoVehiculoModal(true)}
+                    >
+                      <IconCar size={12} />
+                    </ActionIcon>
+                  </Tooltip>
+                </div>
               </Grid.Col>
 
               {/* Placa Acople */}
@@ -305,12 +474,17 @@ export const CardProcesoBalanza = ({
                 <div className="flex items-end gap-1">
                   <Select
                     label="Conductor"
-                    placeholder={conductoresLocal.length === 0 ? "Cargando..." : "Seleccione"}
+                    placeholder={conductoresData.length === 0 ? "Cargando..." : "Seleccione"}
                     searchable
-                    data={conductoresLocal.map((c) => ({
-                      value: String(c.id_conductor),
-                      label: `${c.nombre_completo} (${c.dni})`,
-                    }))}
+                    data={conductoresData
+                      .filter(
+                        (c): c is RES_Conductor & { id_conductor: number } =>
+                          typeof c.id_conductor === "number",
+                      )
+                      .map((c) => ({
+                        value: String(c.id_conductor),
+                        label: `${c.nombre_completo} (${c.dni})`,
+                      }))}
                     value={idCond || null}
 onChange={(val) => {
                     setIdCond(val || "");
@@ -497,9 +671,59 @@ onChange={(val) => {
       >
         <RegistroConductor
           onCancel={() => setOpenNewConductorModal(false)}
-          onSuccess={async (c) => {
+          onSuccess={(c) => {
             handleCreatedConductor(c);
-            await refreshConductores();
+          }}
+        />
+      </ModalEstandar>
+
+      {/* Modal inline para crear nuevo vehículo */}
+      <ModalEstandar
+        opened={openNewVehiculoModal}
+        close={() => setOpenNewVehiculoModal(false)}
+        title="Registrar Nuevo Vehículo"
+        size="sm"
+      >
+        <RegistroVehiculoSimple
+          idEmpresaTransporte={idEmpresaTransporteActual}
+          idTipoVehiculo={idTipoVehiculoActual}
+          onCancel={() => setOpenNewVehiculoModal(false)}
+          onSuccess={(v) => {
+            handleCreatedVehiculo(v);
+          }}
+        />
+      </ModalEstandar>
+
+      {/* Modal inline para crear nuevo tipo de vehículo */}
+      <ModalEstandar
+        opened={openNewTipoVehiculoModal}
+        close={() => setOpenNewTipoVehiculoModal(false)}
+        title="Registrar Nuevo Tipo de Vehículo"
+        size="sm"
+      >
+        <RegistroTipoVehiculoSimple
+          onCancel={() => setOpenNewTipoVehiculoModal(false)}
+          onSuccess={handleCreatedTipoVehiculo}
+        />
+      </ModalEstandar>
+
+      {/* Modal inline para crear nueva empresa de transporte */}
+      <ModalEstandar
+        opened={openNewEmpresaTransporteModal}
+        close={() => setOpenNewEmpresaTransporteModal(false)}
+        title="Registrar Nueva Empresa de Transporte"
+        size="lg"
+      >
+        <RegistroEmpresaTransporte
+          onCancel={() => setOpenNewEmpresaTransporteModal(false)}
+          onSuccess={(nueva) => {
+            const resEmp: RES_EmpresaTransporte = {
+              id_empresa_transporte: nueva.id,
+              ruc: nueva.ruc,
+              razon_social: nueva.razon_social,
+              estado: nueva.estado,
+            };
+            handleCreatedEmpresaTransporte(resEmp);
           }}
         />
       </ModalEstandar>
