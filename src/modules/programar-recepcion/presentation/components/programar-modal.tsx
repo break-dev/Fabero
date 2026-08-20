@@ -6,7 +6,6 @@ import {
   Button,
   Loader,
   Grid,
-  Text,
   ActionIcon,
   Tooltip,
 } from "@mantine/core";
@@ -16,9 +15,8 @@ import {
   IconBuildingFactory,
   IconTruck,
   IconUser,
-  IconFileText,
-  IconCalendarTime,
   IconArrowsUpDown,
+  IconCalendarTime,
   IconPlus,
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
@@ -27,14 +25,14 @@ import { RegistroEmpresaTransporte } from "../../../../presentation/utils/regist
 import { RegistroVehiculoSimple } from "../../../../presentation/utils/registro-vehiculo-simple";
 import { ModalRegistroProveedor } from "../../../../presentation/utils/modal-registro-proveedor";
 import { formatLocalDate, parseLocalDate } from "../../../../presentation/utils/local-date";
-import { useProgramarRecepcion } from "../../hooks/useProgramarRecepcion";
-import type { RecepcionUnidadResponse } from "../../service/recepcion-unidades.responses";
+import { useProgramarForm } from "../../hooks/useProgramarForm";
+import type { ProgramacionDetail } from "../../service/programar-recepcion.responses";
 import { TipoIngreso } from "../../../../shared/enums/_generic/tipo-ingreso";
 
 interface Props {
   opened: boolean;
   onClose: () => void;
-  onSuccess: (nueva: RecepcionUnidadResponse) => void;
+  onSuccess: (nueva: ProgramacionDetail) => void;
 }
 
 const fieldClasses = {
@@ -53,7 +51,7 @@ export const ProgramarRecepcionModal = ({ opened, onClose, onSuccess }: Props) =
   const [openVehiculoModal, setOpenVehiculoModal] = useState(false);
   const [openProveedorModal, setOpenProveedorModal] = useState(false);
 
-  const ctrl = useProgramarRecepcion((nueva) => {
+  const ctrl = useProgramarForm((nueva) => {
     onSuccess(nueva);
     onClose();
   });
@@ -243,40 +241,31 @@ export const ProgramarRecepcionModal = ({ opened, onClose, onSuccess }: Props) =
                 size="sm"
               />
             </Grid.Col>
-          </Grid>
 
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 p-4 space-y-3">
-            <Group gap="xs">
-              <IconFileText className="w-4 h-4 text-indigo-400" />
-              <Text size="sm" fw={600} className="text-zinc-200">
-                Guías (opcional)
-              </Text>
-            </Group>
-            <Grid gutter="sm">
-              <Grid.Col span={{ base: 6, sm: 6 }}>
-                <TextInput
-                  label="Guía Remitente"
-                  placeholder="Ej. 001-123456"
-                  radius="xl"
-                  value={form.guia_remitente ?? ""}
-                  onChange={(e) => setField("guia_remitente", e.target.value.toUpperCase())}
-                  disabled={loading}
-                  classNames={fieldClasses}
-                />
-              </Grid.Col>
-              <Grid.Col span={{ base: 6, sm: 6 }}>
-                <TextInput
-                  label="Guía Transportista"
-                  placeholder="Ej. 001-123456"
-                  radius="xl"
-                  value={form.guia_transportista ?? ""}
-                  onChange={(e) => setField("guia_transportista", e.target.value.toUpperCase())}
-                  disabled={loading}
-                  classNames={fieldClasses}
-                />
-              </Grid.Col>
-            </Grid>
-          </div>
+            <Grid.Col span={{ base: 6, sm: 6 }}>
+              <TextInput
+                label="Guía Remitente"
+                placeholder="Ej. 001-123456"
+                radius="xl"
+                value={form.guia_remitente ?? ""}
+                onChange={(e) => setField("guia_remitente", e.target.value.toUpperCase())}
+                disabled={loading}
+                classNames={fieldClasses}
+              />
+            </Grid.Col>
+
+            <Grid.Col span={{ base: 6, sm: 6 }}>
+              <TextInput
+                label="Guía Transportista"
+                placeholder="Ej. 001-123456"
+                radius="xl"
+                value={form.guia_transportista ?? ""}
+                onChange={(e) => setField("guia_transportista", e.target.value.toUpperCase())}
+                disabled={loading}
+                classNames={fieldClasses}
+              />
+            </Grid.Col>
+          </Grid>
 
           <Group justify="flex-end" gap="md" mt="xl">
             <Button
@@ -303,7 +292,6 @@ export const ProgramarRecepcionModal = ({ opened, onClose, onSuccess }: Props) =
         </Stack>
       </ModalEstandar>
 
-      {/* Modal: Registro Rápido de Empresa de Transporte */}
       <ModalEstandar
         opened={openEmpresaModal}
         close={() => setOpenEmpresaModal(false)}
@@ -319,7 +307,6 @@ export const ProgramarRecepcionModal = ({ opened, onClose, onSuccess }: Props) =
         />
       </ModalEstandar>
 
-      {/* Modal: Registro Rápido de Vehículo */}
       <ModalEstandar
         opened={openVehiculoModal}
         close={() => setOpenVehiculoModal(false)}
@@ -337,7 +324,6 @@ export const ProgramarRecepcionModal = ({ opened, onClose, onSuccess }: Props) =
         />
       </ModalEstandar>
 
-      {/* Modal: Registro Rápido de Proveedor Minero */}
       <ModalRegistroProveedor
         opened={openProveedorModal}
         onClose={() => setOpenProveedorModal(false)}

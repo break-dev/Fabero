@@ -1,5 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { RecepcionUnidadesService } from "../service/recepcion-unidades.service";
+import {
+  ProgramarRecepcionService,
+} from "../../programar-recepcion/service/programar-recepcion.service";
 import { AuxService } from "../../../service/auxiliar.service";
 import type { ConfirmarVisitaPayload } from "../service/recepcion-unidades.requests";
 import type {
@@ -8,6 +11,7 @@ import type {
   VisitaDetalleResponse,
   VisitaVehiculoResponse,
 } from "../service/recepcion-unidades.responses";
+import type { ProgramacionDetail } from "../../programar-recepcion/service/programar-recepcion.responses";
 import type { RES_MotivoIngreso } from "../../../service/responses/auxiliar-visitas";
 import { useNotify } from "../../../hooks/useNotify";
 
@@ -477,7 +481,7 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
 
       if (programacion) {
         // MODO 1: Confirmar Programación existente
-        const updatedRecepcion = await RecepcionUnidadesService.confirmarProgramacion(programacion.id, {
+        const updated: ProgramacionDetail = await ProgramarRecepcionService.confirmarProgramacion(programacion.id, {
           id_empresa_transporte: idEmp ?? undefined,
           id_vehiculo: idVeh ?? undefined,
           id_tipo_vehiculo: idTip ?? undefined,
@@ -487,6 +491,46 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
           guia_remitente: gRemitente || undefined,
           guia_transportista: gTransportista || undefined,
         });
+
+        const updatedRecepcion: RecepcionUnidadResponse = {
+          ...programacion,
+          id_vehiculo: updated.id_vehiculo,
+          vehiculo_placa: updated.vehiculo_placa,
+          id_tipo_vehiculo: updated.id_tipo_vehiculo,
+          tipo_vehiculo_nombre: updated.tipo_vehiculo_nombre,
+          id_conductor: updated.id_conductor,
+          conductor_nombre_completo: updated.conductor_nombre_completo,
+          conductor_dni: updated.conductor_dni,
+          conductor_numero_licencia: updated.conductor_numero_licencia,
+          id_sucursal: updated.id_sucursal,
+          fecha_hora_inicio_pesaje: updated.fecha_hora_inicio_pesaje,
+          fecha_hora_final_pesaje: updated.fecha_hora_final_pesaje,
+          estado: updated.estado,
+          fecha_hora_ingreso: updated.fecha_hora_ingreso,
+          id_empleado_registro: updated.id_empleado_registro,
+          empleado_registro_nombre: updated.empleado_registro_nombre ?? "",
+          empresa_transporte_razon_social: updated.empresa_transporte_razon_social,
+          id_proveedor_minero: updated.id_proveedor_minero,
+          proveedor_razon_social: updated.proveedor_razon_social,
+          id_empleado_autoriza: updated.id_empleado_autoriza,
+          empleado_autoriza_nombre: updated.empleado_autoriza_nombre,
+          id_empleado_recepcion: updated.id_empleado_recepcion,
+          empleado_recepcion_nombre: updated.empleado_recepcion_nombre,
+          tipo_ingreso: updated.tipo_ingreso,
+          segunda_placa: updated.segunda_placa,
+          evidencias: [],
+          observacion: updated.observacion,
+          estado_salida: updated.estado_salida,
+          fecha_hora_salida: updated.fecha_hora_salida,
+          observacion_salida: updated.observacion_salida,
+          estado_pesaje: updated.estado_pesaje,
+          es_programacion: updated.es_programacion,
+          fecha_estimada_llegada: updated.fecha_estimada_llegada,
+          guia_remitente: updated.guia_remitente,
+          guia_transportista: updated.guia_transportista,
+          es_recepcion_ficticia: updated.es_recepcion_ficticia,
+          visita: updated.visita as RecepcionUnidadResponse["visita"],
+        };
 
         const visitantesValidos = visitantes
           .filter((v) => Boolean((v.nombre && v.nombre.trim()) || (v.dni && v.dni.trim()) || v.id_visitante))

@@ -1,16 +1,14 @@
 import { Stack, Button } from "@mantine/core";
 import { useTitlePage } from "../../../hooks/useTitlePage";
 import { useRecepciones } from "../hooks/useRecepciones";
-import { usePerfil } from "../../perfil/hooks/usePerfil";
 import { Filtros } from "./components/filtros";
 import { TablaRecepciones } from "./components/tabla-recepciones";
-import { ProgramarRecepcionModal } from "./components/programar-recepcion-modal";
 import { ConfirmarProgramacionModal } from "./components/confirmar-programacion-modal";
-import { useState, useEffect } from "react";
-import { IconPlus, IconX, IconCalendarTime } from "@tabler/icons-react";
+import { useEffect, useState } from "react";
+import { IconPlus, IconX } from "@tabler/icons-react";
 import {
-  RecepcionUnidadesService,
-} from "../service/recepcion-unidades.service";
+  ProgramarRecepcionService,
+} from "../../programar-recepcion/service/programar-recepcion.service";
 import type { RecepcionUnidadResponse } from "../service/recepcion-unidades.responses";
 
 export const RecepcionUnidadesPage = () => {
@@ -29,11 +27,7 @@ export const RecepcionUnidadesPage = () => {
     clearTextFilterAndSearch,
   } = useRecepciones();
 
-  const { perfil } = usePerfil();
-  const puedeProgramar = Boolean(perfil?.autoriza_ingreso_unidades);
-
   const [openRegistro, setOpenRegistro] = useState(false);
-  const [openProgramar, setOpenProgramar] = useState(false);
 
   const [programacionAConfirmar, setProgramacionAConfirmar] =
     useState<RecepcionUnidadResponse | null>(null);
@@ -45,10 +39,28 @@ export const RecepcionUnidadesPage = () => {
     const cargar = async () => {
       if (programacionAConfirmar) {
         try {
-          const full = await RecepcionUnidadesService.getProgramacion(
+          const full = await ProgramarRecepcionService.getProgramacion(
             programacionAConfirmar.id,
           );
-          if (!cancelado) setProgramacionConfirmadaFull(full);
+          const merged: RecepcionUnidadResponse = {
+            ...programacionAConfirmar,
+            id_vehiculo: full.id_vehiculo,
+            vehiculo_placa: full.vehiculo_placa,
+            id_tipo_vehiculo: full.id_tipo_vehiculo,
+            tipo_vehiculo_nombre: full.tipo_vehiculo_nombre,
+            id_conductor: full.id_conductor,
+            conductor_nombre_completo: full.conductor_nombre_completo,
+            conductor_dni: full.conductor_dni,
+            conductor_numero_licencia: full.conductor_numero_licencia,
+            id_sucursal: full.id_sucursal,
+            fecha_hora_inicio_pesaje: full.fecha_hora_inicio_pesaje,
+            fecha_hora_final_pesaje: full.fecha_hora_final_pesaje,
+            estado: full.estado,
+            fecha_hora_ingreso: full.fecha_hora_ingreso,
+            evidencias: [],
+            visita: full.visita as RecepcionUnidadResponse["visita"],
+          };
+          if (!cancelado) setProgramacionConfirmadaFull(merged);
         } catch {
           if (!cancelado) setProgramacionConfirmadaFull(programacionAConfirmar);
         }
@@ -97,19 +109,6 @@ export const RecepcionUnidadesPage = () => {
             </Button>
           )}
 
-          {puedeProgramar && (
-            <Button
-              radius="lg"
-              size="sm"
-              variant="default"
-              leftSection={<IconCalendarTime size={18} />}
-              onClick={() => setOpenProgramar(true)}
-              className="bg-zinc-800! text-zinc-200! border-zinc-700! hover:bg-zinc-700! shadow-md shrink-0 h-9.5 px-5 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
-            >
-              Programar Recepción
-            </Button>
-          )}
-
           <Button
             radius="lg"
             size="sm"
@@ -131,7 +130,6 @@ export const RecepcionUnidadesPage = () => {
         />
       </Stack>
 
-      {/* Modal para Registro Directo (No Programado) */}
       <ConfirmarProgramacionModal
         opened={openRegistro}
         programacion={null}
@@ -142,17 +140,6 @@ export const RecepcionUnidadesPage = () => {
         }}
       />
 
-      {/* Modal para Programar Recepción */}
-      <ProgramarRecepcionModal
-        opened={openProgramar}
-        onClose={() => setOpenProgramar(false)}
-        onSuccess={(nueva) => {
-          insertRecepcion(nueva);
-          setOpenProgramar(false);
-        }}
-      />
-
-      {/* Modal para Confirmar Programación Existente */}
       <ConfirmarProgramacionModal
         opened={!!programacionAConfirmar}
         programacion={programacionConfirmadaFull ?? programacionAConfirmar}
@@ -164,8 +151,6 @@ export const RecepcionUnidadesPage = () => {
           updateRecepcion(actualizada);
         }}
       />
-
-
     </div>
   );
 };

@@ -3,7 +3,6 @@ import type {
   ConfirmarVisitaPayload,
   CrearRecepcionRequest,
   CrearVisitaVehiculoRequest,
-  ProgramarRecepcionRequest,
   RecepcionFilters,
 } from "./recepcion-unidades.requests";
 import type {
@@ -115,54 +114,6 @@ export const RecepcionUnidadesService = {
       estado_salida: payload.estado_salida,
       observacion_salida: payload.observacion_salida,
     });
-    return data.data;
-  },
-
-  /**
-   * Listar programaciones (opcionalmente solo pendientes).
-   */
-  getProgramaciones: async (soloPendientes = true): Promise<RecepcionUnidadResponse[]> => {
-    const { data } = await api.get("/recepcion-unidades/programaciones/listado", {
-      params: { solo_pendientes: soloPendientes ? 1 : 0 },
-    });
-    return data.data;
-  },
-
-  /**
-   * Detalle completo de una programación + visita + vehículos + visitantes.
-   */
-  getProgramacion: async (id: number): Promise<RecepcionUnidadResponse> => {
-    const { data } = await api.get(`/recepcion-unidades/programaciones/${id}`);
-    return data.data;
-  },
-
-  /**
-   * Crear una nueva programación de recepción.
-   */
-  crearProgramacion: async (
-    payload: ProgramarRecepcionRequest,
-  ): Promise<RecepcionUnidadResponse> => {
-    const { data } = await api.post("/recepcion-unidades/programaciones", payload);
-    return data.data;
-  },
-
-  /**
-   * Confirmar una programación (la marca como 'En Planta').
-   */
-  confirmarProgramacion: async (
-    id: number,
-    payload?: {
-      id_vehiculo?: number;
-      id_tipo_vehiculo?: number;
-      id_sucursal?: number;
-      id_conductor?: number;
-      id_proveedor_minero?: number;
-      id_empresa_transporte?: number;
-      guia_remitente?: string;
-      guia_transportista?: string;
-    },
-  ): Promise<RecepcionUnidadResponse> => {
-    const { data } = await api.post(`/recepcion-unidades/programaciones/${id}/confirmar`, payload);
     return data.data;
   },
 

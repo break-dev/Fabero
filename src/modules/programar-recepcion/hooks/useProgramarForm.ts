@@ -1,8 +1,8 @@
 import { useState, useCallback } from "react";
-import { RecepcionUnidadesService } from "../service/recepcion-unidades.service";
+import { ProgramarRecepcionService } from "../service/programar-recepcion.service";
 import { AuxService } from "../../../service/auxiliar.service";
-import type { ProgramarRecepcionRequest } from "../service/recepcion-unidades.requests";
-import type { RecepcionUnidadResponse } from "../service/recepcion-unidades.responses";
+import type { CrearProgramacionRequest } from "../service/programar-recepcion.requests";
+import type { ProgramacionDetail } from "../service/programar-recepcion.responses";
 import type { RES_EmpresaTransporte } from "../../../service/responses/empresa-transporte";
 import type { RES_Vehiculo } from "../../../service/responses/vehiculo";
 import type { RES_Proveedor } from "../../../service/responses/proveedor";
@@ -13,7 +13,7 @@ import { useNotify } from "../../../hooks/useNotify";
 import { TipoIngreso } from "../../../shared/enums/_generic/tipo-ingreso";
 import { useUIStore } from "../../../stores/ui.store";
 
-const INITIAL_FORM: ProgramarRecepcionRequest = {
+const INITIAL_FORM: CrearProgramacionRequest = {
   id_empresa_transporte: 0,
   tipo_ingreso: TipoIngreso.RecepcionMineral,
   id_vehiculo: undefined,
@@ -27,11 +27,11 @@ const INITIAL_FORM: ProgramarRecepcionRequest = {
   observacion: "",
 };
 
-export const useProgramarRecepcion = (
-  onSuccess: (nueva: RecepcionUnidadResponse) => void,
+export const useProgramarForm = (
+  onSuccess: (nueva: ProgramacionDetail) => void,
 ) => {
   const { notifySuccess, notifyError } = useNotify();
-  const [form, setForm] = useState<ProgramarRecepcionRequest>(INITIAL_FORM);
+  const [form, setForm] = useState<CrearProgramacionRequest>(INITIAL_FORM);
   const [loading, setLoading] = useState(false);
 
   const [empresas, setEmpresas] = useState<RES_EmpresaTransporte[]>([]);
@@ -72,9 +72,9 @@ export const useProgramarRecepcion = (
   }, []);
 
   const setField = useCallback(
-    <K extends keyof ProgramarRecepcionRequest>(
+    <K extends keyof CrearProgramacionRequest>(
       key: K,
-      value: ProgramarRecepcionRequest[K],
+      value: CrearProgramacionRequest[K],
     ) => {
       setForm((prev) => {
         const next = { ...prev, [key]: value };
@@ -107,7 +107,7 @@ export const useProgramarRecepcion = (
 
     setLoading(true);
     try {
-      const nueva = await RecepcionUnidadesService.crearProgramacion({
+      const nueva = await ProgramarRecepcionService.crearProgramacion({
         ...form,
         id_sucursal: idSucursalFinal,
       });

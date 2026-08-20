@@ -38,6 +38,7 @@ import AnticiposProveedorPage from "../../modules/anticipos-proveedor/presentati
 import { ValorizacionesCompraPage } from "../../modules/valorizacion-compra/presentation/valorizacion-compra.page.tsx";
 import ContabilidadCompraPage from "../../modules/contabilidad-compra/presentation/contabilidad-compra.page.tsx";
 import BlendingPage from "../../modules/blending/presentation/blending.page.tsx";
+import ProgramarRecepcionPage from "../../modules/programar-recepcion/presentation/programar-recepcion.page.tsx";
 
 export const App = () => {
   const { setModoAuditoria } = useAuditoriaStore();
@@ -143,6 +144,9 @@ export const App = () => {
               path="recepcion-visitas"
               element={<RecepcionVisitasPage />}
             />
+
+            {/* Programación de Unidades */}
+            <Route path="programar-recepcion" element={<ProgramarRecepcionPage />} />
           </Route>
           <Route path="balanza" element={<GenericLayout />}>
             {/* Recepción de Minerales */}
