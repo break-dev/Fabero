@@ -15,6 +15,10 @@ export interface RES_LotePendiente {
   ticket_correlativo: string | null;
   // Cuando vehiculo_capacidad es NULL, el backend retorna excedente = NULL.
   lote_fecha_creacion: string;
+  // Estado de validación del lote.
+  lote_esta_validado?: boolean;
+  lote_id_empleado_valida?: number | null;
+  lote_fecha_hora_validacion?: string | null;
 }
 
 export interface RES_ValidarLote {
@@ -56,6 +60,10 @@ export interface RES_Particion {
   vehiculo_placa?: string | null;
   vehiculo_tara?: number | null;
   vehiculo_capacidad?: number | null;
+  // Estado de validación de la partición.
+  esta_validado?: boolean;
+  id_empleado_valida?: number | null;
+  fecha_hora_validacion?: string | null;
 }
 
 export interface RES_CerrarParticion {
@@ -63,4 +71,50 @@ export interface RES_CerrarParticion {
   cantidad_particiones: number;
   suma_peso_neto: number;
   peso_lote: number;
+}
+
+// --- Validación ---
+
+export interface RES_EvaluacionParticion {
+  id: number;
+  particion: string;
+  estado: string;
+  cumple_pesos: boolean;
+  cumple_fechas: boolean;
+  cumple_recepcion: boolean;
+  cumple: boolean;
+  campos_faltantes: string[];
+}
+
+export interface RES_EvaluacionLote {
+  lote_correlativo: string | null;
+  peso_neto_lote: number;
+  suma_pesos_netos: number;
+  diferencia_suma: number;
+  cumple_suma: boolean;
+  particiones: Record<string, RES_EvaluacionParticion>;
+  lote_cumple: boolean;
+}
+
+export interface RES_ResultadoValidarParticion {
+  id: number;
+  esta_validado: boolean;
+  id_empleado_valida: number;
+  fecha_hora_validacion: string;
+}
+
+export interface RES_ResultadoValidarLote {
+  id_lote_mineral: number;
+  evaluacion: RES_EvaluacionLote;
+}
+
+export interface RES_LoteOmitido {
+  id_lote_mineral: number;
+  lote_correlativo: string | null;
+  razones: string[];
+}
+
+export interface RES_ResultadoValidarLotes {
+  validados: number[];
+  omitidos: RES_LoteOmitido[];
 }

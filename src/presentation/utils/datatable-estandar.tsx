@@ -23,6 +23,11 @@ interface DataTableEstandarProps {
   loading: boolean;
   columnGroups?: FlexibleGroup[];
   renderExpandedRow?: (record: any) => React.ReactNode;
+  // Selección múltiple opcional. Si se provee `selectedRecords`, se activa
+  // la columna de checkboxes en la primera posición.
+  selectedRecords?: any[];
+  onSelectedRecordsChange?: (records: any[]) => void;
+  isRecordSelectable?: (record: any) => boolean;
   [key: string]: any;
 }
 
@@ -34,6 +39,9 @@ export const DataTableEstandar = ({
   loading,
   columnGroups,
   renderExpandedRow,
+  selectedRecords,
+  onSelectedRecordsChange,
+  isRecordSelectable,
   ...props
 }: DataTableEstandarProps) => {
   const [page, setPage] = useState(1);
@@ -144,6 +152,18 @@ export const DataTableEstandar = ({
                 content: ({ record }: { record: any }) =>
                   renderExpandedRow(record),
               }
+            : undefined
+        }
+        // Selección múltiple opcional.
+        selectedRecords={
+          onSelectedRecordsChange ? (selectedRecords ?? []) : undefined
+        }
+        onSelectedRecordsChange={
+          onSelectedRecordsChange ? onSelectedRecordsChange : undefined
+        }
+        isRecordSelectable={
+          isRecordSelectable
+            ? (record: any) => isRecordSelectable(record)
             : undefined
         }
         scrollAreaProps={{

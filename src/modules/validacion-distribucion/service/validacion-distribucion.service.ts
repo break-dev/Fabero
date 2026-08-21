@@ -11,6 +11,10 @@ import type {
   RES_ValidarLote,
   RES_Particion,
   RES_CerrarParticion,
+  RES_EvaluacionLote,
+  RES_ResultadoValidarParticion,
+  RES_ResultadoValidarLote,
+  RES_ResultadoValidarLotes,
 } from "./validacion-distribucion.responses";
 import type { RES_TicketBalanzaData } from "../../recepcion-mineral/service/recepcion-mineral.responses";
 
@@ -112,6 +116,40 @@ export const ValidacionDistribucionService = {
       `${AUX_PATH}/vehiculos/${idVehiculo}/capacidad`,
       payload
     );
+    return data.data;
+  },
+
+  getEvaluacionValidacionLote: async (
+    idLote: number
+  ): Promise<RES_EvaluacionLote> => {
+    const { data } = await api.get(
+      `${PATH}/lotes/${idLote}/evaluacion-validacion`
+    );
+    return data.data;
+  },
+
+  validarParticion: async (
+    idParticion: number
+  ): Promise<RES_ResultadoValidarParticion> => {
+    const { data } = await api.post(
+      `${PATH}/particiones/${idParticion}/validar`
+    );
+    return data.data;
+  },
+
+  validarLote: async (
+    idLote: number
+  ): Promise<RES_ResultadoValidarLote> => {
+    const { data } = await api.post(`${PATH}/lotes/${idLote}/validar`);
+    return data.data;
+  },
+
+  validarLotes: async (
+    idLotes: number[]
+  ): Promise<RES_ResultadoValidarLotes> => {
+    const { data } = await api.post(`${PATH}/lotes/validar`, {
+      id_lotes: idLotes,
+    });
     return data.data;
   },
 };

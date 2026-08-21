@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import dayjs from "dayjs";
 import { useNotify } from "../../../hooks/useNotify";
 import { ValidacionDistribucionService } from "../service/validacion-distribucion.service";
 import type { DTO_UpdateParticion } from "../service/validacion-distribucion.requests";
 import type { RES_Particion } from "../service/validacion-distribucion.responses";
+import { useParticionesLoteStore } from "../../../stores/particiones-lote.store";
 
 export type PesoField = "peso_inicial" | "peso_final" | "peso_neto";
 
@@ -10,6 +12,9 @@ export interface Snapshot {
   peso_inicial: number | null;
   peso_final: number | null;
   peso_neto: number | null;
+  es_bloqueado: boolean;
+  fecha_hora_peso_inicial: string | null;
+  fecha_hora_peso_final: string | null;
 }
 
 const round2 = (n: number): number => Math.round(n * 100) / 100;
@@ -18,24 +23,19 @@ export const snapshotFrom = (p: RES_Particion): Snapshot => ({
   peso_inicial: p.peso_inicial,
   peso_final: p.peso_final,
   peso_neto: p.peso_neto,
+  es_bloqueado: p.es_bloqueado,
+  fecha_hora_peso_inicial: p.fecha_hora_peso_inicial,
+  fecha_hora_peso_final: p.fecha_hora_peso_final,
 });
 
 export const snapshotEqual = (a: Snapshot, b: Snapshot): boolean =>
   a.peso_inicial === b.peso_inicial &&
   a.peso_final === b.peso_final &&
-  a.peso_neto === b.peso_neto;
+  a.peso_neto === b.peso_neto &&
+  a.es_bloqueado === b.es_bloqueado &&
+  a.fecha_hora_peso_inicial === b.fecha_hora_peso_inicial &&
+  a.fecha_hora_peso_final === b.fecha_hora_peso_final;
 
-/**
- * Reparte el peso neto del lote entre las particiones NO bloqueadas,
- * asignando el mismo share a cada una. Las bloqueadas conservan sus
- * pesos actuales.
- *
- * Reglas verificadas con casos de prueba:
- * - 1 particion, total=15, sin locked → share=15
- * - 2 particiones, total=15, sin locked → share=7.5
- * - 3 particiones, total=15, sin locked → share=5
- * - 3 particiones, 1 bloqueada con 7.5 → restantes=(15-7.5)/2=3.75
- */
 export const normalizeParticion = (p: RES_Particion): RES_Particion => ({
   ...p,
   peso_inicial: p.peso_inicial != null ? Number(p.peso_inicial) : 0,
@@ -52,7 +52,6 @@ export const computeRebalance = (
   const normalized = arr.map(normalizeParticion);
   if (normalized.length === 0) return [];
 
-  // Excluir particiones eliminadas lógicamente del cálculo de rebalanceo
   const activas = normalized.filter((p) => p.estado !== "Eliminado");
   if (activas.length === 0) return normalized;
 
@@ -89,12 +88,6 @@ export const computeRebalance = (
   return normalized.map((p) => unlockedMap.get(p.id) ?? p);
 };
 
-/**
- * Aplica la regla intra-particion cuando se edita un campo de peso:
- * - editar peso_inicial → peso_final = peso_inicial - peso_neto
- * - editar peso_final → peso_inicial = peso_final + peso_neto
- * - editar peso_neto → mantiene el ratio previo entre inicial y neto
- */
 const applyWithinRule = (
   p: RES_Particion,
   field: PesoField,
@@ -119,6 +112,41 @@ const applyWithinRule = (
   return { ...p, ...updates };
 };
 
+const diffPayload = (
+  p: RES_Particion,
+  snap: Snapshot
+): DTO_UpdateParticion | null => {
+  const payload: DTO_UpdateParticion = {};
+  if (p.peso_inicial !== snap.peso_inicial) payload.peso_inicial = p.peso_inicial;
+  if (p.peso_final !== snap.peso_final) payload.peso_final = p.peso_final;
+  if (p.peso_neto !== snap.peso_neto) payload.peso_neto = p.peso_neto;
+  if (p.es_bloqueado !== snap.es_bloqueado) payload.es_bloqueado = p.es_bloqueado;
+  if (p.fecha_hora_peso_inicial !== snap.fecha_hora_peso_inicial) {
+    payload.fecha_hora_peso_inicial = p.fecha_hora_peso_inicial;
+  }
+  if (p.fecha_hora_peso_final !== snap.fecha_hora_peso_final) {
+    payload.fecha_hora_peso_final = p.fecha_hora_peso_final;
+  }
+  return Object.keys(payload).length === 0 ? null : payload;
+};
+
+/**
+ * Hidrata el cache de particiones para un lote sin tocar estado de UI.
+ * Usa el store con dedupe de requests en vuelo. Skip si cache fresco.
+ */
+export const prefetchParticiones = async (idLote: number): Promise<void> => {
+  const state = useParticionesLoteStore.getState();
+  if (state.getCached(idLote) && !state.isStale(idLote)) return;
+  try {
+    await state.fetchParticiones(idLote, async (id) => {
+      const raw = await ValidacionDistribucionService.getParticiones(id);
+      return raw.map(normalizeParticion);
+    });
+  } catch {
+    // silencio
+  }
+};
+
 export const useParticionesLote = (
   idLote: number,
   lotePesoNeto: number
@@ -126,33 +154,33 @@ export const useParticionesLote = (
   const [particiones, setParticiones] = useState<RES_Particion[]>([]);
   const [snapshots, setSnapshots] = useState<Record<number, Snapshot>>({});
   const [savingIds, setSavingIds] = useState<Record<number, boolean>>({});
+  const [validatingIds, setValidatingIds] = useState<Record<number, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const { notifySuccess, notifyError } = useNotify();
 
-  const isDirty = useCallback(
-    (p: RES_Particion): boolean => {
-      if (p.estado === "Eliminado") return false;
-      const snap = snapshots[p.id];
-      if (!snap) return false;
-      return !snapshotEqual(snap, snapshotFrom(p));
-    },
-    [snapshots]
-  );
+  const cacheStore = useParticionesLoteStore;
 
-  const cargar = useCallback(async () => {
-    setLoading(true);
-    try {
-      const rawData = await ValidacionDistribucionService.getParticiones(idLote);
-      const data = rawData.map(normalizeParticion);
-      setSnapshots((prev) => {
-        const next = { ...prev };
-        for (const p of data) {
-          if (!next[p.id]) next[p.id] = snapshotFrom(p);
-        }
-        return next;
-      });
+  // Refs para callbacks inestables (useNotify devuelve arrow functions inline).
+  // Permiten que cargar y los effects no se recreen en cada render.
+  const notifyErrorRef = useRef(notifyError);
+  useEffect(() => {
+    notifyErrorRef.current = notifyError;
+  }, [notifyError]);
 
+  const mergeSnapshotsFor = useCallback((arr: RES_Particion[]) => {
+    setSnapshots((prev) => {
+      const next = { ...prev };
+      for (const p of arr) {
+        if (!next[p.id]) next[p.id] = snapshotFrom(p);
+      }
+      return next;
+    });
+  }, []);
+
+  const applyDataToState = useCallback(
+    (data: RES_Particion[]) => {
+      mergeSnapshotsFor(data);
       const total = Number(lotePesoNeto) || 0;
       const hasZeroPartitions = data
         .filter((p) => p.estado !== "Eliminado")
@@ -162,78 +190,227 @@ export const useParticionesLote = (
       } else {
         setParticiones(data);
       }
-    } catch {
-      notifyError("No se pudo cargar el detalle del lote.");
-    } finally {
-      setLoading(false);
-    }
-  }, [idLote, lotePesoNeto, notifyError]);
+    },
+    [lotePesoNeto, mergeSnapshotsFor]
+  );
+
+  const cargar = useCallback(
+    async (forceFetch = false): Promise<void> => {
+      if (!forceFetch) {
+        const cached = cacheStore.getState().getCached(idLote);
+        if (cached && !cacheStore.getState().isStale(idLote)) {
+          applyDataToState(cached.data);
+          return;
+        }
+      }
+
+      setLoading(true);
+      try {
+        const data = await cacheStore.getState().fetchParticiones(
+          idLote,
+          async (id) => {
+            const raw = await ValidacionDistribucionService.getParticiones(id);
+            return raw.map(normalizeParticion);
+          }
+        );
+        applyDataToState(data);
+      } catch {
+        notifyErrorRef.current("No se pudo cargar el detalle del lote.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [idLote, cacheStore, applyDataToState]
+  );
+
+  const cargarRef = useRef(cargar);
+  useEffect(() => {
+    cargarRef.current = cargar;
+  }, [cargar]);
 
   useEffect(() => {
     void cargar();
   }, [cargar]);
 
-  // Autoguardado debounced (500ms) de particiones modificadas o recalculadas
+  // Suscripcion al cache: cuando el cache cambia externamente (por ejemplo,
+  // tras validar el lote desde `useLotesPendientes`), sincroniza el state local
+  // para que las particiones reflejen `esta_validado=true` y demas campos.
+  // Skip si hay cambios pendientes (dirtyRef) para no pisar la edicion del usuario.
+  const cachedEntry = cacheStore((s) => s.byLote[idLote]);
   useEffect(() => {
-    if (particiones.length === 0) return;
+    if (!cachedEntry) return;
+    if (!cachedEntry.data || cachedEntry.data.length === 0) return;
+    if (dirtyRef.current.size > 0) return;
 
-    const dirtyPartitions = particiones.filter(
-      (p) => p.estado !== "Eliminado" && isDirty(p)
-    );
+    const data = cachedEntry.data;
+    mergeSnapshotsFor(data);
 
-    if (dirtyPartitions.length === 0) return;
+    const total = Number(lotePesoNeto) || 0;
+    const hasZeroPartitions = data
+      .filter((p) => p.estado !== "Eliminado")
+      .some((p) => (p.peso_neto ?? 0) === 0);
+    if (data.length > 0 && hasZeroPartitions && total > 0) {
+      setParticiones(computeRebalance(data, total));
+    } else {
+      setParticiones(data);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cachedEntry, lotePesoNeto]);
 
-    const timer = setTimeout(async () => {
-      for (const p of dirtyPartitions) {
-        try {
-          await ValidacionDistribucionService.updateParticion(p.id, {
-            peso_inicial: p.peso_inicial,
-            peso_final: p.peso_final,
-            peso_neto: p.peso_neto,
-          });
-          setSnapshots((prev) => ({
-            ...prev,
-            [p.id]: snapshotFrom(p),
-          }));
-        } catch {
-          // Fallo silencioso en autoguardado en segundo plano
-        }
+  // Refs espejo para que el flush de unmount use la última versión de estado.
+  const particionesRef = useRef<RES_Particion[]>([]);
+  const snapshotsRef = useRef<Record<number, Snapshot>>({});
+  useEffect(() => {
+    particionesRef.current = particiones;
+  }, [particiones]);
+  useEffect(() => {
+    snapshotsRef.current = snapshots;
+  }, [snapshots]);
+
+  // Map<id, particion> con los cambios pendientes de autoguardar.
+  const dirtyRef = useRef<Map<number, RES_Particion>>(new Map());
+
+  // Detecta cambios contra snapshot extendido y agenda batch debounced (500ms).
+  // Deps estables: solo estado que afecta al dirty check. notifyError/cargar via refs.
+  useEffect(() => {
+    const next = new Map<number, RES_Particion>();
+    for (const p of particiones) {
+      if (p.estado === "Eliminado") continue;
+      const snap = snapshots[p.id];
+      if (!snap) continue;
+      if (!snapshotEqual(snap, snapshotFrom(p))) {
+        next.set(p.id, p);
       }
+    }
+    dirtyRef.current = next;
+
+    if (next.size === 0) return;
+
+    const items = Array.from(next.values());
+    const timer = setTimeout(() => {
+      dirtyRef.current = new Map();
+      const currentSnapshots = snapshotsRef.current;
+
+      void Promise.allSettled(
+        items.map(async (p) => {
+          const snap = currentSnapshots[p.id];
+          if (!snap) return;
+          const payload = diffPayload(p, snap);
+          if (!payload) return;
+          const data =
+            await ValidacionDistribucionService.updateParticion(
+              p.id,
+              payload
+            );
+          // Sincroniza snapshots de TODA la respuesta (incluye rebalance del backend).
+          setSnapshots((prev) => {
+            const nextSnap = { ...prev };
+            for (const r of data) {
+              nextSnap[r.id] = snapshotFrom(r);
+            }
+            return nextSnap;
+          });
+          // Sincroniza el store cache para que `puedeSeleccionarLote` (en la
+          // pagina) vea los valores frescos y reflejar autoguardados al re-expandir.
+          cacheStore.getState().setParticiones(idLote, data);
+        })
+      ).then((results) => {
+        const someFailed = results.some((r) => r.status === "rejected");
+        if (someFailed) {
+          notifyErrorRef.current(
+            "Algunos cambios no se pudieron guardar. Sincronizando con el servidor."
+          );
+          void cargarRef.current(true);
+        }
+      });
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [particiones, isDirty]);
+  }, [particiones, snapshots, idLote, cacheStore]);
 
-  const crearParticion = useCallback(async () => {
-    setCreating(true);
-    try {
-      await ValidacionDistribucionService.crearParticion(idLote, {});
-      const rawExistentes = await ValidacionDistribucionService.getParticiones(idLote);
-      const existentes = rawExistentes.map(normalizeParticion);
-      setSnapshots((prev) => {
-        const next = { ...prev };
-        for (const p of existentes) {
-          if (!next[p.id]) next[p.id] = snapshotFrom(p);
+  // Flush al desmontar: evita perder autoguardados si el usuario colapsa el row.
+  // Ademas sincroniza el store cache para que al re-expandir se vean los
+  // valores guardados y el helper `puedeSeleccionarLote` los vea.
+  useEffect(() => {
+    return () => {
+      const items = Array.from(dirtyRef.current.values());
+      if (items.length === 0) return;
+      dirtyRef.current = new Map();
+      const currentSnapshots = snapshotsRef.current;
+      const cacheState = useParticionesLoteStore.getState();
+      for (const p of items) {
+        const snap = currentSnapshots[p.id];
+        if (!snap) continue;
+        const payload = diffPayload(p, snap);
+        if (!payload) continue;
+        void ValidacionDistribucionService.updateParticion(p.id, payload)
+          .then((data) => {
+            const normalized = data.map(normalizeParticion);
+            cacheState.setParticiones(idLote, normalized);
+          })
+          .catch(() => {
+            // Silencio en flush de unmount.
+          });
+      }
+    };
+  }, [idLote, cacheStore]);
+
+  const crearParticion = useCallback(
+    async (
+      onCreated?: (nueva: RES_Particion) => void
+    ) => {
+      setCreating(true);
+      try {
+        const nueva = await ValidacionDistribucionService.crearParticion(
+          idLote,
+          {}
+        );
+        const normalizada = normalizeParticion(nueva);
+        const total = Number(lotePesoNeto) || 0;
+
+        setSnapshots((prev) => {
+          const next = { ...prev };
+          next[normalizada.id] = snapshotFrom(normalizada);
+          return next;
+        });
+
+        const cached = cacheStore.getState().getCached(idLote);
+        const existentes = cached?.data ?? particionesRef.current;
+        const merged = computeRebalance([...existentes, normalizada], total);
+        cacheStore.getState().setParticiones(idLote, merged);
+        setParticiones(merged);
+        onCreated?.(normalizada);
+        notifySuccess(`Partición creada correctamente.`);
+
+        // Backend crea ticket_balanza + recepción automáticamente, pero el
+        // response del POST no los devuelve consistentes. Refetch silencioso
+        // para que la UI muestre el ticket recién creado sin recargar la página.
+        try {
+          const refreshed =
+            await cacheStore.getState().fetchParticiones(idLote, async (id) => {
+              const raw = await ValidacionDistribucionService.getParticiones(
+                id
+              );
+              return raw.map(normalizeParticion);
+            });
+          cacheStore.getState().setParticiones(idLote, refreshed);
+          setParticiones(refreshed);
+        } catch {
+          // silencio: si el refetch falla, los datos quedan con el response del POST.
         }
-        return next;
-      });
-
-      const total = Number(lotePesoNeto) || 0;
-      const rebalanced = computeRebalance(existentes, total);
-      setParticiones(rebalanced);
-      notifySuccess(`Partición creada correctamente.`);
-    } catch {
-      notifyError("No se pudo crear la partición.");
-    } finally {
-      setCreating(false);
-    }
-  }, [idLote, lotePesoNeto, notifyError, notifySuccess]);
+      } catch {
+        notifyError("No se pudo crear la partición.");
+      } finally {
+        setCreating(false);
+      }
+    },
+    [idLote, lotePesoNeto, notifyError, notifySuccess, cacheStore]
+  );
 
   const ajustarPeso = useCallback(
     (id: number, field: PesoField, value: number) => {
       const total = Number(lotePesoNeto) || 0;
       setParticiones((prev) => {
-        // Calcular la suma de particiones bloqueadas que NO sean esta partición
         const otherLockedSum = prev
           .filter(
             (p) => p.estado !== "Eliminado" && p.id !== id && p.es_bloqueado
@@ -306,10 +483,8 @@ export const useParticionesLote = (
     ): Promise<RES_Particion[] | null> => {
       setSavingIds((s) => ({ ...s, [id]: true }));
       try {
-        const rawActualizadas = await ValidacionDistribucionService.updateParticion(
-          id,
-          payload
-        );
+        const rawActualizadas =
+          await ValidacionDistribucionService.updateParticion(id, payload);
         const data = rawActualizadas.map(normalizeParticion);
         setSnapshots((prev) => {
           const next = { ...prev };
@@ -332,17 +507,19 @@ export const useParticionesLote = (
           setParticiones(data);
         }
 
+        cacheStore.getState().setParticiones(idLote, data);
+
         if (successMsg) notifySuccess(successMsg);
         return data;
       } catch {
         notifyError(errorMsg);
-        await cargar();
+        await cargarRef.current(true);
         return null;
       } finally {
         setSavingIds((s) => ({ ...s, [id]: false }));
       }
     },
-    [cargar, lotePesoNeto, notifyError, notifySuccess]
+    [lotePesoNeto, notifyError, notifySuccess, idLote, cacheStore]
   );
 
   const eliminar = useCallback(
@@ -371,39 +548,24 @@ export const useParticionesLote = (
   );
 
   const toggleBloqueo = useCallback(
-    async (p: RES_Particion) => {
+    (p: RES_Particion) => {
       const nuevoEstado = !p.es_bloqueado;
       const total = Number(lotePesoNeto) || 0;
+
       setParticiones((prev) => {
         const nextArr = prev.map((x) =>
           x.id === p.id ? { ...x, es_bloqueado: nuevoEstado } : x
         );
         return computeRebalance(nextArr, total);
       });
-      try {
-        await persistOne(
-          p.id,
-          { es_bloqueado: nuevoEstado },
-          nuevoEstado
-            ? `Partición ${p.particion} bloqueada.`
-            : `Partición ${p.particion} desbloqueada.`,
-          "No se pudo actualizar el estado de bloqueo."
-        );
-      } catch {
-        setParticiones((prev) => {
-          const reverted = prev.map((x) =>
-            x.id === p.id ? { ...x, es_bloqueado: !nuevoEstado } : x
-          );
-          return computeRebalance(reverted, total);
-        });
-        notifyError("No se pudo actualizar el estado de bloqueo.");
-      }
+
+      // Encolado al batch debounced (autoguardado). Sin await, sin spinner.
     },
-    [lotePesoNeto, persistOne, notifyError]
+    [lotePesoNeto]
   );
 
   const cambiarFecha = useCallback(
-    async (
+    (
       idParticion: number,
       campo: "fecha_hora_peso_inicial" | "fecha_hora_peso_final",
       iso: string | null
@@ -411,38 +573,18 @@ export const useParticionesLote = (
       setParticiones((prev) =>
         prev.map((p) => (p.id === idParticion ? { ...p, [campo]: iso } : p))
       );
-      await persistOne(
-        idParticion,
-        { [campo]: iso } as DTO_UpdateParticion,
-        "",
-        "No se pudo guardar la fecha."
-      );
+      // Encolado al batch debounced (autoguardado). Sin await.
     },
-    [persistOne]
+    []
   );
 
   const reemplazarParticiones = useCallback(
     (arr: RES_Particion[]) => {
-      const data = arr.map(normalizeParticion);
-      setSnapshots((prev) => {
-        const next = { ...prev };
-        for (const p of data) {
-          if (!next[p.id]) next[p.id] = snapshotFrom(p);
-        }
-        return next;
-      });
-
-      const total = Number(lotePesoNeto) || 0;
-      const hasZeroPartitions = data
-        .filter((p) => p.estado !== "Eliminado")
-        .some((p) => (p.peso_neto ?? 0) === 0);
-      if (data.length > 0 && hasZeroPartitions && total > 0) {
-        setParticiones(computeRebalance(data, total));
-      } else {
-        setParticiones(data);
-      }
+      const normalized = arr.map(normalizeParticion);
+      cacheStore.getState().setParticiones(idLote, normalized);
+      applyDataToState(normalized);
     },
-    [lotePesoNeto]
+    [idLote, cacheStore, applyDataToState]
   );
 
   const actualizarCapacidadLocal = useCallback(
@@ -467,10 +609,64 @@ export const useParticionesLote = (
 
   const isEliminada = (p: RES_Particion): boolean => p.estado === "Eliminado";
 
+  const isDirty = useCallback(
+    (p: RES_Particion): boolean => {
+      if (p.estado === "Eliminado") return false;
+      const snap = snapshots[p.id];
+      if (!snap) return false;
+      return !snapshotEqual(snap, snapshotFrom(p));
+    },
+    [snapshots]
+  );
+
+  // Mantiene referencia para usar la funcion cargar sin incluirla en deps.
+  const cargarFnRef = useRef(cargar);
+  useEffect(() => {
+    cargarFnRef.current = cargar;
+  }, [cargar]);
+
+  const validarParticion = useCallback(
+    async (idParticion: number): Promise<boolean> => {
+      setValidatingIds((s) => ({ ...s, [idParticion]: true }));
+      try {
+        const resultado =
+          await ValidacionDistribucionService.validarParticion(idParticion);
+        const now = dayjs().format("YYYY-MM-DD HH:mm:ss");
+        const updatedFlag = {
+          esta_validado: resultado.esta_validado,
+          id_empleado_valida: resultado.id_empleado_valida,
+          fecha_hora_validacion: resultado.fecha_hora_validacion ?? now,
+        };
+        setParticiones((prev) =>
+          prev.map((p) =>
+            p.id === idParticion ? { ...p, ...updatedFlag } : p
+          )
+        );
+        notifySuccess("Partición validada correctamente.");
+        return true;
+      } catch (err: unknown) {
+        const axiosErr = err as {
+          response?: { data?: { message?: string } };
+        };
+        const msg =
+          axiosErr?.response?.data?.message ??
+          "No se pudo validar la partición.";
+        notifyError(msg);
+        // Refetch defensivo por si el backend rechazo por estado stale.
+        void cargarFnRef.current(true);
+        return false;
+      } finally {
+        setValidatingIds((s) => ({ ...s, [idParticion]: false }));
+      }
+    },
+    [notifyError, notifySuccess]
+  );
+
   return {
     particiones,
     snapshots,
     savingIds,
+    validatingIds,
     loading,
     creating,
     cargar,
@@ -484,6 +680,7 @@ export const useParticionesLote = (
     esConsistente,
     isEliminada,
     isDirty,
+    validarParticion,
   };
 };
 

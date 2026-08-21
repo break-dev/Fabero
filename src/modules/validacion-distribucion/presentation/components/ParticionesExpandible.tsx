@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useState } from "react";
+import { forwardRef, useImperativeHandle, useMemo, useState } from "react";
 import {
   ActionIcon,
   Button,
@@ -15,6 +15,7 @@ import {
   IconLockOpen,
   IconPencil,
   IconPrinter,
+  IconShieldCheck,
   IconTrash,
 } from "@tabler/icons-react";
 import {
@@ -24,12 +25,18 @@ import {
 import { formatDateTime, formatTn } from "../utils/format-units";
 import type { RES_Particion } from "../../service/validacion-distribucion.responses";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
+import { ModalValidacion } from "../../../../presentation/utils/modal-validacion";
 import { EdicionParticionModal } from "./EdicionParticionModal";
 import { FechaHoraModal } from "./FechaHoraModal";
 import { usePrint } from "../../../../hooks/usePrint";
 import { useNotify } from "../../../../hooks/useNotify";
 import { TicketBalanzaPdf } from "../../../recepcion-mineral/presentation/components/ticket-balanza-pdf";
 import { ValidacionDistribucionService } from "../../service/validacion-distribucion.service";
+import {
+  etiquetaCampoFaltante,
+  evaluarLote,
+  evaluarParticion,
+} from "../utils/evaluador-validacion";
 
 interface Props {
   lote: { id_lote_mineral: number; lote_peso_neto: number };
@@ -97,6 +104,80 @@ export const ParticionesExpandible = forwardRef<
     null
   );
 
+  // Evaluacion derivada para el lote completo. Se recomputa cuando cambian
+  // particiones o pesos, sin pegarle a la API.
+  const evalLote = useMemo(
+    () => evaluarLote(hooks.particiones, lote.lote_peso_neto),
+    [hooks.particiones, lote.lote_peso_neto]
+  );
+
+  // Modal de validacion: una sola instancia, alterna entre modo confirmar / pendientes.
+  const [modalValidacion, setModalValidacion] = useState<{
+    open: boolean;
+    modo: "confirmar" | "pendientes";
+    particion: RES_Particion | null;
+  }>({ open: false, modo: "confirmar", particion: null });
+
+  const handleClickValidar = (p: RES_Particion) => {
+    const evalPart = evaluarParticion(p);
+    const puedeValidar = evalPart.cumple && evalLote.cumple_suma;
+
+    if (p.esta_validado) {
+      // Ya validada: no se hace nada (no hay des-validacion en este modulo).
+      return;
+    }
+
+    if (puedeValidar) {
+      setModalValidacion({
+        open: true,
+        modo: "confirmar",
+        particion: p,
+      });
+    } else {
+      setModalValidacion({
+        open: true,
+        modo: "pendientes",
+        particion: p,
+      });
+    }
+  };
+
+  const handleConfirmarValidacion = async () => {
+    if (!modalValidacion.particion) return;
+    const ok = await hooks.validarParticion(modalValidacion.particion.id);
+    if (ok) {
+      setModalValidacion({ open: false, modo: "confirmar", particion: null });
+    }
+  };
+
+  const handleCloseModalValidacion = () => {
+    setModalValidacion({ open: false, modo: "confirmar", particion: null });
+  };
+
+  const pendientesDelModal = useMemo(() => {
+    if (!modalValidacion.particion) return [];
+    const p = modalValidacion.particion;
+    const evalPart = evaluarParticion(p);
+    if (evalPart.cumple && evalLote.cumple_suma) return [];
+
+    const items: { titulo: string; campos_faltantes: string[] }[] = [];
+    if (!evalPart.cumple) {
+      items.push({
+        titulo: `Partición ${p.particion} (${p.correlativo})`,
+        campos_faltantes: evalPart.campos_faltantes.map(etiquetaCampoFaltante),
+      });
+    }
+    if (!evalLote.cumple_suma) {
+      items.push({
+        titulo: "Suma de pesos netos del lote",
+        campos_faltantes: [
+          `Suma particiones = ${evalLote.suma_pesos_netos.toFixed(2)} · Lote padre = ${lote.lote_peso_neto.toFixed(2)} · Diferencia = ${evalLote.diferencia_suma.toFixed(2)}`,
+        ],
+      });
+    }
+    return items;
+  }, [modalValidacion.particion, evalLote, lote.lote_peso_neto]);
+
   const handleConfirmEliminar = async () => {
     if (!confirmEliminar) return;
     await hooks.eliminar(confirmEliminar);
@@ -123,14 +204,13 @@ export const ParticionesExpandible = forwardRef<
               <Table.Th ta="center" style={{ minWidth: 110, fontSize: 11, padding: "6px 8px" }}>
                 P. Neto
               </Table.Th>
-              <Table.Th ta="center" style={{ width: 100, fontSize: 11, padding: "6px 8px" }}>
+              <Table.Th ta="center" style={{ width: 150, fontSize: 11, padding: "6px 8px" }}>
                 Acciones
               </Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
             {hooks.particiones.map((p) => {
-              const saving = Boolean(hooks.savingIds[p.id]);
               const consistente = hooks.esConsistente(p);
               const eliminada = hooks.isEliminada(p);
               const diferencia = round2(
@@ -156,8 +236,11 @@ export const ParticionesExpandible = forwardRef<
                   }
                 >
                   <Table.Td ta="center" style={{ padding: "4px 8px" }}>
+                    <Text fw={700} className="text-[13px] font-mono text-center">
+                      {p.correlativo}
+                    </Text>
                     <Group gap={4} wrap="nowrap" align="center" justify="center">
-                      <Text fw={600} className="text-[11px]">
+                      <Text fw={500} className="text-[11px] text-zinc-400">
                         {p.particion}
                       </Text>
                       {!consistente && !eliminada && (
@@ -165,22 +248,19 @@ export const ParticionesExpandible = forwardRef<
                           label={`Pesos no cuadran: P.Inicial - P.Final ≠ P.Neto (${diferencia >= 0 ? "+" : ""}${diferencia})`}
                           withArrow
                         >
-                          <Text className="text-[11px]" c="yellow">
+                          <Text className="text-[10px]" c="yellow">
                             ⚠
                           </Text>
                         </Tooltip>
                       )}
                       {eliminada && (
                         <Tooltip label="Partición eliminada" withArrow>
-                          <Text className="text-[11px]" c="red">
+                          <Text className="text-[10px]" c="red">
                             🗑
                           </Text>
                         </Tooltip>
                       )}
                     </Group>
-                    <Text className="text-[10px] text-zinc-400 font-mono text-center">
-                      {p.correlativo}
-                    </Text>
                   </Table.Td>
                   <Table.Td ta="center" style={{ padding: "4px 8px" }}>
                     <Group gap={4} wrap="nowrap" align="center" justify="center">
@@ -314,37 +394,80 @@ export const ParticionesExpandible = forwardRef<
                     </div>
                   </Table.Td>
                   <Table.Td ta="center" style={{ padding: "4px 8px" }}>
-                    <Group gap={4} justify="center" wrap="nowrap">
-                      <Tooltip label={p.es_bloqueado ? "Desbloquear" : "Bloquear"}>
-                        <ActionIcon
-                          color={p.es_bloqueado ? "yellow" : "gray"}
-                          variant="subtle"
-                          size="xs"
-                          onClick={() => void hooks.toggleBloqueo(p)}
-                          loading={saving}
-                          disabled={eliminada}
-                          aria-label="Bloquear"
-                        >
-                          {p.es_bloqueado ? (
-                            <IconLock size={14} />
-                          ) : (
-                            <IconLockOpen size={14} />
-                          )}
-                        </ActionIcon>
-                      </Tooltip>
-                      <Tooltip label="Eliminar">
-                        <ActionIcon
-                          color="red"
-                          variant="subtle"
-                          size="xs"
-                          onClick={() => setConfirmEliminar(p)}
-                          disabled={eliminada}
-                          aria-label="Eliminar"
-                        >
-                          <IconTrash size={14} />
-                        </ActionIcon>
-                      </Tooltip>
-                    </Group>
+                      {(() => {
+                      const evalPart = evaluarParticion(p);
+                      const puedeValidar =
+                        !eliminada && evalPart.cumple && evalLote.cumple_suma;
+                      const yaValidada = p.esta_validado === true;
+                      const isValidating =
+                        hooks.validatingIds?.[p.id] === true;
+                      const color: "green" | "yellow" | "gray" = yaValidada
+                        ? "green"
+                        : puedeValidar
+                          ? "green"
+                          : "yellow";
+                      const tooltip = yaValidada
+                        ? "Partición ya validada"
+                        : puedeValidar
+                          ? "Validar partición"
+                          : "Hay campos pendientes. Click para ver detalle.";
+                      const disabled =
+                        eliminada || isValidating || yaValidada;
+                      const tooltipBloquear = yaValidada
+                        ? "Partición validada: no se puede modificar el bloqueo"
+                        : p.es_bloqueado
+                          ? "Desbloquear"
+                          : "Bloquear";
+                      const tooltipEliminar = yaValidada
+                        ? "Partición validada: no se puede eliminar"
+                        : "Eliminar";
+                      return (
+                        <Group gap={4} justify="center" wrap="nowrap">
+                          <Tooltip label={tooltip} withArrow>
+                            <ActionIcon
+                              variant={puedeValidar || yaValidada ? "light" : "outline"}
+                              color={color}
+                              size="xs"
+                              radius="md"
+                              loading={isValidating}
+                              disabled={disabled}
+                              onClick={() => handleClickValidar(p)}
+                              aria-label="Validar partición"
+                            >
+                              <IconShieldCheck size={13} />
+                            </ActionIcon>
+                          </Tooltip>
+                          <Tooltip label={tooltipBloquear} withArrow>
+                            <ActionIcon
+                              color={p.es_bloqueado ? "yellow" : "gray"}
+                              variant="subtle"
+                              size="xs"
+                              onClick={() => hooks.toggleBloqueo(p)}
+                              disabled={eliminada || yaValidada}
+                              aria-label="Bloquear"
+                            >
+                              {p.es_bloqueado ? (
+                                <IconLock size={13} />
+                              ) : (
+                                <IconLockOpen size={13} />
+                              )}
+                            </ActionIcon>
+                          </Tooltip>
+                          <Tooltip label={tooltipEliminar} withArrow>
+                            <ActionIcon
+                              color="red"
+                              variant="subtle"
+                              size="xs"
+                              onClick={() => setConfirmEliminar(p)}
+                              disabled={eliminada || yaValidada}
+                              aria-label="Eliminar"
+                            >
+                              <IconTrash size={13} />
+                            </ActionIcon>
+                          </Tooltip>
+                        </Group>
+                      );
+                    })()}
                   </Table.Td>
                 </Table.Tr>
               );
@@ -448,6 +571,21 @@ export const ParticionesExpandible = forwardRef<
             </Group>
           </Stack>
         </ModalEstandar>
+      )}
+
+      {modalValidacion.particion && (
+        <ModalValidacion
+          opened={modalValidacion.open}
+          onClose={handleCloseModalValidacion}
+          modo={modalValidacion.modo}
+          subtitulo={
+            modalValidacion.modo === "confirmar"
+              ? `Se marcará la partición ${modalValidacion.particion.particion} (${modalValidacion.particion.correlativo}) como validada. Esta acción no se puede revertir desde este módulo.`
+              : undefined
+          }
+          pendientes={pendientesDelModal}
+          onConfirm={() => void handleConfirmarValidacion()}
+        />
       )}
     </Stack>
   );

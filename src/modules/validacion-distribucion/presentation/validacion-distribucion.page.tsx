@@ -1,10 +1,11 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActionIcon,
   Box,
   Button,
   Container,
   Group,
+  Paper,
   SegmentedControl,
   Stack,
   Switch,
@@ -12,19 +13,27 @@ import {
   TextInput,
   Tooltip,
 } from "@mantine/core";
-import { IconPrinter, IconSearch, IconX } from "@tabler/icons-react";
+import {
+  IconPrinter,
+  IconSearch,
+  IconShieldCheck,
+  IconX,
+} from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { useTitlePage } from "../../../hooks/useTitlePage";
 import { useNotify } from "../../../hooks/useNotify";
 import { usePrint } from "../../../hooks/usePrint";
 import { DataTableEstandar } from "../../../presentation/utils/datatable-estandar";
 import { CustomDatePicker } from "../../../presentation/utils/date-picker-input";
+import { ModalValidacion } from "../../../presentation/utils/modal-validacion";
 import { useLotesPendientes, getTodayString } from "../hooks/useLotesPendientes";
 import {
   ParticionesExpandible,
   type ParticionesExpandibleRef,
 } from "./components/ParticionesExpandible";
 import { formatTn, formatDateTime } from "./utils/format-units";
+import { etiquetaCampoFaltante, evaluarLote } from "./utils/evaluador-validacion";
+import { useParticionesLoteStore } from "../../../stores/particiones-lote.store";
 import type { RES_LotePendiente } from "../service/validacion-distribucion.responses";
 import { ValidacionDistribucionService } from "../service/validacion-distribucion.service";
 import { TicketBalanzaPdf } from "../../recepcion-mineral/presentation/components/ticket-balanza-pdf";
@@ -42,10 +51,13 @@ export const ValidacionDistribucionPage = () => {
     setFechaInicio,
     fechaFin,
     setFechaFin,
-    cargar,
     resetFilters,
+    updateRecord,
+    validarLote,
+    validatingIds,
+    validatingAll,
   } = useLotesPendientes();
-  const { notifyError } = useNotify();
+  const { notifyError, notifySuccess } = useNotify();
   const { print, prepare } = usePrint();
   const [creatingParticionId, setCreatingParticionId] = useState<number | null>(
     null
@@ -53,9 +65,68 @@ export const ValidacionDistribucionPage = () => {
   const [printingLoteId, setPrintingLoteId] = useState<number | null>(null);
   const expandibleRefs = useRef<Map<number, ParticionesExpandibleRef>>(new Map());
 
+  // Suscripcion al cache de particiones. Re-render cuando los lotes visibles
+  // se hidratan (prefetch) o cambian. Permite que los checkboxes se habiliten
+  // apenas el cache este listo y refleja autoguardados del usuario.
+  const cacheKeys = useParticionesLoteStore((s) => s.byLote);
+
   const [placa, setPlaca] = useState("");
   const [soloExcedente, setSoloExcedente] = useState(false);
   const [estadoParticion, setEstadoParticion] = useState<EstadoParticion>("TODOS");
+
+  // Selección múltiple de lotes para validación masiva.
+  const [selectedLotes, setSelectedLotes] = useState<RES_LotePendiente[]>([]);
+
+  // Flag para evitar que el handler del boton Validar lote se dispare dos
+  // veces mientras se hace el fetch del evaluador.
+  const [fetchingEvalLoteId, setFetchingEvalLoteId] = useState<number | null>(
+    null
+  );
+
+  // Modal de validacion: lote individual o multiple.
+  const [modalValidacion, setModalValidacion] = useState<{
+    open: boolean;
+    modo: "confirmar" | "pendientes";
+    titulo: string;
+    subtitulo?: React.ReactNode;
+    pendientesTextoLibre?: string;
+    pendientes?: { titulo: string; campos_faltantes: string[] }[];
+    context:
+      | { tipo: "lote"; idLote: number }
+      | { tipo: "multiple"; idLotes: number[] }
+      | null;
+  }>({
+    open: false,
+    modo: "confirmar",
+    titulo: "",
+    context: null,
+  });
+
+  // Determina si un lote puede seleccionarse para validación múltiple.
+  // Requiere que el cache de particiones este hidratado y que el lote cumpla requisitos.
+  // Se recrea cuando cambia `cacheKeys` (cache se hidrata tras prefetch o
+  // cambia por autoguardado), para que la disponibilidad del checkbox se actualice.
+  const puedeSeleccionarLote = useMemo(() => {
+    return (r: Row): boolean => {
+      if (r.lote_esta_validado === true) return false;
+      const cached = useParticionesLoteStore.getState().getCached(r.id_lote_mineral);
+      if (!cached || !cached.data || cached.data.length === 0) return false;
+      const evalLote = evaluarLote(cached.data, r.lote_peso_neto);
+      return evalLote.cumple;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cacheKeys]);
+
+  // Sincroniza la seleccion cuando el cache cambia: si un lote seleccionado
+  // deja de cumplir (por edicion), se quita de la seleccion.
+  useEffect(() => {
+    if (selectedLotes.length === 0) return;
+    setSelectedLotes((prev) => {
+      const siguiente = prev.filter((r) => puedeSeleccionarLote(r));
+      return siguiente.length === prev.length ? prev : siguiente;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cacheKeys]);
 
   const recordsFiltrados = useMemo(() => {
     return records.filter((r) => {
@@ -90,13 +161,167 @@ export const ValidacionDistribucionPage = () => {
     setEstadoParticion("TODOS");
   };
 
-  const handleCrearParticion = async (idLote: number) => {
+  const closeModalValidacion = () => {
+    setModalValidacion({
+      open: false,
+      modo: "confirmar",
+      titulo: "",
+      context: null,
+    });
+  };
+
+  // Click en boton "Validar" de un lote (nivel fila).
+  // La evaluacion detallada del lote se hara via cache cuando el usuario
+  // expanda el row; aqui solo pedimos la evaluacion al backend cuando
+  // expandida, o derivamos de particiones en cache.
+  const handleClickValidarLote = async (r: Row) => {
+    if (r.lote_esta_validado) return;
+    // Evita que un doble click rapido dispare dos fetches y abra dos modales.
+    if (fetchingEvalLoteId !== null) return;
+    setFetchingEvalLoteId(r.id_lote_mineral);
+    try {
+      const evalLote = await ValidacionDistribucionService.getEvaluacionValidacionLote(
+        r.id_lote_mineral
+      );
+      if (evalLote.lote_cumple) {
+        setModalValidacion({
+          open: true,
+          modo: "confirmar",
+          titulo: "Validar lote",
+          subtitulo: (
+            <>
+              Se marcará el lote <b>{r.lote_correlativo}</b> y todas sus
+              particiones activas como validados. Esta acción no se puede
+              revertir desde este módulo.
+            </>
+          ),
+          context: { tipo: "lote", idLote: r.id_lote_mineral },
+        });
+      } else {
+        // Deriva razones desde la evaluacion para mostrar modal bloqueante.
+        const items: { titulo: string; campos_faltantes: string[] }[] = [];
+        if (!evalLote.cumple_suma) {
+          items.push({
+            titulo: "Suma de pesos netos del lote",
+            campos_faltantes: [
+              `Suma particiones = ${evalLote.suma_pesos_netos.toFixed(
+                2
+              )} · Lote padre = ${evalLote.peso_neto_lote.toFixed(
+                2
+              )} · Diferencia = ${evalLote.diferencia_suma.toFixed(2)}`,
+            ],
+          });
+        }
+        for (const [, p] of Object.entries(evalLote.particiones)) {
+          if (p.cumple) continue;
+          const camposLegible = p.campos_faltantes
+            .map(etiquetaCampoFaltante)
+            .filter((v, i, arr) => arr.indexOf(v) === i);
+          items.push({
+            titulo: `Partición ${p.particion}`,
+            campos_faltantes: camposLegible,
+          });
+        }
+        setModalValidacion({
+          open: true,
+          modo: "pendientes",
+          titulo: "Requisitos pendientes",
+          pendientes: items,
+          context: { tipo: "lote", idLote: r.id_lote_mineral },
+        });
+      }
+    } catch {
+      notifyError("No se pudo obtener la evaluación del lote.");
+    } finally {
+      setFetchingEvalLoteId(null);
+    }
+  };
+
+  // Click en el boton "Validar" de la barra flotante (multiples lotes).
+  // El backend persiste en una sola llamada y devuelve validados/omitidos.
+  // Mostramos un modal no-bloqueante con el resultado para que el usuario
+  // vea que lotes fueron omitidos por requisitos pendientes.
+  const handleClickValidarMultiples = async () => {
+    if (selectedLotes.length === 0) return;
+    const ids = selectedLotes.map((r) => r.id_lote_mineral);
+    try {
+      const res = await ValidacionDistribucionService.validarLotes(ids);
+      const validados = res.validados;
+      const omitidos = res.omitidos ?? [];
+
+      if (validados.length === 0) {
+        notifyError(
+          "Ninguno de los lotes seleccionados cumple los requisitos de validación."
+        );
+        setSelectedLotes([]);
+        return;
+      }
+
+      const items: { titulo: string; campos_faltantes: string[] }[] = [];
+      for (const o of omitidos) {
+        items.push({
+          titulo: `Lote ${o.lote_correlativo ?? o.id_lote_mineral} (omitido)`,
+          campos_faltantes: o.razones,
+        });
+      }
+
+      if (omitidos.length === 0) {
+        notifySuccess(
+          `${validados.length} lote${validados.length > 1 ? "s" : ""} validado${
+            validados.length > 1 ? "s" : ""
+          } correctamente.`
+        );
+        setSelectedLotes([]);
+      } else {
+        setModalValidacion({
+          open: true,
+          modo: "confirmar",
+          titulo: "Resultado de validación múltiple",
+          subtitulo: (
+            <>
+              Se validaron <b>{validados.length}</b> de {ids.length} lotes.{" "}
+              Los lotes omitidos tienen requisitos pendientes (ver detalle).
+              No se incluyen en la selección múltiple según lo acordado.
+            </>
+          ),
+          pendientes: items,
+          context: null,
+        });
+        setSelectedLotes([]);
+      }
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      notifyError(
+        axiosErr?.response?.data?.message ??
+          "No se pudo completar la validación múltiple."
+      );
+    }
+  };
+
+  const handleConfirmValidacion = async () => {
+    const ctx = modalValidacion.context;
+    if (!ctx) {
+      // El modal sin context (resumen multi-lotes) solo se cierra.
+      closeModalValidacion();
+      return;
+    }
+
+    if (ctx.tipo === "lote") {
+      const ok = await validarLote(ctx.idLote);
+      if (ok) {
+        notifySuccess("Lote validado correctamente.");
+        closeModalValidacion();
+      }
+    }
+  };
+
+const handleCrearParticion = async (idLote: number) => {
     const ref = expandibleRefs.current.get(idLote);
     if (!ref) return;
     setCreatingParticionId(idLote);
     try {
       await ref.crearParticion();
-      cargar();
+      updateRecord(idLote, { tiene_particion: 1 });
     } catch {
       notifyError("No se pudo crear la partición.");
     } finally {
@@ -137,7 +362,7 @@ export const ValidacionDistribucionPage = () => {
     : "No hay lotes pendientes de partición.";
 
   return (
-    <Container fluid py="md">
+    <Container fluid>
       <Stack gap="md">
         {/* Cabecera de Filtros */}
         <div className="flex flex-col xl:flex-row gap-4 items-end justify-between w-full">
@@ -258,6 +483,9 @@ export const ValidacionDistribucionPage = () => {
           idAccessor="id_lote_mineral"
           loading={loading}
           noRecordsText={noRecordsText}
+          selectedRecords={selectedLotes}
+          onSelectedRecordsChange={setSelectedLotes}
+          isRecordSelectable={puedeSeleccionarLote}
           renderExpandedRow={(r: Row) => (
             <ParticionesExpandible
               ref={(instance) => {
@@ -375,21 +603,120 @@ export const ValidacionDistribucionPage = () => {
               accessor: "id_lote_mineral",
               title: "Acciones",
               textAlign: "center",
-              render: (r: Row) => (
-                <Button
-                  size="xs"
-                  radius="lg"
-                  loading={creatingParticionId === r.id_lote_mineral}
-                  disabled={creatingParticionId !== null}
-                  onClick={() => void handleCrearParticion(r.id_lote_mineral)}
-                >
-                  + Nueva partición
-                </Button>
-              ),
+              render: (r: Row) => {
+                const isValidated = r.lote_esta_validado === true;
+                const isValidating = validatingIds[r.id_lote_mineral] === true;
+                const isFetchingEval =
+                  fetchingEvalLoteId === r.id_lote_mineral;
+                const isBusy = isValidating || isFetchingEval;
+                // Evalua requisitos con el mismo criterio que las particiones:
+                // lee el cache de particiones (hidratado por prefetch o autoguardado).
+                const cached = useParticionesLoteStore
+                  .getState()
+                  .getCached(r.id_lote_mineral);
+                const evalLoteOk = cached?.data?.length
+                  ? evaluarLote(cached.data, r.lote_peso_neto).cumple
+                  : false;
+                const cumpleRequisitos = !isValidated && evalLoteOk;
+                const color: "green" | "yellow" | "gray" = isValidated
+                  ? "green"
+                  : cumpleRequisitos
+                    ? "green"
+                    : "yellow";
+                const tooltip = isValidated
+                  ? "Lote ya validado"
+                  : cumpleRequisitos
+                    ? "Click para validar lote"
+                    : "Hay campos pendientes. Click para ver detalle.";
+                return (
+                  <Group gap={6} wrap="nowrap" justify="center">
+                    <Tooltip label={tooltip} withArrow>
+                      <ActionIcon
+                        variant={isValidated || cumpleRequisitos ? "light" : "outline"}
+                        color={color}
+                        size="md"
+                        radius="md"
+                        loading={isBusy}
+                        disabled={isValidated || isBusy}
+                        onClick={() => handleClickValidarLote(r)}
+                        aria-label="Validar lote"
+                      >
+                        <IconShieldCheck size={16} />
+                      </ActionIcon>
+                    </Tooltip>
+                    <Button
+                      size="xs"
+                      radius="lg"
+                      loading={creatingParticionId === r.id_lote_mineral}
+                      disabled={
+                        creatingParticionId !== null ||
+                        r.lote_esta_validado === true
+                      }
+                      onClick={() => void handleCrearParticion(r.id_lote_mineral)}
+                    >
+                      + Nueva partición
+                    </Button>
+                  </Group>
+                );
+              },
             },
           ]}
         />
       </Stack>
+
+      {selectedLotes.length > 0 && (
+        <Paper
+          shadow="xl"
+          radius="lg"
+          p="sm"
+          withBorder
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50
+            bg-zinc-900/95 border-indigo-500/40 backdrop-blur-md
+            flex items-center gap-3 animate-fadeIn"
+        >
+          <Text size="sm" c="zinc.2" fw={500}>
+            {selectedLotes.length} lote{selectedLotes.length > 1 ? "s" : ""} seleccionado
+            {selectedLotes.length > 1 ? "s" : ""}
+          </Text>
+          <Button
+            radius="lg"
+            size="xs"
+            color="indigo"
+            loading={validatingAll}
+            leftSection={<IconShieldCheck size={14} />}
+            onClick={handleClickValidarMultiples}
+          >
+            Validar
+          </Button>
+          <Button
+            radius="lg"
+            size="xs"
+            variant="subtle"
+            color="gray"
+            onClick={() => setSelectedLotes([])}
+          >
+            Limpiar selección
+          </Button>
+        </Paper>
+      )}
+
+      {modalValidacion.context && (
+        <ModalValidacion
+          opened={modalValidacion.open}
+          onClose={closeModalValidacion}
+          modo={modalValidacion.modo}
+          titulo={modalValidacion.titulo}
+          subtitulo={modalValidacion.subtitulo}
+          pendientesTextoLibre={modalValidacion.pendientesTextoLibre}
+          pendientes={modalValidacion.pendientes}
+          confirmLabel={
+            modalValidacion.context.tipo === "lote"
+              ? "Validar lote"
+              : "Confirmar validación"
+          }
+          onConfirm={() => void handleConfirmValidacion()}
+        />
+      )}
     </Container>
   );
 };
