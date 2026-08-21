@@ -21,11 +21,10 @@ import {
   IconCalendar,
   IconPlus,
   IconTrash,
-  IconArrowUp,
-  IconArrowDown,
   IconFileText,
   IconX,
   IconFile,
+  IconSearch,
 } from "@tabler/icons-react";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
 import { ModalRegistroProveedor } from "../../../../presentation/utils/modal-registro-proveedor";
@@ -33,6 +32,7 @@ import { ModalConcesionesProveedor } from "../../../../presentation/utils/modal-
 import { RegistroVehiculoSimple } from "../../../../presentation/utils/registro-vehiculo-simple";
 import { RegistroEmpresaTransporte } from "../../../../presentation/utils/registro-empresa-transporte";
 import { RegistroConductor } from "../../../../presentation/utils/registro-conductor";
+import { CustomDatePicker } from "../../../../presentation/utils/date-picker-input";
 import { AuxService } from "../../../../service/auxiliar.service";
 import { useNotify } from "../../../../hooks/useNotify";
 import {
@@ -102,6 +102,12 @@ const itemKey = (i: {
   return `LOTE:${i.id_lote_mineral ?? ""}`;
 };
 
+const todayIso = (): string => {
+  const d = new Date();
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
 export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubmit, onUpdate }: Props) => {
   const { notifyError } = useNotify();
 
@@ -130,9 +136,9 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
 
   const [motivoTraslado, setMotivoTraslado] = useState<string | null>(null);
   const [condicionIngreso, setCondicionIngreso] = useState<string | null>(null);
-  const [fechaInicioTraslado, setFechaInicioTraslado] = useState<string | null>(null);
-  const [fechaEmision, setFechaEmision] = useState<string | null>(null);
-  const [fechaEnPlanta, setFechaEnPlanta] = useState<string | null>(null);
+  const [fechaInicioTraslado, setFechaInicioTraslado] = useState<string | null>(todayIso());
+  const [fechaEmision, setFechaEmision] = useState<string | null>(todayIso());
+  const [fechaEnPlanta, setFechaEnPlanta] = useState<string | null>(todayIso());
 
   const [guiaRemitente, setGuiaRemitente] = useState("");
   const [guiaTransportista, setGuiaTransportista] = useState("");
@@ -435,7 +441,12 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
     setOpenItemModal(true);
     setLoadingItems(true);
     try {
-      const data = await ItemsMineralService.get_items_disponibles(idSucursal);
+      const fechaFiltro = fechaEnPlanta ?? todayIso();
+      const data = await ItemsMineralService.get_items_disponibles(
+        idSucursal,
+        undefined,
+        fechaFiltro,
+      );
       const yaSeleccionados = new Set(items.map(itemKey));
       setItemsDisponibles(
         data.filter((i) => !yaSeleccionados.has(itemKey(i)) && !i.en_guia),
@@ -451,8 +462,8 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
   const handleAgregarItems = (seleccionados: RES_ItemMineralDisponible[]) => {
     const nuevos: ItemFormItem[] = seleccionados.map((i) => ({
       tempId: `${itemKey(i)}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      id_lote_mineral: i.id_lote_mineral,
-      id_particion_lote_mineral: i.id_particion_lote_mineral,
+      id_lote_mineral: i.tipo_item === "PARTICION" ? null : i.id_lote_mineral,
+      id_particion_lote_mineral: i.tipo_item === "LOTE" ? null : i.id_particion_lote_mineral,
       tipo_item: i.tipo_item,
       correlativo: i.correlativo,
       peso_inicial: i.peso_inicial,
@@ -469,19 +480,6 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
     setItems((prev) => prev.filter((i) => i.tempId !== tempId));
   };
 
-  const handleMoverItem = (tempId: string, dir: -1 | 1) => {
-    setItems((prev) => {
-      const idx = prev.findIndex((i) => i.tempId === tempId);
-      if (idx < 0) return prev;
-      const nuevoIdx = idx + dir;
-      if (nuevoIdx < 0 || nuevoIdx >= prev.length) return prev;
-      const copia = [...prev];
-      const [item] = copia.splice(idx, 1);
-      copia.splice(nuevoIdx, 0, item);
-      return copia;
-    });
-  };
-
   const resetForm = () => {
     setIdProveedor(null);
     setIdConcesion(null);
@@ -493,9 +491,9 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
     setIdEmpresaTransporteCarreta(null);
     setMotivoTraslado("Venta");
     setCondicionIngreso(null);
-    setFechaInicioTraslado(null);
-    setFechaEmision(null);
-    setFechaEnPlanta(null);
+    setFechaInicioTraslado(todayIso());
+    setFechaEmision(todayIso());
+    setFechaEnPlanta(todayIso());
     setGuiaRemitente("");
     setGuiaTransportista("");
     setSinGuiaTransportista(false);
@@ -1107,14 +1105,14 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
             <Table verticalSpacing="sm" horizontalSpacing="md" className="w-full">
               <thead>
                 <tr className="border-b border-zinc-800/80 bg-zinc-900/40 text-zinc-300 text-xs font-semibold">
-                  <th className="text-center py-3" style={{ width: 140 }}>Orden</th>
-                  <th className="text-left py-3 pl-3">Tipo</th>
-                  <th className="text-left py-3">Correlativo</th>
-                  <th className="text-left py-3">Producto</th>
-                  <th className="text-left py-3">Mineral</th>
-                  <th className="text-right py-3">P. Bruto</th>
-                  <th className="text-right py-3">Tara</th>
-                  <th className="text-right py-3 pr-3">P. Neto</th>
+                  <th className="text-center py-3">Tipo</th>
+                  <th className="text-center py-3">Correlativo</th>
+                  <th className="text-center py-3">Producto</th>
+                  <th className="text-center py-3">Mineral</th>
+                  <th className="text-center py-3">P. Bruto</th>
+                  <th className="text-center py-3">Tara</th>
+                  <th className="text-center py-3">P. Neto</th>
+                  <th className="text-center py-3" style={{ width: 60 }}></th>
                 </tr>
               </thead>
               <tbody>
@@ -1125,55 +1123,12 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
                     </td>
                   </tr>
                 ) : (
-                  items.map((it, idx) => (
+                  items.map((it) => (
                     <tr
                       key={it.tempId}
                       className="border-b border-zinc-900/60 hover:bg-zinc-900/20 transition-colors"
                     >
-                      <td className="text-center py-2.5">
-                        <div className="flex items-center justify-center gap-3">
-                          <span className="font-bold text-zinc-400 text-xs w-4">{idx + 1}</span>
-                          <div className="flex items-center gap-1 bg-zinc-900/60 p-0.5 rounded-lg border border-zinc-800/80">
-                            <Tooltip label="Subir" withArrow position="top">
-                              <ActionIcon
-                                size="xs"
-                                variant="subtle"
-                                color="blue"
-                                onClick={() => handleMoverItem(it.tempId, -1)}
-                                disabled={idx === 0}
-                                className="text-zinc-400 hover:text-blue-400 disabled:opacity-20 disabled:hover:bg-transparent"
-                              >
-                                <IconArrowUp size={13} />
-                              </ActionIcon>
-                            </Tooltip>
-                            <Tooltip label="Bajar" withArrow position="top">
-                              <ActionIcon
-                                size="xs"
-                                variant="subtle"
-                                color="blue"
-                                onClick={() => handleMoverItem(it.tempId, 1)}
-                                disabled={idx === items.length - 1}
-                                className="text-zinc-400 hover:text-blue-400 disabled:opacity-20 disabled:hover:bg-transparent"
-                              >
-                                <IconArrowDown size={13} />
-                              </ActionIcon>
-                            </Tooltip>
-                            <div className="w-px h-3.5 bg-zinc-800 mx-0.5" />
-                            <Tooltip label="Eliminar" withArrow position="top">
-                              <ActionIcon
-                                size="xs"
-                                variant="subtle"
-                                color="red"
-                                onClick={() => handleEliminarItem(it.tempId)}
-                                className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
-                              >
-                                <IconTrash size={13} />
-                              </ActionIcon>
-                            </Tooltip>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-2.5">
+                      <td className="py-2.5 text-center">
                         <Badge
                           variant="light"
                           color={it.tipo_item === "PARTICION" ? "violet" : "teal"}
@@ -1184,8 +1139,8 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
                           {it.tipo_item}
                         </Badge>
                       </td>
-                      <td className="py-2.5 text-left">
-                        <div className="flex items-center gap-2">
+                      <td className="py-2.5">
+                        <div className="flex items-center justify-center gap-2">
                           <div className="p-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                             <IconFileText size={14} />
                           </div>
@@ -1194,16 +1149,29 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
                           </Text>
                         </div>
                       </td>
-                      <td className="py-2.5 text-xs text-zinc-300">{it.tipo_producto ?? "—"}</td>
-                      <td className="py-2.5 text-xs text-zinc-300">{it.tipo_mineral ?? "—"}</td>
-                      <td className="py-2.5 text-right font-mono text-zinc-200 text-xs">
+                      <td className="py-2.5 text-center text-xs text-zinc-300">{it.tipo_producto ?? "—"}</td>
+                      <td className="py-2.5 text-center text-xs text-zinc-300">{it.tipo_mineral ?? "—"}</td>
+                      <td className="py-2.5 text-center font-mono text-zinc-200 text-xs">
                         {it.peso_inicial?.toFixed(2) ?? "—"}
                       </td>
-                      <td className="py-2.5 text-right font-mono text-zinc-200 text-xs">
+                      <td className="py-2.5 text-center font-mono text-zinc-200 text-xs">
                         {it.peso_final?.toFixed(2) ?? "—"}
                       </td>
-                      <td className="py-2.5 text-right font-mono text-emerald-400 text-xs fw-semibold pr-3">
+                      <td className="py-2.5 text-center font-mono text-emerald-400 text-xs fw-semibold">
                         {it.peso_neto?.toFixed(2) ?? "—"}
+                      </td>
+                      <td className="py-2.5 text-center">
+                        <Tooltip label="Eliminar" withArrow position="top">
+                          <ActionIcon
+                            size="sm"
+                            variant="subtle"
+                            color="red"
+                            onClick={() => handleEliminarItem(it.tempId)}
+                            className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+                          >
+                            <IconTrash size={14} />
+                          </ActionIcon>
+                        </Tooltip>
                       </td>
                     </tr>
                   ))
@@ -1296,8 +1264,29 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
         opened={openItemModal}
         loading={loadingItems}
         items={itemsDisponibles}
+        fechaFiltroIngreso={fechaEnPlanta ?? todayIso()}
         onClose={() => setOpenItemModal(false)}
         onConfirm={handleAgregarItems}
+        onFechaFiltroChange={async (nuevaFecha) => {
+          setFechaEnPlanta(nuevaFecha);
+          setLoadingItems(true);
+          try {
+            const data = await ItemsMineralService.get_items_disponibles(
+              idSucursal,
+              undefined,
+              nuevaFecha,
+            );
+            const yaSeleccionados = new Set(items.map(itemKey));
+            setItemsDisponibles(
+              data.filter((i) => !yaSeleccionados.has(itemKey(i)) && !i.en_guia),
+            );
+          } catch (e) {
+            console.error("Error al cargar items disponibles", e);
+            notifyError("No se pudieron cargar los items de mineral disponibles.");
+          } finally {
+            setLoadingItems(false);
+          }
+        }}
       />
     </>
   );
@@ -1311,13 +1300,28 @@ interface ModalSeleccionarItemProps {
   opened: boolean;
   loading: boolean;
   items: RES_ItemMineralDisponible[];
+  fechaFiltroIngreso: string;
   onClose: () => void;
   onConfirm: (seleccionados: RES_ItemMineralDisponible[]) => void;
+  onFechaFiltroChange: (fecha: string) => void;
 }
 
-const ModalSeleccionarItem = ({ opened, loading, items, onClose, onConfirm }: ModalSeleccionarItemProps) => {
+const ModalSeleccionarItem = ({
+  opened,
+  loading,
+  items,
+  fechaFiltroIngreso,
+  onClose,
+  onConfirm,
+  onFechaFiltroChange,
+}: ModalSeleccionarItemProps) => {
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
   const [busqueda, setBusqueda] = useState("");
+  const [fechaFiltro, setFechaFiltro] = useState<string>(fechaFiltroIngreso);
+
+  useEffect(() => {
+    setFechaFiltro(fechaFiltroIngreso);
+  }, [fechaFiltroIngreso]);
 
   const handleClose = () => {
     setSeleccionados(new Set());
@@ -1353,29 +1357,59 @@ const ModalSeleccionarItem = ({ opened, loading, items, onClose, onConfirm }: Mo
     return matchesCorrelativo || matchesProveedor || matchesPlaca;
   });
 
-  return (
-    <ModalEstandar opened={opened} close={handleClose} title="Seleccionar Lotes o Particiones" size="xl">
-      <Stack gap="md">
-        <TextInput
-          placeholder="Buscar por correlativo, placa o proveedor..."
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.currentTarget.value)}
-          classNames={fieldClasses}
-          radius="md"
-          size="xs"
-        />
+  const filtrosHeader = (
+    <div className="flex items-center gap-2">
+      <TextInput
+        placeholder="Buscar correlativo, placa o proveedor..."
+        value={busqueda}
+        onChange={(e) => setBusqueda(e.currentTarget.value)}
+        leftSection={<IconSearch size={12} className="text-zinc-500" />}
+        classNames={fieldClasses}
+        radius="md"
+        size="xs"
+        style={{ width: 200 }}
+      />
+      <CustomDatePicker
+        label=""
+        value={fechaFiltro}
+        onChange={(d) => {
+          if (!d) {
+            const hoy = todayIso();
+            setFechaFiltro(hoy);
+            onFechaFiltroChange(hoy);
+            return;
+          }
+          const pad = (n: number) => n.toString().padStart(2, "0");
+          const iso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+          setFechaFiltro(iso);
+          onFechaFiltroChange(iso);
+        }}
+        placeholder="Fecha ingreso"
+        style={{ width: 150 }}
+      />
+    </div>
+  );
 
-        <div className="max-h-[55vh] overflow-y-auto rounded-xl border border-zinc-800/80 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <Table verticalSpacing="xs" horizontalSpacing="sm" className="w-full">
+  return (
+    <ModalEstandar
+      opened={opened}
+      close={handleClose}
+      title="Seleccionar Lotes o Particiones"
+      size="70%"
+      rightSection={filtrosHeader}
+    >
+      <Stack gap="md">
+        <div className="max-h-[55vh] overflow-x-auto overflow-y-auto rounded-xl border border-zinc-800/80 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <Table verticalSpacing="xs" horizontalSpacing="sm" className="w-full min-w-180">
             <thead className="sticky top-0 bg-zinc-900/95 backdrop-blur z-10">
               <tr className="text-zinc-300 text-xs">
-                <th style={{ width: 40 }}></th>
-                <th>Tipo</th>
-                <th>Correlativo</th>
-                <th>Placa</th>
-                <th className="text-right">P. Bruto</th>
-                <th className="text-right">Tara</th>
-                <th className="text-right">P. Neto</th>
+                <th style={{ width: 40 }} className="text-center">#</th>
+                <th className="text-center">Tipo</th>
+                <th className="text-center">Correlativo</th>
+                <th className="text-center">Placa</th>
+                <th className="text-center">P. Bruto</th>
+                <th className="text-center">Tara</th>
+                <th className="text-center">P. Neto</th>
               </tr>
             </thead>
             <tbody>
@@ -1406,7 +1440,7 @@ const ModalSeleccionarItem = ({ opened, loading, items, onClose, onConfirm }: Mo
                           className="accent-emerald-500"
                         />
                       </td>
-                      <td>
+                      <td className="text-center">
                         <Badge
                           variant="light"
                           color={i.tipo_item === "PARTICION" ? "violet" : "teal"}
@@ -1417,13 +1451,13 @@ const ModalSeleccionarItem = ({ opened, loading, items, onClose, onConfirm }: Mo
                           {i.tipo_item}
                         </Badge>
                       </td>
-                      <td className="font-mono text-zinc-100 text-xs">{i.correlativo}</td>
-                      <td className="text-zinc-300 text-xs">
+                      <td className="text-center font-mono text-zinc-100 text-xs">{i.correlativo}</td>
+                      <td className="text-center text-zinc-300 text-xs">
                         {i.vehiculo_placa ? i.vehiculo_placa.toUpperCase() : "—"}
                       </td>
-                      <td className="text-right font-mono text-zinc-200 text-xs">{i.peso_inicial?.toFixed(2) ?? "—"}</td>
-                      <td className="text-right font-mono text-zinc-200 text-xs">{i.peso_final?.toFixed(2) ?? "—"}</td>
-                      <td className="text-right font-mono text-emerald-300 text-xs">{i.peso_neto?.toFixed(2) ?? "—"}</td>
+                      <td className="text-center font-mono text-zinc-200 text-xs">{i.peso_inicial?.toFixed(2) ?? "—"}</td>
+                      <td className="text-center font-mono text-zinc-200 text-xs">{i.peso_final?.toFixed(2) ?? "—"}</td>
+                      <td className="text-center font-mono text-emerald-300 text-xs">{i.peso_neto?.toFixed(2) ?? "—"}</td>
                     </tr>
                   );
                 })
@@ -1432,11 +1466,11 @@ const ModalSeleccionarItem = ({ opened, loading, items, onClose, onConfirm }: Mo
           </Table>
         </div>
 
-        <div className="flex items-center justify-between">
-          <Text size="xs" c="dimmed">
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
+          <Text size="xs" c="dimmed" className="text-center sm:text-left">
             {seleccionados.size} seleccionado(s)
           </Text>
-          <div className="flex gap-2">
+          <div className="flex justify-center gap-2">
             <Button variant="subtle" color="gray" radius="md" size="sm" onClick={handleClose}>
               Cancelar
             </Button>

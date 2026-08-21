@@ -52,6 +52,7 @@ export interface RES_Particion {
   id_tipo_vehiculo?: number | null;
   id_proveedor_minero?: number | null;
   fecha_hora_ingreso?: string | null;
+  fecha_hora_salida?: string | null;
   vehiculo_placa?: string | null;
   vehiculo_tara?: number | null;
   vehiculo_capacidad?: number | null;

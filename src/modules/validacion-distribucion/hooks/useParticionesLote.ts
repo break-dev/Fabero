@@ -63,39 +63,6 @@ export const computeRebalance = (
   const unlocked = activas.filter((p) => !p.es_bloqueado);
   if (unlocked.length === 0) return normalized;
 
-  const unlockedWithWeight = unlocked.filter((p) => (p.peso_neto ?? 0) > 0);
-  const unlockedZero = unlocked.filter((p) => (p.peso_neto ?? 0) === 0);
-
-  if (unlockedZero.length > 0 && unlockedWithWeight.length > 0) {
-    const fixedSum =
-      lockedSum +
-      unlockedWithWeight.reduce((s, p) => s + (p.peso_neto ?? 0), 0);
-    const remanente = round2(Math.max(0, total - fixedSum));
-    const baseShare = round2(remanente / unlockedZero.length);
-
-    let currentSum = 0;
-    const zeroMapped = new Map<number, RES_Particion>();
-    unlockedZero.forEach((p, idx) => {
-      let share: number;
-      if (idx === unlockedZero.length - 1) {
-        share = round2(remanente - currentSum);
-      } else {
-        share = baseShare;
-        currentSum = round2(currentSum + share);
-      }
-      const pesoFinal = p.peso_final ?? 0;
-      const pesoInicial = round2(share + pesoFinal);
-      zeroMapped.set(p.id, {
-        ...p,
-        peso_inicial: pesoInicial,
-        peso_final: pesoFinal,
-        peso_neto: share,
-      });
-    });
-
-    return normalized.map((p) => zeroMapped.get(p.id) ?? p);
-  }
-
   const targetUnlockedSum = round2(Math.max(0, total - lockedSum));
   const baseShare = round2(targetUnlockedSum / unlocked.length);
 
@@ -390,22 +357,17 @@ export const useParticionesLote = (
 
       setSavingIds((s) => ({ ...s, [p.id]: true }));
       try {
-        await ValidacionDistribucionService.updateParticion(p.id, {
-          estado: "Eliminado",
-        });
-        setSnapshots((prev) => ({
-          ...prev,
-          [p.id]: snapshotFrom({ ...p, estado: "Eliminado" }),
-        }));
-        notifySuccess(`Partición ${p.particion} eliminada.`);
-      } catch {
-        notifyError("No se pudo eliminar la partición.");
-        await cargar();
+        await persistOne(
+          p.id,
+          { estado: "Eliminado" },
+          `Partición ${p.particion} eliminada.`,
+          "No se pudo eliminar la partición."
+        );
       } finally {
         setSavingIds((s) => ({ ...s, [p.id]: false }));
       }
     },
-    [lotePesoNeto, cargar, notifyError, notifySuccess]
+    [lotePesoNeto, persistOne]
   );
 
   const toggleBloqueo = useCallback(
@@ -419,13 +381,13 @@ export const useParticionesLote = (
         return computeRebalance(nextArr, total);
       });
       try {
-        await ValidacionDistribucionService.updateParticion(p.id, {
-          es_bloqueado: nuevoEstado,
-        });
-        notifySuccess(
+        await persistOne(
+          p.id,
+          { es_bloqueado: nuevoEstado },
           nuevoEstado
             ? `Partición ${p.particion} bloqueada.`
-            : `Partición ${p.particion} desbloqueada.`
+            : `Partición ${p.particion} desbloqueada.`,
+          "No se pudo actualizar el estado de bloqueo."
         );
       } catch {
         setParticiones((prev) => {
@@ -437,7 +399,7 @@ export const useParticionesLote = (
         notifyError("No se pudo actualizar el estado de bloqueo.");
       }
     },
-    [lotePesoNeto, notifyError, notifySuccess]
+    [lotePesoNeto, persistOne, notifyError]
   );
 
   const cambiarFecha = useCallback(

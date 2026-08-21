@@ -15,24 +15,19 @@ import {
   IconX,
   IconPencil,
   IconTrash,
-  IconPaperclip,
   IconPrinter,
 } from "@tabler/icons-react";
 import { useTitlePage } from "../../../hooks/useTitlePage";
 import { useUIStore } from "../../../stores/ui.store";
 import { useGuiasPrimerTramo } from "../hooks/useGuiasPrimerTramo";
-import { usePrintGuiaRemitente } from "../hooks/usePrintGuiaRemitente";
-import { usePrintGuiaTransportista } from "../hooks/usePrintGuiaTransportista";
 import { ModalGuiaPrimerTramo } from "./components/modal-guia-primer-tramo";
 import { HistorialModal } from "./components/historial-modal";
 import { DataTableEstandar } from "../../../presentation/utils/datatable-estandar";
 import type { DTO_CrearGuiaPrimerTramo, DTO_ActualizarGuiaPrimerTramo } from "../service/guias-primer-tramo.requests";
-import type { RES_GuiaPrimerTramo, RES_DocumentoGuia } from "../service/guias-primer-tramo.responses";
+import type { RES_GuiaPrimerTramo } from "../service/guias-primer-tramo.responses";
 import { MotivoTraslado } from "../../../shared/enums/_generic/motivo-traslado";
 import { EstadoBase } from "../../../shared/enums/_generic/estado-base";
 import { mostrarConfirmacion } from "../../../presentation/utils/modal-confirmacion";
-import { ModalEstandar } from "../../../presentation/utils/modal-estandar";
-import { ArchivoCard } from "../../../presentation/utils/archivo/archivo-card";
 
 export const GuiasPrimerTramoPage = () => {
   useTitlePage("Guías Primer Tramo", true);
@@ -51,13 +46,6 @@ export const GuiasPrimerTramoPage = () => {
     fetchFiltrosMetadata,
   } = useGuiasPrimerTramo();
 
-  const { printGuia, isPrinting, printingId } = usePrintGuiaRemitente();
-  const {
-    printGuiaTransportista,
-    isPrinting: isPrintingTransportista,
-    printingId: printingIdTransportista,
-  } = usePrintGuiaTransportista();
-
   const todayIso = () => {
     const d = new Date();
     const y = d.getFullYear();
@@ -71,12 +59,6 @@ export const GuiasPrimerTramoPage = () => {
 
   const [openModal, setOpenModal] = useState(false);
   const [editingGuia, setEditingGuia] = useState<RES_GuiaPrimerTramo | null>(null);
-
-  const [selectedDocumentos, setSelectedDocumentos] = useState<{
-    guia_remitente: RES_DocumentoGuia | null;
-    guia_transportista: RES_DocumentoGuia | null;
-  } | null>(null);
-  const [documentosModalOpen, setDocumentosModalOpen] = useState(false);
 
   const [historialModalOpen, setHistorialModalOpen] = useState(false);
   const [guiaHistorial, setGuiaHistorial] = useState<RES_GuiaPrimerTramo | null>(null);
@@ -166,13 +148,6 @@ export const GuiasPrimerTramoPage = () => {
       default:
         return "zinc";
     }
-  };
-
-  const totalDocumentos = (g: RES_GuiaPrimerTramo): number => {
-    let n = 0;
-    if (g.documentos?.guia_remitente) n += 1;
-    if (g.documentos?.guia_transportista) n += 1;
-    return n;
   };
 
   return (
@@ -282,20 +257,20 @@ export const GuiasPrimerTramoPage = () => {
             accessor: "guia_remitente",
             title: "Guía Remitente",
             render: (g: RES_GuiaPrimerTramo) => {
+              const doc = g.documentos?.guia_remitente ?? null;
               const hasGuia = !!g.guia_remitente;
               return (
                 <div className="flex items-center gap-2">
                   <Text size="xs" fw={500} className="text-zinc-200 font-mono">
                     {hasGuia ? g.guia_remitente : "—"}
                   </Text>
-                  {hasGuia && (
-                    <Tooltip label="Imprimir Guía Remitente" withArrow>
+                  {doc?.url && (
+                    <Tooltip label="Ver Guía Remitente" withArrow>
                       <ActionIcon
                         size="xs"
                         variant="subtle"
                         color="blue"
-                        loading={isPrinting && printingId === g.id}
-                        onClick={() => printGuia(g)}
+                        onClick={() => window.open(doc.url, "_blank")}
                         className="text-zinc-400 hover:text-blue-400"
                       >
                         <IconPrinter size={16} />
@@ -317,23 +292,20 @@ export const GuiasPrimerTramoPage = () => {
                   </Badge>
                 );
               }
+              const doc = g.documentos?.guia_transportista ?? null;
               const hasGuia = !!g.guia_transportista;
               return (
                 <div className="flex items-center gap-2">
                   <Text size="xs" className="text-zinc-300 font-mono">
                     {hasGuia ? g.guia_transportista : "—"}
                   </Text>
-                  {hasGuia && (
-                    <Tooltip label="Imprimir Guía Transportista" withArrow>
+                  {doc?.url && (
+                    <Tooltip label="Ver Guía Transportista" withArrow>
                       <ActionIcon
                         size="xs"
                         variant="subtle"
                         color="blue"
-                        loading={
-                          isPrintingTransportista &&
-                          printingIdTransportista === g.id
-                        }
-                        onClick={() => printGuiaTransportista(g)}
+                        onClick={() => window.open(doc.url, "_blank")}
                         className="text-zinc-400 hover:text-blue-400"
                       >
                         <IconPrinter size={16} />
@@ -423,37 +395,6 @@ export const GuiasPrimerTramoPage = () => {
                 {g.motivo_traslado ?? "—"}
               </Badge>
             ),
-          },
-          {
-            accessor: "documentos",
-            title: "Documentos",
-            width: 130,
-            render: (g: RES_GuiaPrimerTramo) => {
-              const total = totalDocumentos(g);
-              if (total === 0) {
-                return (
-                  <Text size="xs" className="text-zinc-500 italic">
-                    Sin documentos
-                  </Text>
-                );
-              }
-              return (
-                <Button
-                  size="xs"
-                  variant="light"
-                  color="indigo"
-                  radius="xl"
-                  leftSection={<IconPaperclip size={14} />}
-                  onClick={() => {
-                    setSelectedDocumentos(g.documentos ?? null);
-                    setDocumentosModalOpen(true);
-                  }}
-                  className="bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/10"
-                >
-                  Ver ({total})
-                </Button>
-              );
-            },
           },
           {
             accessor: "estado",
@@ -624,40 +565,6 @@ export const GuiasPrimerTramoPage = () => {
           onUpdate={handleEditSubmit}
         />
       )}
-
-      <ModalEstandar
-        opened={documentosModalOpen}
-        close={() => {
-          setDocumentosModalOpen(false);
-          setSelectedDocumentos(null);
-        }}
-        title="Documentos de la Guía"
-        size="md"
-      >
-        <div className="flex flex-col gap-3">
-          {selectedDocumentos?.guia_remitente && (
-            <div className="flex flex-col gap-1">
-              <Text size="xs" fw={700} c="indigo.4" tt="uppercase" lts="0.1em">
-                Guía Remitente
-              </Text>
-              <ArchivoCard archivo={selectedDocumentos.guia_remitente} />
-            </div>
-          )}
-          {selectedDocumentos?.guia_transportista && (
-            <div className="flex flex-col gap-1">
-              <Text size="xs" fw={700} c="indigo.4" tt="uppercase" lts="0.1em">
-                Guía Transportista
-              </Text>
-              <ArchivoCard archivo={selectedDocumentos.guia_transportista} />
-            </div>
-          )}
-          {!selectedDocumentos?.guia_remitente && !selectedDocumentos?.guia_transportista && (
-            <Text size="xs" c="dimmed" className="text-center">
-              Esta guía no tiene documentos adjuntos.
-            </Text>
-          )}
-        </div>
-      </ModalEstandar>
 
       <HistorialModal
         guia={guiaHistorial}

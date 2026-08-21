@@ -107,15 +107,15 @@ export const useRecepcionMineral = () => {
     id: number,
     condicionIngreso: CondicionIngreso,
     idEmpresa: number,
-    correlativoManual?: { correlativo: string; numeroCorrelativo: number },
+    codigoManual?: { conCodigoManual: boolean; codigoManual?: string },
   ) => {
     setCreatingLoteId(id);
     try {
       const nuevoLote = await RecepcionMineralService.crear_lote(id, {
         condicion_ingreso: condicionIngreso,
         id_empresa: idEmpresa,
-        correlativo_manual: correlativoManual?.correlativo,
-        numero_correlativo_manual: correlativoManual?.numeroCorrelativo,
+        con_codigo_manual: codigoManual?.conCodigoManual ?? false,
+        codigo_manual: codigoManual?.codigoManual,
       });
       notifySuccess("Lote generado correctamente: " + nuevoLote.correlativo);
 
@@ -263,25 +263,6 @@ export const useRecepcionMineral = () => {
     }
   };
 
-  const crearUnidadFicticia = async (fechaHoraIngreso?: string | null) => {
-    if (!idSucursal) {
-      notifyError("Debe seleccionar una sucursal en el encabezado");
-      return;
-    }
-    try {
-      const ficticia = await RecepcionMineralService.crear_unidad_ficticia(
-        idSucursal,
-        fechaHoraIngreso
-      );
-      notifySuccess("Unidad ficticia creada correctamente");
-      await loadRecepciones();
-      setSelectedRecepcion(ficticia);
-    } catch (e: unknown) {
-      console.error(e);
-      notifyError("Error al crear la unidad ficticia");
-    }
-  };
-
   return {
     sinPesarList,
     enProcesoList,
@@ -300,6 +281,5 @@ export const useRecepcionMineral = () => {
     registrarPesoInicial,
     registrarPesoFinal,
     cerrarProceso,
-    crearUnidadFicticia,
   };
 };

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Grid, Paper, Text, Button, Group, ActionIcon, Badge, Center, Loader, Stack } from "@mantine/core";
-import { IconScale, IconPlus, IconChecklist, IconPencil } from "@tabler/icons-react";
+import { Grid, Paper, Text, Group, Badge, Center, Loader, Stack } from "@mantine/core";
+import { IconScale, IconChecklist } from "@tabler/icons-react";
 import { useTitlePage } from "../../../hooks/useTitlePage";
 import { mostrarConfirmacion } from "../../../presentation/utils/modal-confirmacion";
 import { useRecepcionMineral } from "../hooks/useRecepcionMineral";
@@ -8,7 +8,6 @@ import { AuxService } from "../../../service/auxiliar.service";
 import { ModalEstandar } from "../../../presentation/utils/modal-estandar";
 import { ModalPesoInicial } from "./components/modal-peso-inicial";
 import { ModalPesoFinal } from "./components/modal-peso-final";
-import { ModalUnidadFicticia } from "./components/modal-unidad-ficticia";
 import { ModalCondicionIngreso } from "./components/modal-condicion-ingreso";
 import { CardProcesoBalanza } from "./components/card-proceso-balanza";
 import type { RES_EmpresaTransporte } from "../../../service/responses/empresa-transporte";
@@ -16,21 +15,18 @@ import type { RES_TipoVehiculo } from "../../../service/responses/tipo-vehiculo"
 import type { RES_Conductor } from "../../../service/responses/conductor";
 import type { RES_Empresa } from "../../../service/responses/empresa";
 import type { RES_Vehiculo } from "../../../service/responses/vehiculo";
-import type { RES_LoteMineral, RecepcionMineralResponse } from "../service/recepcion-mineral.responses";
-import { useUIStore } from "../../../stores/ui.store";
+import type { RES_LoteMineral } from "../service/recepcion-mineral.responses";
 import { useTicketBalanza } from "../hooks/useTicketBalanza";
 
 export const RecepcionMineralPage = () => {
   useTitlePage("Recepción de Mineral", true);
 
-  const sucursal = useUIStore((state) => state.sucursal_elegida);
   const { printTicketBalanza } = useTicketBalanza();
 
   const {
     sinPesarList,
     enProcesoList,
     loading,
-    selectedRecepcion,
     setSelectedRecepcion,
     validarCampo,
     creatingLoteId,
@@ -42,7 +38,6 @@ export const RecepcionMineralPage = () => {
     registrarPesoInicial,
     registrarPesoFinal,
     cerrarProceso,
-    crearUnidadFicticia,
   } = useRecepcionMineral();
 
   const getFullPlaca = (serie: string | null, placa: string | null) => {
@@ -61,8 +56,6 @@ export const RecepcionMineralPage = () => {
   // Modales
   const [activeLotePesoInicial, setActiveLotePesoInicial] = useState<RES_LoteMineral | null>(null);
   const [activeLotePesoFinal, setActiveLotePesoFinal] = useState<RES_LoteMineral | null>(null);
-  const [openFicticiaModal, setOpenFicticiaModal] = useState(false);
-  const [editingFicticia, setEditingFicticia] = useState<RecepcionMineralResponse | null>(null);
 
   // Modal para condición de ingreso de lote
   const [condicionModalOpen, setCondicionModalOpen] = useState(false);
@@ -132,16 +125,6 @@ export const RecepcionMineralPage = () => {
                     Unidades en Planta
                   </Text>
                 </div>
-                <Button
-                  radius="md"
-                  size="xs"
-                  onClick={() => setOpenFicticiaModal(true)}
-                  disabled={!sucursal}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-900/10 h-7 w-7 p-0 flex items-center justify-center shrink-0 hover:scale-105 active:scale-95 transition-all duration-200"
-                  title="Unidad Ficticia"
-                >
-                  <IconPlus size={16} />
-                </Button>
               </div>
 
               <Stack gap="sm" className="flex-1 overflow-y-auto pr-1">
@@ -153,7 +136,6 @@ export const RecepcionMineralPage = () => {
                   </Center>
                 ) : (
                   sinPesarList.map((ru) => {
-                    const isSelected = selectedRecepcion?.id === ru.id;
                     const formatFechaHora = (
                       s: string | null | undefined,
                     ): { fecha: string; hora: string } => {
@@ -228,25 +210,6 @@ export const RecepcionMineralPage = () => {
                               >
                                 FICTICIA
                               </Badge>
-                            )}
-                            {ru.tipo_ingreso === "Ficticio" && (
-                              <ActionIcon
-                                size="xs"
-                                variant="subtle"
-                                radius="md"
-                                className={`shrink-0 transition-colors ${
-                                  isSelected
-                                    ? "text-zinc-950 hover:bg-zinc-950/30"
-                                    : "text-zinc-300 hover:bg-zinc-700/40"
-                                }`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingFicticia(ru);
-                                }}
-                                title="Editar fecha y hora"
-                              >
-                                <IconPencil size={12} stroke={2} />
-                              </ActionIcon>
                             )}
                           </Group>
                         </div>
@@ -396,30 +359,6 @@ export const RecepcionMineralPage = () => {
         </ModalEstandar>
       )}
 
-      {/* Modal: Unidad Ficticia (crear / editar fecha/hora) */}
-      <ModalUnidadFicticia
-        opened={openFicticiaModal || !!editingFicticia}
-        onClose={() => {
-          setOpenFicticiaModal(false);
-          setEditingFicticia(null);
-        }}
-        mode={editingFicticia ? "edit" : "create"}
-        initialFechaHoraIngreso={editingFicticia?.fecha_hora_ingreso ?? null}
-        onConfirm={async (fechaHoraIngreso) => {
-          if (editingFicticia) {
-            await validarCampo(
-              editingFicticia.id,
-              "fecha_hora_ingreso",
-              fechaHoraIngreso,
-            );
-            setEditingFicticia(null);
-          } else {
-            await crearUnidadFicticia(fechaHoraIngreso);
-            setOpenFicticiaModal(false);
-          }
-        }}
-      />
-
       {/* Modal: Seleccionar Condición de Ingreso y Empresa */}
       <ModalCondicionIngreso
         opened={condicionModalOpen}
@@ -428,9 +367,9 @@ export const RecepcionMineralPage = () => {
           setSelectedRecepcionIdForLote(null);
         }}
         empresasTitulares={empresasTitulares}
-        onConfirm={(condicion, idEmpresa, correlativoManual) => {
+        onConfirm={(condicion, idEmpresa, codigoManual) => {
           if (selectedRecepcionIdForLote) {
-            crearLote(selectedRecepcionIdForLote, condicion, idEmpresa, correlativoManual);
+            crearLote(selectedRecepcionIdForLote, condicion, idEmpresa, codigoManual);
           }
           setCondicionModalOpen(false);
           setSelectedRecepcionIdForLote(null);

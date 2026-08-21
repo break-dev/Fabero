@@ -69,7 +69,11 @@ export const EdicionParticionModal = ({
   const [fechaHoraIngreso, setFechaHoraIngreso] = useState<Date | null>(
     () => (particion.fecha_hora_ingreso ? new Date(particion.fecha_hora_ingreso) : new Date())
   );
-
+  const [fechaHoraSalida, setFechaHoraSalida] = useState<Date | null>(() => {
+    if (particion.fecha_hora_salida) return new Date(particion.fecha_hora_salida);
+    const base = particion.fecha_hora_ingreso ? new Date(particion.fecha_hora_ingreso) : new Date();
+    return new Date(base.getTime() + 2 * 60 * 60 * 1000);
+  });
 
   const [capacidadVehiculo, setCapacidadVehiculo] = useState<number | string | null>(
     particion.vehiculo_capacidad ?? null
@@ -120,6 +124,11 @@ export const EdicionParticionModal = ({
         ? new Date(particion.fecha_hora_ingreso)
         : new Date()
     );
+    setFechaHoraSalida(() => {
+      if (particion.fecha_hora_salida) return new Date(particion.fecha_hora_salida);
+      const base = particion.fecha_hora_ingreso ? new Date(particion.fecha_hora_ingreso) : new Date();
+      return new Date(base.getTime() + 2 * 60 * 60 * 1000);
+    });
 
     setLoadingVehiculos(true);
     setLoadingConductores(true);
@@ -199,6 +208,16 @@ export const EdicionParticionModal = ({
     }
   };
 
+  const handleVehiculoChange = (val: string | null) => {
+    setIdVehiculo(val);
+    if (val) {
+      const vehiculo = vehiculos.find((v) => String(v.id_vehiculo) === val);
+      if (vehiculo?.capacidad != null) {
+        setCapacidadVehiculo(vehiculo.capacidad);
+      }
+    }
+  };
+
   const handleGuardar = async () => {
     setSubmitting(true);
     try {
@@ -222,6 +241,9 @@ export const EdicionParticionModal = ({
             : null,
           fecha_hora_ingreso: fechaHoraIngreso
             ? fechaHoraIngreso.toISOString()
+            : null,
+          fecha_hora_salida: fechaHoraSalida
+            ? fechaHoraSalida.toISOString()
             : null,
         },
       };
@@ -262,7 +284,7 @@ export const EdicionParticionModal = ({
                 label: v.placa,
               }))}
               value={idVehiculo}
-              onChange={setIdVehiculo}
+              onChange={handleVehiculoChange}
               onPlus={() => setSubModal("vehiculo")}
               loading={loadingVehiculos}
             />
@@ -334,6 +356,19 @@ export const EdicionParticionModal = ({
               <DateTimePicker
                 value={fechaHoraIngreso}
                 onChange={(v) => setFechaHoraIngreso(v ? new Date(v) : null)}
+                valueFormat="DD/MM/YYYY HH:mm"
+                radius="lg"
+                size="sm"
+                popoverProps={{ withinPortal: true }}
+              />
+            </Stack>
+            <Stack gap={4}>
+              <Text size="xs" c="dimmed">
+                Fecha y hora de salida
+              </Text>
+              <DateTimePicker
+                value={fechaHoraSalida}
+                onChange={(v) => setFechaHoraSalida(v ? new Date(v) : null)}
                 valueFormat="DD/MM/YYYY HH:mm"
                 radius="lg"
                 size="sm"

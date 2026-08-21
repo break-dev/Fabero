@@ -12,11 +12,9 @@ interface ModalCondicionIngresoProps {
   onConfirm: (
     condicion: CondicionIngreso,
     idEmpresa: number,
-    correlativoManual?: { correlativo: string; numeroCorrelativo: number },
+    codigoManual?: { conCodigoManual: boolean; codigoManual?: string },
   ) => void;
 }
-
-const CORRELATIVO_REGEX = /^\d{2}-[A-Z0-9]{1,5}-\d{5}$/;
 
 export const ModalCondicionIngreso = ({
   opened,
@@ -27,15 +25,15 @@ export const ModalCondicionIngreso = ({
   const { notifyError } = useNotify();
   const [condicion, setCondicion] = useState<CondicionIngreso>(CondicionIngreso.Comercializacion);
   const [idEmpresa, setIdEmpresa] = useState<string | null>(null);
-  const [esManual, setEsManual] = useState(false);
-  const [correlativo, setCorrelativo] = useState("");
+  const [conCodigoManual, setConCodigoManual] = useState(false);
+  const [codigoManual, setCodigoManual] = useState("");
 
   useEffect(() => {
     if (opened) {
       setCondicion(CondicionIngreso.Comercializacion);
       setIdEmpresa(null);
-      setEsManual(false);
-      setCorrelativo("");
+      setConCodigoManual(false);
+      setCodigoManual("");
     }
   }, [opened]);
 
@@ -47,22 +45,19 @@ export const ModalCondicionIngreso = ({
   const handleConfirm = () => {
     if (!idEmpresa) return;
 
-    let manual: { correlativo: string; numeroCorrelativo: number } | undefined;
-    if (esManual) {
-      const corr = correlativo.trim().toUpperCase();
-      if (!CORRELATIVO_REGEX.test(corr)) {
-        notifyError("El correlativo debe tener formato YY-PREFIJO-NNNNN (ej. 26-LOT-00001)");
-        return;
-      }
-      const num = Number(corr.split("-")[2]);
-      if (!Number.isInteger(num) || num <= 0) {
-        notifyError("El número correlativo debe ser un entero positivo");
-        return;
-      }
-      manual = { correlativo: corr, numeroCorrelativo: num };
+    if (conCodigoManual && !codigoManual.trim()) {
+      notifyError("Debe ingresar el código manual");
+      return;
     }
 
-    onConfirm(condicion, Number(idEmpresa), manual);
+    const payload: { conCodigoManual: boolean; codigoManual?: string } = {
+      conCodigoManual,
+    };
+    if (conCodigoManual) {
+      payload.codigoManual = codigoManual.trim().toUpperCase();
+    }
+
+    onConfirm(condicion, Number(idEmpresa), payload);
   };
 
   const fieldClasses = {
@@ -116,21 +111,21 @@ export const ModalCondicionIngreso = ({
         />
 
         <Checkbox
-          label="Correlativo manual"
-          checked={esManual}
-          onChange={(e) => setEsManual(e.currentTarget.checked)}
+          label="Código manual"
+          checked={conCodigoManual}
+          onChange={(e) => setConCodigoManual(e.currentTarget.checked)}
           color="indigo"
           classNames={{ label: "text-zinc-200 text-sm" }}
         />
 
-        {esManual && (
+        {conCodigoManual && (
           <TextInput
-            label="Correlativo"
-            placeholder={`Ej. 26-${prefijoActual}-00001`}
+            label="Código"
+            placeholder="Ingrese el código del lote"
             required
             withAsterisk
-            value={correlativo}
-            onChange={(e) => setCorrelativo(e.target.value.toUpperCase())}
+            value={codigoManual}
+            onChange={(e) => setCodigoManual(e.target.value.toUpperCase())}
             classNames={fieldClasses}
             radius="md"
           />

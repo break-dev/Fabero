@@ -4,8 +4,8 @@ import { CondicionIngreso } from "../../../shared/enums/_generic/condicion-ingre
 export interface DTO_CrearLote {
   condicion_ingreso: CondicionIngreso;
   id_empresa: number;
-  correlativo_manual?: string;
-  numero_correlativo_manual?: number;
+  con_codigo_manual: boolean;
+  codigo_manual?: string;
 }
 
 export interface DTO_PesoInicial {

@@ -19,23 +19,6 @@ export const RecepcionMineralService = {
   },
 
   /**
-   * Crear unidad ficticia
-   */
-  crear_unidad_ficticia: async (
-    idSucursal: number,
-    fechaHoraIngreso?: string | null
-  ): Promise<RecepcionMineralResponse> => {
-    const body: { id_sucursal: number; fecha_hora_ingreso?: string } = {
-      id_sucursal: idSucursal,
-    };
-    if (fechaHoraIngreso) {
-      body.fecha_hora_ingreso = fechaHoraIngreso;
-    }
-    const { data } = await api.post(`${PATH}/ficticio`, body);
-    return data.data;
-  },
-
-  /**
    * Iniciar proceso de pesaje para una unidad
    */
   iniciar_pesaje: async (id: number): Promise<RecepcionMineralResponse> => {
@@ -44,7 +27,7 @@ export const RecepcionMineralService = {
   },
 
   /**
-   * Validar y actualizar un campo específico paso a paso
+   * Validar y actualizar un campo específico paso a paso (datos de la unidad)
    */
   validar_campo: async (
     id: number,
@@ -62,12 +45,10 @@ export const RecepcionMineralService = {
     const body: DTO_CrearLote = {
       condicion_ingreso: dto.condicion_ingreso,
       id_empresa: dto.id_empresa,
+      con_codigo_manual: dto.con_codigo_manual,
     };
-    if (dto.correlativo_manual) {
-      body.correlativo_manual = dto.correlativo_manual;
-    }
-    if (dto.numero_correlativo_manual) {
-      body.numero_correlativo_manual = dto.numero_correlativo_manual;
+    if (dto.con_codigo_manual && dto.codigo_manual) {
+      body.codigo_manual = dto.codigo_manual;
     }
     const { data } = await api.post(`${PATH}/${id}/lotes`, body);
     return data.data;

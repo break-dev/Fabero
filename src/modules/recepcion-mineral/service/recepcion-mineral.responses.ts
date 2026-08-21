@@ -14,7 +14,8 @@ export interface RES_LoteMineral {
   id_zona_origen: number | null;
   zona_origen_nombre?: string;
   correlativo: string;
-  numero_correlativo: number;
+  numero_correlativo: number | null;
+  con_codigo_manual: boolean;
   numero_contacto: string | null;
   tipo_producto: string | null;
   tipo_mineral: string | null;
@@ -34,6 +35,7 @@ export interface RES_LoteMineral {
   fecha_hora_peso_final: string | null;
   observacion_peso_final: string | null;
   peso_neto: number | null;
+  peso_actual: number | null;
   id_vehiculo: number | null;
   vehiculo_placa: string | null;
   vehiculo_serie: string | null;

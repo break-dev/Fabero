@@ -158,11 +158,13 @@ export const ItemsMineralService = {
   get_items_disponibles: async (
     idSucursal: number,
     idProveedor?: number | null,
+    fechaIngreso?: string | null,
   ): Promise<RES_ItemMineralDisponible[]> => {
     const { data } = await api.get(`/aux/lotes-mineral-disponibles`, {
       params: {
         id_sucursal: idSucursal,
         id_proveedor: idProveedor ?? undefined,
+        fecha_ingreso: fechaIngreso ?? undefined,
       },
     });
     return data.data;
