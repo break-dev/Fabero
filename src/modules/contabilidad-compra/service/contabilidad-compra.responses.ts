@@ -23,7 +23,7 @@ export interface RES_LoteValorizadoComprobante {
   maquila: number;
   consumo: number;
   factor: number;
-  codigo_gel: string | null;
+  numero_correlativo: number | null;
   lote_correlativo: string | null;
 }
 

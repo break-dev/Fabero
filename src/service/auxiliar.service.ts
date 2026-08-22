@@ -349,6 +349,16 @@ export const AuxService = {
     return data.data;
   },
 
+  /**
+   * Plantas destino activas (simplificado: id, ruc, razon_social).
+   */
+  get_plantas_despachable: async (): Promise<
+    Array<{ id: number; ruc: string; razon_social: string }>
+  > => {
+    const { data } = await api.get(`${path}/plantas-despachable`);
+    return data.data;
+  },
+
   get_zonas_origen: async (): Promise<RES_ZonaOrigen[]> => {
     const { data } = await api.get(`${path}/zonas-origen`);
     return data.data;
@@ -414,7 +424,7 @@ export const AuxService = {
   ): Promise<Array<{
     id_lote_guia: number;
     id_lote_mineral: number;
-    codigo_gel: string;
+    numero_correlativo: number;
     correlativo_lote: string;
     grr: string;
     grt: string;

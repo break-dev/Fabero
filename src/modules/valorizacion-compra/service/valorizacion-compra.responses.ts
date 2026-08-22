@@ -10,7 +10,7 @@ export interface RES_ValorizacionCompraDetalle {
   id_lote_guia: number;
   id_condicion_comercial: number | null;
   elemento_quimico: ElementoQuimicoValorizacion;
-  codigo_gel: string | null;
+  numero_correlativo: number | null;
   lote_correlativo: string | null;
   grr: string | null;
   grt: string | null;

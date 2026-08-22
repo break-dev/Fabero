@@ -569,7 +569,7 @@ export const ModalFormValorizacionCompra = ({
                           {d.display.elemento_quimico}
                         </Badge>
                         <Text fw={700} fz="xs" c="white" className="font-mono truncate">
-                          Lote: {d.display.lote_correlativo || d.display.codigo_gel || "-"}
+                          Lote: {d.display.lote_correlativo || "-"}
                         </Text>
                         {d.display.grr && (
                           <Badge variant="outline" color="cyan" size="xs">

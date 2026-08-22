@@ -23,7 +23,7 @@ import type { RES_ValorizacionCompraDetalle } from "../../service/valorizacion-c
 interface LoteDisponible {
   id_lote_guia: number;
   id_lote_mineral: number;
-  codigo_gel: string;
+  numero_correlativo: number | null;
   correlativo_lote: string;
   grr: string;
   grt: string;
@@ -196,7 +196,7 @@ export const ModalAgregarLote = ({
     return {
       id_lote_guia: display.id_lote_guia,
       id_lote_mineral: 0,
-      codigo_gel: display.codigo_gel || "",
+      numero_correlativo: display.numero_correlativo ?? null,
       correlativo_lote: display.lote_correlativo || "",
       grr: display.grr || "",
       grt: display.grt || "",
@@ -384,7 +384,7 @@ export const ModalAgregarLote = ({
       id_lote_guia: loteSeleccionado.id_lote_guia,
       id_condicion_comercial: cond ? cond.id_condicion_comercial : null,
       elemento_quimico: elemento,
-      codigo_gel: loteSeleccionado.codigo_gel,
+      numero_correlativo: loteSeleccionado.numero_correlativo,
       lote_correlativo: loteSeleccionado.correlativo_lote,
       grr: loteSeleccionado.grr,
       grt: loteSeleccionado.grt,
@@ -440,13 +440,12 @@ export const ModalAgregarLote = ({
                         value: String(detalleEditar.display.id_lote_guia),
                         label:
                           detalleEditar.display.lote_correlativo ||
-                          detalleEditar.display.codigo_gel ||
                           "-",
                       },
                     ]
                   : lotes.map((l) => ({
                       value: String(l.id_lote_guia),
-                      label: l.correlativo_lote || l.codigo_gel,
+                      label: l.correlativo_lote,
                     }))
               }
               value={selectedLoteGuiaId}
@@ -479,7 +478,7 @@ export const ModalAgregarLote = ({
               <Group gap={6}>
                 <IconFileText size={16} className="text-amber-400" />
                 <Text fw={700} fz="xs" c="white">
-                  Lote: {loteSeleccionado.correlativo_lote || loteSeleccionado.codigo_gel}
+                  Lote: {loteSeleccionado.correlativo_lote}
                 </Text>
               </Group>
               <Group gap={6}>

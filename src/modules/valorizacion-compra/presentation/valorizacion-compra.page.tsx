@@ -132,7 +132,7 @@ export const ValorizacionCompraPage = () => {
       }));
 
     const logsDetalles: LogProcesado[] = (valorizacionHistorial.detalles || []).flatMap((d) => {
-      const loteNombre = d.lote_correlativo || d.codigo_gel || `ID #${d.id_lote_guia}`;
+      const loteNombre = d.lote_correlativo || `ID #${d.id_lote_guia}`;
       const elem = (d.elemento_quimico || "Oro").toUpperCase();
       return (d.log_cambios || [])
         .filter((log) => Array.isArray(log.cambios) && (log.cambios as unknown[]).length > 0)

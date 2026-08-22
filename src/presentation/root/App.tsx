@@ -38,6 +38,7 @@ import AnticiposProveedorPage from "../../modules/anticipos-proveedor/presentati
 import { ValorizacionesCompraPage } from "../../modules/valorizacion-compra/presentation/valorizacion-compra.page.tsx";
 import ContabilidadCompraPage from "../../modules/contabilidad-compra/presentation/contabilidad-compra.page.tsx";
 import BlendingPage from "../../modules/blending/presentation/blending.page.tsx";
+import ProgramacionDespachosPage from "../../modules/programacion-despachos/presentation/programacion-despachos.page.tsx";
 import ProgramarRecepcionPage from "../../modules/programar-recepcion/presentation/programar-recepcion.page.tsx";
 
 export const App = () => {
@@ -189,6 +190,11 @@ export const App = () => {
           {/* Blending */}
           <Route path="blending" element={<GenericLayout />}>
             <Route path="blending" element={<BlendingPage />} />
+          </Route>
+
+          {/* Despacho */}
+          <Route path="despacho" element={<GenericLayout />}>
+            <Route path="programacion" element={<ProgramacionDespachosPage />} />
           </Route>
         </Route>
 

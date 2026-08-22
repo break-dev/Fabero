@@ -292,7 +292,7 @@ export const ComprobanteCard = ({
                           {l.elemento_quimico}
                         </Badge>
                         <Text fz="xs" fw={700} className="font-mono">
-                          {l.lote_correlativo ?? l.codigo_gel ?? "—"}
+                          {l.lote_correlativo ?? "—"}
                         </Text>
                       </Group>
                       <Group gap={4}>

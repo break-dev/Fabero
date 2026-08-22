@@ -54,6 +54,7 @@ export const ValidacionDistribucionPage = () => {
     resetFilters,
     updateRecord,
     validarLote,
+    validarLotes,
     validatingIds,
     validatingAll,
   } = useLotesPendientes();
@@ -110,9 +111,11 @@ export const ValidacionDistribucionPage = () => {
     return (r: Row): boolean => {
       if (r.lote_esta_validado === true) return false;
       const cached = useParticionesLoteStore.getState().getCached(r.id_lote_mineral);
-      if (!cached || !cached.data || cached.data.length === 0) return false;
-      const evalLote = evaluarLote(cached.data, r.lote_peso_neto);
-      return evalLote.cumple;
+      // Cache no hidratado todavía: deshabilitado hasta que llegue el fetch.
+      if (!cached || !cached.data) return false;
+      // Delegar al evaluador: un lote con 0 particiones activas es
+      // trivialmente valido (no hay requisitos que cumplir).
+      return evaluarLote(cached.data, r.lote_peso_neto).cumple;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cacheKeys]);
@@ -241,60 +244,60 @@ export const ValidacionDistribucionPage = () => {
   // El backend persiste en una sola llamada y devuelve validados/omitidos.
   // Mostramos un modal no-bloqueante con el resultado para que el usuario
   // vea que lotes fueron omitidos por requisitos pendientes.
+  // Se delega al hook para que setValidatingAll (loading del boton),
+  // marcarValidadosOptimista (reflejar filas sin recargar) y
+  // refrescarCacheParticiones (sincronizar cache) se ejecuten.
   const handleClickValidarMultiples = async () => {
     if (selectedLotes.length === 0) return;
     const ids = selectedLotes.map((r) => r.id_lote_mineral);
-    try {
-      const res = await ValidacionDistribucionService.validarLotes(ids);
-      const validados = res.validados;
-      const omitidos = res.omitidos ?? [];
+    const resultado = await validarLotes(ids);
+    if (!resultado.ok) {
+      // El hook ya notifico el error internamente.
+      setSelectedLotes([]);
+      return;
+    }
+    const validados = resultado.validados ?? [];
+    const omitidos = resultado.omitidos ?? [];
 
-      if (validados.length === 0) {
-        notifyError(
-          "Ninguno de los lotes seleccionados cumple los requisitos de validación."
-        );
-        setSelectedLotes([]);
-        return;
-      }
-
-      const items: { titulo: string; campos_faltantes: string[] }[] = [];
-      for (const o of omitidos) {
-        items.push({
-          titulo: `Lote ${o.lote_correlativo ?? o.id_lote_mineral} (omitido)`,
-          campos_faltantes: o.razones,
-        });
-      }
-
-      if (omitidos.length === 0) {
-        notifySuccess(
-          `${validados.length} lote${validados.length > 1 ? "s" : ""} validado${
-            validados.length > 1 ? "s" : ""
-          } correctamente.`
-        );
-        setSelectedLotes([]);
-      } else {
-        setModalValidacion({
-          open: true,
-          modo: "confirmar",
-          titulo: "Resultado de validación múltiple",
-          subtitulo: (
-            <>
-              Se validaron <b>{validados.length}</b> de {ids.length} lotes.{" "}
-              Los lotes omitidos tienen requisitos pendientes (ver detalle).
-              No se incluyen en la selección múltiple según lo acordado.
-            </>
-          ),
-          pendientes: items,
-          context: null,
-        });
-        setSelectedLotes([]);
-      }
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string } } };
+    if (validados.length === 0) {
       notifyError(
-        axiosErr?.response?.data?.message ??
-          "No se pudo completar la validación múltiple."
+        "Ninguno de los lotes seleccionados cumple los requisitos de validación."
       );
+      setSelectedLotes([]);
+      return;
+    }
+
+    const items: { titulo: string; campos_faltantes: string[] }[] = [];
+    for (const o of omitidos) {
+      items.push({
+        titulo: `Lote ${o.lote_correlativo ?? o.id_lote_mineral} (omitido)`,
+        campos_faltantes: o.razones,
+      });
+    }
+
+    if (omitidos.length === 0) {
+      notifySuccess(
+        `${validados.length} lote${validados.length > 1 ? "s" : ""} validado${
+          validados.length > 1 ? "s" : ""
+        } correctamente.`
+      );
+      setSelectedLotes([]);
+    } else {
+      setModalValidacion({
+        open: true,
+        modo: "confirmar",
+        titulo: "Resultado de validación múltiple",
+        subtitulo: (
+          <>
+            Se validaron <b>{validados.length}</b> de {ids.length} lotes.{" "}
+            Los lotes omitidos tienen requisitos pendientes (ver detalle).
+            No se incluyen en la selección múltiple según lo acordado.
+          </>
+        ),
+        pendientes: items,
+        context: null,
+      });
+      setSelectedLotes([]);
     }
   };
 
@@ -614,7 +617,9 @@ const handleCrearParticion = async (idLote: number) => {
                 const cached = useParticionesLoteStore
                   .getState()
                   .getCached(r.id_lote_mineral);
-                const evalLoteOk = cached?.data?.length
+                // Cache no hidratado: false. Si esta hidratado (incluso vacio),
+                // delegamos a evaluarLote: 0 particiones = trivialmente valido.
+                const evalLoteOk = cached?.data
                   ? evaluarLote(cached.data, r.lote_peso_neto).cumple
                   : false;
                 const cumpleRequisitos = !isValidated && evalLoteOk;

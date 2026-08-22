@@ -85,6 +85,18 @@ export const evaluarLote = (
   pesoNetoLote: number
 ): EvaluacionLote => {
   const activas = particiones.filter((p) => p.estado !== "Eliminado");
+
+  // Lote sin particiones activas: no hay requisitos que validar, es trivialmente valido.
+  if (activas.length === 0) {
+    return {
+      cumple_suma: true,
+      suma_pesos_netos: 0,
+      diferencia_suma: 0,
+      cumple: true,
+      partidasNoCumplen: 0,
+    };
+  }
+
   const suma = round2(
     activas.reduce((s, p) => s + (p.peso_neto ?? 0), 0)
   );
@@ -103,7 +115,7 @@ export const evaluarLote = (
     cumple_suma: cumpleSuma,
     suma_pesos_netos: suma,
     diferencia_suma: diferencia,
-    cumple: cumpleSuma && partidasNoCumplen === 0 && activas.length > 0,
+    cumple: cumpleSuma && partidasNoCumplen === 0,
     partidasNoCumplen,
   };
 };
