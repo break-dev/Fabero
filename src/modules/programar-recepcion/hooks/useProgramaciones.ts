@@ -3,16 +3,29 @@ import { ProgramarRecepcionService } from "../service/programar-recepcion.servic
 import type { ProgramacionListItem } from "../service/programar-recepcion.responses";
 import { useNotify } from "../../../hooks/useNotify";
 
+const getTodayString = (): string => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+export { getTodayString };
+
 export const useProgramaciones = () => {
   const [programaciones, setProgramaciones] = useState<ProgramacionListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [fechaInicio, setFechaInicio] = useState<string>(getTodayString());
+  const [fechaFin, setFechaFin] = useState<string>(getTodayString());
   const { notifyError } = useNotify();
 
   const fetchProgramaciones = async () => {
     setLoading(true);
     try {
-      const data = await ProgramarRecepcionService.getProgramaciones(true);
+      const data = await ProgramarRecepcionService.getProgramaciones({
+        solo_pendientes: true,
+        fecha_inicio: fechaInicio || undefined,
+        fecha_fin: fechaFin || undefined,
+      });
       setProgramaciones(data);
     } catch (e) {
       console.error(e);
@@ -22,10 +35,11 @@ export const useProgramaciones = () => {
     }
   };
 
+  // Re-fetch reactivo al cambiar fechas.
   useEffect(() => {
-    fetchProgramaciones();
+    void fetchProgramaciones();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fechaInicio, fechaFin]);
 
   const programacionesFiltradas = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
@@ -40,6 +54,12 @@ export const useProgramaciones = () => {
         (p.guia_transportista ?? "").toLowerCase().includes(q),
     );
   }, [programaciones, searchQuery]);
+
+  const resetFilters = () => {
+    setSearchQuery("");
+    setFechaInicio(getTodayString());
+    setFechaFin(getTodayString());
+  };
 
   const insertProgramacion = (p: ProgramacionListItem) => {
     setProgramaciones((prev) => {
@@ -56,6 +76,11 @@ export const useProgramaciones = () => {
     loading,
     searchQuery,
     setSearchQuery,
+    fechaInicio,
+    setFechaInicio,
+    fechaFin,
+    setFechaFin,
+    resetFilters,
     fetchProgramaciones,
     insertProgramacion,
   };

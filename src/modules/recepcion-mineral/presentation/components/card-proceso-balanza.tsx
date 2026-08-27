@@ -45,7 +45,6 @@ interface CardProcesoBalanzaProps {
   conductores: RES_Conductor[];
   setSelectedRecepcionIdForLote: (id: number) => void;
   setCondicionModalOpen: (val: boolean) => void;
-  crearLoteLoadingId: number | null;
   deletingLoteId: number | null;
   closingProcesoId: number | null;
   validarCampo: (
@@ -70,7 +69,6 @@ export const CardProcesoBalanza = ({
   conductores,
   setSelectedRecepcionIdForLote,
   setCondicionModalOpen,
-  crearLoteLoadingId,
   deletingLoteId,
   closingProcesoId,
   validarCampo,
@@ -82,7 +80,6 @@ export const CardProcesoBalanza = ({
 }: CardProcesoBalanzaProps) => {
   const { notifyError } = useNotify();
 
-  const isFicticio = ru.tipo_ingreso === "Ficticio" || ru.es_recepcion_ficticia === true;
   const lotesAMostrar = ru.lotes || [];
 
   const canCloseProceso = (recepcion: RecepcionMineralResponse) => {
@@ -250,44 +247,6 @@ export const CardProcesoBalanza = ({
       p="sm"
       className="bg-zinc-950/40 border border-zinc-800/80 shadow-lg flex flex-col gap-2"
     >
-      {/* Encabezado compacto */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-zinc-800/60">
-        <div className="flex items-center gap-2">
-          <div
-            className={`w-2 h-2 rounded-full animate-pulse ${
-              isFicticio
-                ? "bg-indigo-400 shadow-[0_0_6px_#818cf8]"
-                : "bg-amber-400 shadow-[0_0_6px_#fbbf24]"
-            }`}
-          />
-          <Text size="xs" fw={700} className="text-white font-mono">
-            <span className="text-zinc-400">Unidad: </span>
-            <span className="text-amber-400">{(() => { const placa = formatPlacaInput(ru.vehiculo_placa || ""); const serie = isFicticio ? null : (ru.vehiculo_serie || null); if (!serie) return placa; if (placa.startsWith(serie)) return placa; return `${serie}-${placa}`; })()}</span>
-            {isFicticio && <Badge variant="dot" color="indigo" size="xs" ml={6}>FICT</Badge>}
-          </Text>
-        </div>
-
-        <Group gap={6}>
-          <Button
-            radius="md"
-            disabled={!canCloseProceso(ru)}
-            loading={closingProcesoId === ru.id}
-            onClick={() => cerrarProceso(ru.id)}
-            size="compact-xs"
-            className={`font-semibold h-6.5 px-2.5 text-xs ${
-              canCloseProceso(ru)
-                ? "bg-indigo-600 hover:bg-indigo-700 text-white"
-                : "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-800"
-            }`}
-          >
-            Cerrar Proceso
-          </Button>
-          <Text size="10px" c="dimmed" className="font-mono border-l border-zinc-800/80 pl-2">
-            {ru.fecha_hora_ingreso}
-          </Text>
-        </Group>
-      </div>
-
       {/* Layout 2 columnas */}
       <Grid columns={24} gutter="xs">
         {/* === Columna Izquierda: Datos de la unidad (siempe editables) === */}
@@ -297,9 +256,20 @@ export const CardProcesoBalanza = ({
             p="xs"
             className="bg-zinc-900/30 border border-zinc-800/80 h-full"
           >
-            <Text size="10px" fw={700} className="text-indigo-400 uppercase tracking-wider mb-1.5 px-1">
-              Datos de la unidad
-            </Text>
+            <Group justify="space-between" align="center" className="px-1 mb-1.5">
+              <Group gap={6} align="center">
+                <div className="w-2 h-2 rounded-full animate-pulse bg-amber-400 shadow-[0_0_6px_#fbbf24]" />
+                <Text size="10px" fw={700} className="text-indigo-400 uppercase tracking-wider">
+                  Datos de la unidad
+                </Text>
+                <Text size="12px" fw={700} className="text-zinc-500 font-mono">
+                  {formatPlacaInput(ru.vehiculo_placa || "")}
+                </Text>
+              </Group>
+              <Text size="10px" c="dimmed" className="font-mono">
+                {ru.fecha_hora_ingreso}
+              </Text>
+            </Group>
 
             <Grid gutter="xs">
               {/* Condición */}
@@ -528,20 +498,35 @@ onChange={(val) => {
                   Lotes ({lotesAMostrar.length})
                 </Text>
               </Group>
-              <Button
-                size="compact-xs"
-                radius="md"
-                leftSection={<IconPlus size={12} />}
-                loading={crearLoteLoadingId === ru.id}
-                disabled={unitClosed}
-                onClick={() => {
-                  setSelectedRecepcionIdForLote(ru.id);
-                  setCondicionModalOpen(true);
-                }}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold h-6 px-2 text-[11px]"
-              >
-                Lote
-              </Button>
+              <Group gap={4}>
+                <Button
+                  size="compact-xs"
+                  radius="md"
+                  leftSection={<IconPlus size={12} />}
+                  disabled={unitClosed}
+                  onClick={() => {
+                    setSelectedRecepcionIdForLote(ru.id);
+                    setCondicionModalOpen(true);
+                  }}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold h-6 px-2 text-[11px]"
+                >
+                  Lote
+                </Button>
+                <Button
+                  radius="md"
+                  disabled={!canCloseProceso(ru)}
+                  loading={closingProcesoId === ru.id}
+                  onClick={() => cerrarProceso(ru.id)}
+                  size="compact-xs"
+                  className={`font-semibold h-6 px-2.5 text-[11px] ${
+                    canCloseProceso(ru)
+                      ? "bg-indigo-600 hover:bg-indigo-700 text-white"
+                      : "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-800"
+                  }`}
+                >
+                  Cerrar Proceso
+                </Button>
+              </Group>
             </Group>
 
             {lotesAMostrar.length === 0 ? (

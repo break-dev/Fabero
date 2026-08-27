@@ -94,6 +94,13 @@ export const EdicionParticionModal = ({
   const [loadingTiposVehiculo, setLoadingTiposVehiculo] = useState(false);
   const [loadingProveedores, setLoadingProveedores] = useState(false);
 
+  const catalogsLoading =
+    loadingVehiculos ||
+    loadingConductores ||
+    loadingEmpresasTransporte ||
+    loadingTiposVehiculo ||
+    loadingProveedores;
+
   const [subModal, setSubModal] = useState<SubModal>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -290,7 +297,7 @@ export const EdicionParticionModal = ({
             />
             <Stack gap={4}>
               <Text size="xs" c="dimmed">
-                Capacidad del Vehículo (TN)
+                Capacidad del Vehículo (KG)
               </Text>
               <NumberInput
                 placeholder="0.00"
@@ -381,7 +388,13 @@ export const EdicionParticionModal = ({
             <Button variant="default" onClick={onClose} radius="lg" size="sm">
               Cancelar
             </Button>
-            <Button onClick={handleGuardar} loading={submitting} radius="lg" size="sm">
+            <Button
+              onClick={handleGuardar}
+              loading={submitting}
+              disabled={catalogsLoading || submitting}
+              radius="lg"
+              size="sm"
+            >
               Guardar
             </Button>
           </Group>

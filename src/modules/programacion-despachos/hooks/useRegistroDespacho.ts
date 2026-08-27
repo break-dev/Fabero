@@ -9,6 +9,7 @@ interface ItemForm {
   id_lote_mineral: number | null;
   id_blending: number | null;
   peso_tomado: number;
+  peso_maximo: number | null;
 }
 
 const initialItems = (): ItemForm[] => [];
@@ -24,7 +25,7 @@ export const useRegistroDespacho = (
   const agregarItem = useCallback(() => {
     setItems((prev) => [
       ...prev,
-      { uid: Date.now() + Math.random(), id_lote_mineral: null, id_blending: null, peso_tomado: 0 },
+      { uid: Date.now() + Math.random(), id_lote_mineral: null, id_blending: null, peso_tomado: 0, peso_maximo: null },
     ]);
   }, []);
 
@@ -58,6 +59,20 @@ export const useRegistroDespacho = (
 
     if (items.length === 0) {
       notifyError("Debe agregar al menos un item al despacho.");
+      return false;
+    }
+
+    // Defensa: ningun item puede superar el peso actual disponible del lote/blending.
+    const excedidos = items.filter(
+      (it) =>
+        (it.id_lote_mineral !== null || it.id_blending !== null) &&
+        it.peso_maximo !== null &&
+        it.peso_tomado > it.peso_maximo,
+    );
+    if (excedidos.length > 0) {
+      notifyError(
+        `El peso tomado supera el peso disponible en ${excedidos.length} item(s). Revise los campos marcados en rojo.`,
+      );
       return false;
     }
 

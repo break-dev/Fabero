@@ -33,6 +33,12 @@ export const TablaProgramaciones = ({ programaciones, loading }: Props) => {
       loading={loading}
       columns={[
         {
+          accessor: "index",
+          title: "#",
+          textAlign: "center",
+          width: 50,
+        },
+        {
           accessor: "fecha_estimada_llegada",
           title: "Fecha Estimada",
           width: 180,

@@ -4,6 +4,7 @@ import {
   Button,
   Stack,
   Text,
+  Group,
   Grid,
   Select,
   Tooltip,
@@ -29,6 +30,10 @@ import type { DTO_PesoFinal } from "../../../recepcion-mineral/service/recepcion
 import type { IArchivo } from "../../../../shared/interfaces/archivo";
 import { useNotify } from "../../../../hooks/useNotify";
 import { RegistroVehiculoSimple } from "../../../../presentation/utils/registro-vehiculo-simple";
+import { RegistroProveedorMineroSimple } from "../../../../presentation/utils/registro-proveedor-minero-simple";
+import { RegistroConductor } from "../../../../presentation/utils/registro-conductor";
+import { RegistroEmpresaTransporte } from "../../../../presentation/utils/registro-empresa-transporte";
+import type { EmpresaTransporteResponse } from "../../../empresas-transporte/service/empresas-transporte.responses";
 import { CondicionIngreso } from "../../../../shared/enums/_generic/condicion-ingreso";
 import { TipoMineral } from "../../../../shared/enums/_generic/tipo-mineral";
 import { EstadoBase } from "../../../../shared/enums/_generic/estado-base";
@@ -56,6 +61,9 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
   const [openZonaModal, setOpenZonaModal] = useState(false);
   const [nuevaZonaNombre, setNuevaZonaNombre] = useState("");
   const [openVehiculoModal, setOpenVehiculoModal] = useState(false);
+  const [openProveedorModal, setOpenProveedorModal] = useState(false);
+  const [openConductorModal, setOpenConductorModal] = useState(false);
+  const [openEmpresaTransporteModal, setOpenEmpresaTransporteModal] = useState(false);
 
   // Estados Formulario
   const [condicionIngreso, setCondicionIngreso] = useState<string>(lote.lote_condicion_ingreso || CondicionIngreso.Comercializacion);
@@ -144,6 +152,42 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
     }
   };
 
+  const handleCreatedProveedor = (nuevo: RES_Proveedor) => {
+    setProveedores((prev) => {
+      const sinDuplicado = prev.filter((p) => p.id_proveedor !== nuevo.id_proveedor);
+      return [nuevo, ...sinDuplicado];
+    });
+    setIdProveedor(String(nuevo.id_proveedor));
+    if (nuevo.telefono) {
+      setContacto(nuevo.telefono);
+    }
+    setOpenProveedorModal(false);
+  };
+
+  const handleCreatedConductor = (nuevo: RES_Conductor) => {
+    setConductores((prev) => {
+      const sinDuplicado = prev.filter((c) => c.id_conductor !== nuevo.id_conductor);
+      return [nuevo, ...sinDuplicado];
+    });
+    setIdConductor(String(nuevo.id_conductor));
+    setOpenConductorModal(false);
+  };
+
+  const handleCreatedEmpresaTransporte = (nuevo: EmpresaTransporteResponse) => {
+    const mapped: RES_EmpresaTransporte = {
+      id_empresa_transporte: nuevo.id,
+      ruc: nuevo.ruc,
+      razon_social: nuevo.razon_social,
+      estado: nuevo.estado,
+    };
+    setEmpresasTransporte((prev) => {
+      const sinDuplicado = prev.filter((et) => et.id_empresa_transporte !== mapped.id_empresa_transporte);
+      return [mapped, ...sinDuplicado];
+    });
+    setIdEmpresaTransporte(String(nuevo.id));
+    setOpenEmpresaTransporteModal(false);
+  };
+
   // Valores calculados
   const pesoBruto = pesoInicial ? Number(pesoInicial) : 0;
   const tara = pesoFinal ? Number(pesoFinal) : 0;
@@ -223,7 +267,7 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
       size="xl"
     >
       <Stack gap="md" className="max-h-[80vh] overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
-            {/* Sección 1: Detalles del Lote y Mineral (3 columnas) */}
+            {/* Sección 1: Detalles del Lote y Mineral (3 columnas, todas md:4) */}
             <Paper radius="xl" p="md" className="bg-zinc-900/10 border border-zinc-900/80">
               <Text size="xs" fw={800} className="text-indigo-400 uppercase tracking-widest mb-3 pb-1 border-b border-zinc-900">
                 Detalles del Lote y Mineral
@@ -248,21 +292,37 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
                   />
                 </Grid.Col>
             <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
-              <Select
-                label="Proveedor Minero:"
-                placeholder={loadingCatalogos ? "Cargando..." : "Seleccione"}
-                searchable
-                disabled={loadingCatalogos}
-                rightSection={loadingCatalogos ? <Loader size={16} /> : undefined}
-                data={proveedores.map((p) => ({ value: String(p.id_proveedor), label: `${p.razon_social} (${p.documento})` }))}
-                value={idProveedor}
-                onChange={handleProveedorChange}
-                classNames={selectClassNames}
-                radius="lg"
-                comboboxProps={selectComboboxProps}
-              />
+              <Group gap="xs" align="flex-end" wrap="nowrap">
+                <Select
+                  label="Proveedor Minero:"
+                  placeholder={loadingCatalogos ? "Cargando..." : "Seleccione"}
+                  searchable
+                  disabled={loadingCatalogos}
+                  rightSection={loadingCatalogos ? <Loader size={16} /> : undefined}
+                  data={proveedores.map((p) => ({ value: String(p.id_proveedor), label: `${p.razon_social} (${p.documento})` }))}
+                  value={idProveedor}
+                  onChange={handleProveedorChange}
+                  classNames={selectClassNames}
+                  radius="lg"
+                  comboboxProps={selectComboboxProps}
+                  className="flex-1"
+                />
+                <Tooltip label="Registrar Proveedor Minero" withArrow>
+                  <ActionIcon
+                    type="button"
+                    variant="filled"
+                    color="indigo"
+                    radius="lg"
+                    size="lg"
+                    onClick={() => setOpenProveedorModal(true)}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white mb-0.5"
+                  >
+                    <IconPlus size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              </Group>
             </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+            <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
               <Select
                 label="Producto:"
                 placeholder="Seleccione"
@@ -276,7 +336,7 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
               />
             </Grid.Col>
 
-            <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+            <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
               <Select
                 label="Tipo Material:"
                 placeholder="Seleccione"
@@ -289,8 +349,8 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
                 required
               />
             </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-              <div className="flex gap-1.5 items-end">
+            <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
+              <Group gap="xs" align="flex-end" wrap="nowrap">
                 <Select
                   label="Zona Origen:"
                   placeholder={loadingCatalogos ? "Cargando..." : "Seleccione..."}
@@ -305,21 +365,22 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
                   comboboxProps={selectComboboxProps}
                   className="flex-1"
                 />
-                <Tooltip label="Agregar Zona" withArrow>
+                <Tooltip label="Agregar Zona de Origen" withArrow>
                   <ActionIcon
                     type="button"
                     variant="filled"
-                    color="zinc"
+                    color="indigo"
                     radius="lg"
+                    size="lg"
                     onClick={() => setOpenZonaModal(true)}
-                    className="bg-zinc-800 text-zinc-300 hover:bg-zinc-700 h-9 w-9 mb-0.5"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white mb-0.5"
                   >
                     <IconPlus size={16} />
                   </ActionIcon>
                 </Tooltip>
-              </div>
+              </Group>
             </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+            <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
               <TextInput
                 label="N° Contacto:"
                 value={contacto}
@@ -329,8 +390,7 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
               />
             </Grid.Col>
 
-            {/* Bloque Pesos: 4 columnas (Contacto · P. Inicial · P. Final · Neto) */}
-            <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+            <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
               <TextInput
                 label="Peso Inicial (Kg):"
                 value={pesoInicial}
@@ -340,7 +400,7 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
                 required
               />
             </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+            <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
               <TextInput
                 label="Peso Final / Tara (Kg):"
                 value={pesoFinal}
@@ -349,12 +409,12 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
                 radius="lg"
               />
             </Grid.Col>
-<Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+            <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
               <Input.Wrapper label="Peso Neto (Kg):" classNames={fieldClasses}>
                 <Tooltip label="Calculado automáticamente (Peso Inicial − Tara)" withArrow>
                   <div className="bg-gradient from-emerald-950/40 to-zinc-950/60 border border-emerald-500/30 rounded-xl flex flex-col items-center justify-center h-9.5 shadow-inner shadow-emerald-900/20">
                     <Text size="sm" fw={900} c="emerald.3" className="font-mono leading-none">
-                      {pesoNeto >= 0 ? pesoNeto.toLocaleString() : "0"} 
+                      {pesoNeto >= 0 ? pesoNeto.toLocaleString() : "0"}
                     </Text>
                   </div>
                 </Tooltip>
@@ -371,7 +431,7 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
 
           <Grid gutter="sm">
             <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
-              <div className="flex gap-1.5 items-end">
+              <Group gap="xs" align="flex-end" wrap="nowrap">
                 <Select
                   label="Vehículo / Placa:"
                   placeholder={loadingCatalogos ? "Cargando..." : "Seleccione placa"}
@@ -393,52 +453,85 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
                   <ActionIcon
                     type="button"
                     variant="filled"
-                    color="zinc"
+                    color="indigo"
                     radius="lg"
+                    size="lg"
                     onClick={() => setOpenVehiculoModal(true)}
-                    className="bg-zinc-800 text-zinc-300 hover:bg-zinc-700 h-9 w-9 mb-0.5"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white mb-0.5"
                   >
                     <IconPlus size={16} />
                   </ActionIcon>
                 </Tooltip>
-              </div>
+              </Group>
             </Grid.Col>
             <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
-              <Select
-                label="Empresa de Transporte:"
-                placeholder={loadingCatalogos ? "Cargando..." : "Particular / Propio"}
-                searchable
-                clearable
-                disabled={loadingCatalogos}
-                rightSection={loadingCatalogos ? <Loader size={16} /> : undefined}
-                data={empresasTransporte.map((et) => ({
-                  value: String(et.id_empresa_transporte),
-                  label: et.razon_social,
-                }))}
-                value={idEmpresaTransporte}
-                onChange={setIdEmpresaTransporte}
-                classNames={selectClassNames}
-                radius="lg"
-                comboboxProps={selectComboboxProps}
-              />
+              <Group gap="xs" align="flex-end" wrap="nowrap">
+                <Select
+                  label="Empresa de Transporte:"
+                  placeholder={loadingCatalogos ? "Cargando..." : "Particular / Propio"}
+                  searchable
+                  clearable
+                  disabled={loadingCatalogos}
+                  rightSection={loadingCatalogos ? <Loader size={16} /> : undefined}
+                  data={empresasTransporte.map((et) => ({
+                    value: String(et.id_empresa_transporte),
+                    label: et.razon_social,
+                  }))}
+                  value={idEmpresaTransporte}
+                  onChange={setIdEmpresaTransporte}
+                  classNames={selectClassNames}
+                  radius="lg"
+                  comboboxProps={selectComboboxProps}
+                  className="flex-1"
+                />
+                <Tooltip label="Agregar Empresa de Transporte" withArrow>
+                  <ActionIcon
+                    type="button"
+                    variant="filled"
+                    color="indigo"
+                    radius="lg"
+                    size="lg"
+                    onClick={() => setOpenEmpresaTransporteModal(true)}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white mb-0.5"
+                  >
+                    <IconPlus size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              </Group>
             </Grid.Col>
             <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
-              <Select
-                label="Conductor:"
-                placeholder={loadingCatalogos ? "Cargando..." : "Seleccione conductor"}
-                searchable
-                disabled={loadingCatalogos}
-                rightSection={loadingCatalogos ? <Loader size={16} /> : undefined}
-                data={conductores.map((c) => ({
-                  value: String(c.id_conductor),
-                  label: `${c.nombre_completo} (${c.numero_licencia || "Sin Licencia"})`,
-                }))}
-                value={idConductor}
-                onChange={setIdConductor}
-                classNames={selectClassNames}
-                radius="lg"
-                comboboxProps={selectComboboxProps}
-              />
+              <Group gap="xs" align="flex-end" wrap="nowrap">
+                <Select
+                  label="Conductor:"
+                  placeholder={loadingCatalogos ? "Cargando..." : "Seleccione conductor"}
+                  searchable
+                  disabled={loadingCatalogos}
+                  rightSection={loadingCatalogos ? <Loader size={16} /> : undefined}
+                  data={conductores.map((c) => ({
+                    value: String(c.id_conductor),
+                    label: `${c.nombre_completo} (${c.numero_licencia || "Sin Licencia"})`,
+                  }))}
+                  value={idConductor}
+                  onChange={setIdConductor}
+                  classNames={selectClassNames}
+                  radius="lg"
+                  comboboxProps={selectComboboxProps}
+                  className="flex-1"
+                />
+                <Tooltip label="Agregar Conductor" withArrow>
+                  <ActionIcon
+                    type="button"
+                    variant="filled"
+                    color="indigo"
+                    radius="lg"
+                    size="lg"
+                    onClick={() => setOpenConductorModal(true)}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white mb-0.5"
+                  >
+                    <IconPlus size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              </Group>
             </Grid.Col>
           </Grid>
         </Paper>
@@ -535,6 +628,45 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
             setIdVehiculo(String(nuevo.id_vehiculo));
             setOpenVehiculoModal(false);
           }}
+        />
+      </ModalEstandar>
+
+      {/* Sub-Modal: Registro Rápido de Nuevo Proveedor Minero */}
+      <ModalEstandar
+        opened={openProveedorModal}
+        close={() => setOpenProveedorModal(false)}
+        title="Registrar Proveedor Minero"
+        size="lg"
+      >
+        <RegistroProveedorMineroSimple
+          onCancel={() => setOpenProveedorModal(false)}
+          onSuccess={handleCreatedProveedor}
+        />
+      </ModalEstandar>
+
+      {/* Sub-Modal: Registro Rápido de Nueva Empresa de Transporte */}
+      <ModalEstandar
+        opened={openEmpresaTransporteModal}
+        close={() => setOpenEmpresaTransporteModal(false)}
+        title="Registrar Empresa de Transporte"
+        size="lg"
+      >
+        <RegistroEmpresaTransporte
+          onCancel={() => setOpenEmpresaTransporteModal(false)}
+          onSuccess={handleCreatedEmpresaTransporte}
+        />
+      </ModalEstandar>
+
+      {/* Sub-Modal: Registro Rápido de Nuevo Conductor */}
+      <ModalEstandar
+        opened={openConductorModal}
+        close={() => setOpenConductorModal(false)}
+        title="Registrar Conductor"
+        size="sm"
+      >
+        <RegistroConductor
+          onCancel={() => setOpenConductorModal(false)}
+          onSuccess={handleCreatedConductor}
         />
       </ModalEstandar>
     </ModalEstandar>

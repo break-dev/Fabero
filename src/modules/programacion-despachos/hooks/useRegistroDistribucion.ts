@@ -33,7 +33,9 @@ export const useRegistroDistribucion = (
     () =>
       detallesDespacho
         .filter((d) => d.peso_actual > 0)
-        .map((d) => ({ id_despacho_detalle: d.id, peso_tomado: 0 })),
+        // Auto-fill: sugerimos todo el peso actual disponible para cada detalle.
+        // El operador puede ajustar o desmarcar el checkbox segun necesite.
+        .map((d) => ({ id_despacho_detalle: d.id, peso_tomado: d.peso_actual })),
     [detallesDespacho],
   );
 
@@ -98,6 +100,10 @@ export const useRegistroDistribucion = (
     }
     if (!form.id_conductor) {
       notifyError("Debe seleccionar el conductor.");
+      return false;
+    }
+    if (!form.fecha_estimada_llegada || form.fecha_estimada_llegada.trim() === "") {
+      notifyError("Debe indicar la fecha estimada de llegada.");
       return false;
     }
     if (!form.detalles.some((d) => d.peso_tomado > 0)) {

@@ -26,7 +26,6 @@ export interface RES_ResumenBalanzaItem {
   segunda_placa: string | null;
   estado_pesaje: string;
   id_vehiculo: number | null;
-  vehiculo_serie: string | null;
   vehiculo_placa: string | null;
   id_empresa_transporte: number | null;
   empresa_transporte_razon_social: string | null;

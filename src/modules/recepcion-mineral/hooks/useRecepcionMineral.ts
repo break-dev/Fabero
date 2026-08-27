@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { RecepcionMineralService } from "../service/recepcion-mineral.service";
-import type { RecepcionMineralResponse } from "../service/recepcion-mineral.responses";
+import type {
+  RecepcionMineralResponse,
+  RES_LoteMineral,
+} from "../service/recepcion-mineral.responses";
 import type { DTO_PesoInicial, DTO_PesoFinal } from "../service/recepcion-mineral.requests";
 import { useUIStore } from "../../../stores/ui.store";
 import { useNotify } from "../../../hooks/useNotify";
@@ -21,9 +24,10 @@ export const useRecepcionMineral = () => {
     id: number;
     field: string;
   } | null>(null);
-  const [creatingLoteId, setCreatingLoteId] = useState<number | null>(null);
   const [deletingLoteId, setDeletingLoteId] = useState<number | null>(null);
   const [closingProcesoId, setClosingProcesoId] = useState<number | null>(null);
+
+  const TEMP_LOTE_CORRELATIVO = "···";
 
   const { notifySuccess, notifyError } = useNotify();
 
@@ -68,20 +72,33 @@ export const useRecepcionMineral = () => {
   }, [idSucursal]);
 
   const iniciarProceso = async (id: number) => {
+    const original = sinPesarList.find((r) => r.id === id);
+    if (!original) return;
+
+    const optimista: RecepcionMineralResponse = {
+      ...original,
+      estado_pesaje: "En Proceso",
+    };
+
+    setSinPesarList((prev) => prev.filter((r) => r.id !== id));
+    setEnProcesoList((prev) =>
+      prev.some((r) => r.id === id) ? prev : [optimista, ...prev],
+    );
+    setSelectedRecepcion(optimista);
+
     try {
       const res = await RecepcionMineralService.iniciar_pesaje(id);
       notifySuccess("Proceso de pesaje iniciado correctamente");
-
-      // Mover la unidad de "Sin Pesar" a "En Proceso" sin refetchear todo
-      setSinPesarList((prev) => prev.filter((r) => r.id !== id));
-      setEnProcesoList((prev) => {
-        if (prev.some((r) => r.id === id)) return prev;
-        return [res, ...prev];
-      });
-      setSelectedRecepcion(res);
+      setEnProcesoList((prev) => prev.map((r) => (r.id === id ? res : r)));
+      if (selectedRecepcion?.id === id) setSelectedRecepcion(res);
     } catch (e: unknown) {
       console.error(e);
       notifyError("No se pudo iniciar el proceso de pesaje");
+      setSinPesarList((prev) =>
+        prev.some((r) => r.id === id) ? prev : [original, ...prev],
+      );
+      setEnProcesoList((prev) => prev.filter((r) => r.id !== id));
+      setSelectedRecepcion((prev) => (prev?.id === id ? null : prev));
     }
   };
 
@@ -109,7 +126,57 @@ export const useRecepcionMineral = () => {
     idEmpresa: number,
     codigoManual?: { conCodigoManual: boolean; codigoManual?: string },
   ) => {
-    setCreatingLoteId(id);
+    const tempId = -Date.now();
+    const tempLote: RES_LoteMineral = {
+      id: tempId,
+      id_recepcion_unidad: id,
+      id_empleado_registro: 0,
+      id_empresa: idEmpresa,
+      id_proveedor_minero: null,
+      id_zona_origen: null,
+      correlativo: TEMP_LOTE_CORRELATIVO,
+      numero_correlativo: null,
+      con_codigo_manual: codigoManual?.conCodigoManual ?? false,
+      numero_contacto: null,
+      tipo_producto: null,
+      tipo_mineral: null,
+      condicion_ingreso: condicionIngreso,
+      estado: "Activo",
+      log_cambios: null,
+      evidencias: null,
+      peso_inicial: null,
+      fecha_hora_peso_inicial: null,
+      observacion_peso_inicial: null,
+      peso_final: null,
+      fecha_hora_peso_final: null,
+      observacion_peso_final: null,
+      peso_neto: null,
+      peso_actual: null,
+      id_vehiculo: null,
+      vehiculo_placa: null,
+      id_empresa_transporte: null,
+      empresa_transporte_razon_social: null,
+      id_tipo_vehiculo: null,
+      tipo_vehiculo_nombre: null,
+      id_conductor: null,
+      conductor_nombre_completo: null,
+      conductor_dni: null,
+      created_at: new Date().toISOString(),
+    };
+
+    setEnProcesoList((prev) =>
+      prev.map((r) =>
+        r.id === id
+          ? { ...r, lotes: [...(r.lotes || []), tempLote] }
+          : r,
+      ),
+    );
+    setSelectedRecepcion((prev) =>
+      prev?.id === id
+        ? { ...prev, lotes: [...(prev.lotes || []), tempLote] }
+        : prev,
+    );
+
     try {
       const nuevoLote = await RecepcionMineralService.crear_lote(id, {
         condicion_ingreso: condicionIngreso,
@@ -119,27 +186,33 @@ export const useRecepcionMineral = () => {
       });
       notifySuccess("Lote generado correctamente: " + nuevoLote.correlativo);
 
+      const replaceTemp = (lotes: RES_LoteMineral[]) =>
+        lotes.map((l) => (l.id === tempId ? nuevoLote : l));
       setEnProcesoList((prev) =>
-        prev.map((r) => {
-          if (r.id === id) {
-            const lotes = [...(r.lotes || []), nuevoLote];
-            return { ...r, lotes };
-          }
-          return r;
-        })
+        prev.map((r) =>
+          r.id === id ? { ...r, lotes: replaceTemp(r.lotes || []) } : r,
+        ),
       );
-
-      if (selectedRecepcion?.id === id) {
-        setSelectedRecepcion((prev) => {
-          if (!prev) return null;
-          return { ...prev, lotes: [...(prev.lotes || []), nuevoLote] };
-        });
-      }
+      setSelectedRecepcion((prev) =>
+        prev?.id === id
+          ? { ...prev, lotes: replaceTemp(prev.lotes || []) }
+          : prev,
+      );
     } catch (e: unknown) {
       console.error(e);
       notifyError("No se pudo generar el lote");
-    } finally {
-      setCreatingLoteId(null);
+      const removeTemp = (lotes: RES_LoteMineral[]) =>
+        lotes.filter((l) => l.id !== tempId);
+      setEnProcesoList((prev) =>
+        prev.map((r) =>
+          r.id === id ? { ...r, lotes: removeTemp(r.lotes || []) } : r,
+        ),
+      );
+      setSelectedRecepcion((prev) =>
+        prev?.id === id
+          ? { ...prev, lotes: removeTemp(prev.lotes || []) }
+          : prev,
+      );
     }
   };
 
@@ -247,14 +320,21 @@ export const useRecepcionMineral = () => {
   };
 
   const cerrarProceso = async (id: number) => {
+    const original = enProcesoList.find((r) => r.id === id);
+    if (!original) return;
+
+    setEnProcesoList((prev) => prev.filter((r) => r.id !== id));
+    if (selectedRecepcion?.id === id) setSelectedRecepcion(null);
+
     setClosingProcesoId(id);
     try {
       await RecepcionMineralService.cerrar_proceso(id);
       notifySuccess("Proceso de balanza cerrado correctamente");
-      setSelectedRecepcion(null);
-      await loadRecepciones();
     } catch (e: unknown) {
       console.error(e);
+      setEnProcesoList((prev) =>
+        prev.some((r) => r.id === id) ? prev : [original, ...prev],
+      );
       const axiosError = e as { response?: { data?: { message?: string } } };
       const msg = axiosError.response?.data?.message || "No se pudo cerrar el proceso de balanza";
       notifyError(msg);
@@ -270,7 +350,6 @@ export const useRecepcionMineral = () => {
     selectedRecepcion,
     setSelectedRecepcion,
     validatingField,
-    creatingLoteId,
     deletingLoteId,
     closingProcesoId,
     loadRecepciones,

@@ -68,7 +68,7 @@ export const ValidacionDistribucionService = {
   crearParticion: async (
     idLote: number,
     payload: DTO_CrearParticion
-  ): Promise<RES_Particion> => {
+  ): Promise<RES_Particion[]> => {
     const { data } = await api.post(`${PATH}/lotes/${idLote}/particiones`, payload);
     return data.data;
   },

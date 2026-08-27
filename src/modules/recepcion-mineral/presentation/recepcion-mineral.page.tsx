@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Grid, Paper, Text, Group, Badge, Center, Loader, Stack } from "@mantine/core";
+import { Grid, Paper, Text, Group, Center, Loader, Stack } from "@mantine/core";
 import { IconScale, IconChecklist } from "@tabler/icons-react";
 import { useTitlePage } from "../../../hooks/useTitlePage";
 import { mostrarConfirmacion } from "../../../presentation/utils/modal-confirmacion";
@@ -29,7 +29,6 @@ export const RecepcionMineralPage = () => {
     loading,
     setSelectedRecepcion,
     validarCampo,
-    creatingLoteId,
     deletingLoteId,
     closingProcesoId,
     iniciarProceso,
@@ -40,9 +39,8 @@ export const RecepcionMineralPage = () => {
     cerrarProceso,
   } = useRecepcionMineral();
 
-  const getFullPlaca = (serie: string | null, placa: string | null) => {
-    if (!placa) return "SIN PLACA";
-    return serie ? `${serie}-${placa}` : placa;
+  const getFullPlaca = (placa: string | null) => {
+    return placa || "SIN PLACA";
   };
 
   // Catálogos para el panel de la unidad (izquierda) y modal de lote
@@ -169,10 +167,7 @@ export const RecepcionMineralPage = () => {
                                   unidad con placa{" "}
                                   <strong className="text-indigo-400">
                                     "
-                                    {getFullPlaca(
-                                      ru.vehiculo_serie,
-                                      ru.vehiculo_placa,
-                                    )}
+                                    {getFullPlaca(ru.vehiculo_placa)}
                                     "
                                   </strong>
                                   ?
@@ -194,23 +189,8 @@ export const RecepcionMineralPage = () => {
                         >
                           <Group justify="center" gap={8} wrap="nowrap">
                             <span className="truncate">
-                              {getFullPlaca(
-                                ru.tipo_ingreso === "Ficticio"
-                                  ? null
-                                  : ru.vehiculo_serie,
-                                ru.vehiculo_placa,
-                              )}
+                              {getFullPlaca(ru.vehiculo_placa)}
                             </span>
-                            {ru.tipo_ingreso === "Ficticio" && (
-                              <Badge
-                                variant="filled"
-                                size="xs"
-                                radius="md"
-                                className="font-extrabold tracking-wider shrink-0 bg-zinc-700 text-zinc-100 border border-zinc-600/60"
-                              >
-                                FICTICIA
-                              </Badge>
-                            )}
                           </Group>
                         </div>
 
@@ -279,7 +259,6 @@ export const RecepcionMineralPage = () => {
                         setSelectedRecepcionIdForLote
                       }
                       setCondicionModalOpen={setCondicionModalOpen}
-                      crearLoteLoadingId={creatingLoteId}
                       deletingLoteId={deletingLoteId}
                       closingProcesoId={closingProcesoId}
                       validarCampo={validarCampo}

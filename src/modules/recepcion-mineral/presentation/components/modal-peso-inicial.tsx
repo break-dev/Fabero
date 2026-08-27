@@ -206,7 +206,7 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
           <Grid.Col span={{ base: 12, md: 6 }}>
             <Stack gap="md">
               {/* Zona Origen + Botón Agregar */}
-              <div className="flex gap-2 items-end">
+              <Group gap="xs" align="flex-end" wrap="nowrap">
                 <Select
                   label="Zona Origen:"
                   placeholder={loadingCatalogos ? "Cargando..." : "Elija una opción..."}
@@ -224,16 +224,16 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
                   <ActionIcon
                     type="button"
                     variant="filled"
-                    color="zinc"
+                    color="indigo"
                     radius="lg"
                     size="lg"
                     onClick={() => setOpenZonaModal(true)}
-                    className="bg-zinc-800 text-zinc-300 hover:bg-zinc-700 h-9.5 w-9.5 mb-2"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white mb-0.5"
                   >
-                    <IconPlus size={18} />
+                    <IconPlus size={16} />
                   </ActionIcon>
                 </Tooltip>
-              </div>
+              </Group>
 
               {/* N° Contacto */}
               <TextInput
@@ -281,6 +281,8 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
                       "bg-zinc-900/60 border-zinc-800 text-center font-bold text-white focus:border-zinc-300 transition-all",
                   }}
                   radius="lg"
+                  autoFocus
+                  required
                 />
               </div>
 

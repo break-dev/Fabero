@@ -1,5 +1,8 @@
 import { api } from "../../../service/_api";
-import type { CrearProgramacionRequest } from "./programar-recepcion.requests";
+import type {
+  CrearProgramacionRequest,
+  ProgramacionFilters,
+} from "./programar-recepcion.requests";
 import type { ProgramacionDetail, ProgramacionListItem } from "./programar-recepcion.responses";
 
 export interface ConfirmarProgramacionPayload {
@@ -14,9 +17,15 @@ export interface ConfirmarProgramacionPayload {
 }
 
 export const ProgramarRecepcionService = {
-  getProgramaciones: async (soloPendientes = true): Promise<ProgramacionListItem[]> => {
+  getProgramaciones: async (
+    filtros: ProgramacionFilters = {}
+  ): Promise<ProgramacionListItem[]> => {
     const { data } = await api.get("/programar-recepcion", {
-      params: { solo_pendientes: soloPendientes ? 1 : 0 },
+      params: {
+        solo_pendientes: filtros.solo_pendientes === false ? 0 : 1,
+        fecha_inicio: filtros.fecha_inicio ?? undefined,
+        fecha_fin: filtros.fecha_fin ?? undefined,
+      },
     });
     return data.data;
   },

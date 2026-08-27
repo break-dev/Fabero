@@ -61,7 +61,6 @@ export interface RES_GuiaPrimerTramo {
   conductor_dni?: string;
   conductor_licencia?: string | null;
   id_vehiculo: number;
-  vehiculo_serie?: string | null;
   vehiculo_placa?: string | null;
   id_empresa_transporte: number | null;
   empresa_transporte_razon_social?: string | null;
@@ -103,7 +102,6 @@ export interface RES_ItemMineralDisponible {
   created_at: string;
   proveedor_nombre: string | null;
   vehiculo_placa?: string | null;
-  vehiculo_serie?: string | null;
   en_guia: boolean;
 }
 

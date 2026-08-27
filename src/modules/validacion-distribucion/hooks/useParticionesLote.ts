@@ -2,9 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import dayjs from "dayjs";
 import { useNotify } from "../../../hooks/useNotify";
 import { ValidacionDistribucionService } from "../service/validacion-distribucion.service";
-import type { DTO_UpdateParticion } from "../service/validacion-distribucion.requests";
+import type { DTO_CrearParticion, DTO_UpdateParticion } from "../service/validacion-distribucion.requests";
 import type { RES_Particion } from "../service/validacion-distribucion.responses";
 import { useParticionesLoteStore } from "../../../stores/particiones-lote.store";
+import { useUIStore } from "../../../stores/ui.store";
 
 export type PesoField = "peso_inicial" | "peso_final" | "peso_neto";
 
@@ -357,30 +358,48 @@ export const useParticionesLote = (
 
   const crearParticion = useCallback(
     async (
-      onCreated?: (nueva: RES_Particion) => void
-    ) => {
+      onCreateds?: (nuevas: RES_Particion[]) => void
+    ): Promise<RES_Particion[]> => {
       setCreating(true);
       try {
-        const nueva = await ValidacionDistribucionService.crearParticion(
+        // Defensa explicita: una partición pertenece al mismo lote que su padre,
+        // por lo tanto hereda la sucursal activa del operador. Esto evita que la
+        // recepcion_unidad ficticia quede con id_sucursal = NULL cuando el backend
+        // recibe un payload vacio.
+        const idSucursal = useUIStore.getState().sucursal_elegida?.id_sucursal ?? null;
+        const payload: DTO_CrearParticion = idSucursal !== null
+          ? { recepcion: { id_sucursal: idSucursal } }
+          : {};
+
+        const creadas = await ValidacionDistribucionService.crearParticion(
           idLote,
-          {}
+          payload
         );
-        const normalizada = normalizeParticion(nueva);
+        const normalizadas = creadas.map(normalizeParticion);
         const total = Number(lotePesoNeto) || 0;
 
         setSnapshots((prev) => {
           const next = { ...prev };
-          next[normalizada.id] = snapshotFrom(normalizada);
+          for (const p of normalizadas) {
+            next[p.id] = snapshotFrom(p);
+          }
           return next;
         });
 
         const cached = cacheStore.getState().getCached(idLote);
         const existentes = cached?.data ?? particionesRef.current;
-        const merged = computeRebalance([...existentes, normalizada], total);
+        const merged = computeRebalance(
+          [...existentes, ...normalizadas],
+          total
+        );
         cacheStore.getState().setParticiones(idLote, merged);
         setParticiones(merged);
-        onCreated?.(normalizada);
-        notifySuccess(`Partición creada correctamente.`);
+        onCreateds?.(normalizadas);
+        notifySuccess(
+          normalizadas.length > 1
+            ? `${normalizadas.length} particiones creadas correctamente.`
+            : "Partición creada correctamente."
+        );
 
         // Backend crea ticket_balanza + recepción automáticamente, pero el
         // response del POST no los devuelve consistentes. Refetch silencioso
@@ -398,8 +417,10 @@ export const useParticionesLote = (
         } catch {
           // silencio: si el refetch falla, los datos quedan con el response del POST.
         }
+        return normalizadas;
       } catch {
         notifyError("No se pudo crear la partición.");
+        return [];
       } finally {
         setCreating(false);
       }
@@ -637,11 +658,20 @@ export const useParticionesLote = (
           id_empleado_valida: resultado.id_empleado_valida,
           fecha_hora_validacion: resultado.fecha_hora_validacion ?? now,
         };
-        setParticiones((prev) =>
-          prev.map((p) =>
+        // Resuelve idLote desde el estado local para sincronizar el cache global.
+        const idLote = particiones.find((p) => p.id === idParticion)?.id_lote_mineral;
+        let updatedList: RES_Particion[] = [];
+        setParticiones((prev) => {
+          updatedList = prev.map((p) =>
             p.id === idParticion ? { ...p, ...updatedFlag } : p
-          )
-        );
+          );
+          return updatedList;
+        });
+        // Sincroniza el cache global para que cualquier otro consumidor
+        // (colapsar/expandir fila, otras pestañas) vea esta_validado=true.
+        if (idLote !== undefined && updatedList.length > 0) {
+          useParticionesLoteStore.getState().setParticiones(idLote, updatedList);
+        }
         notifySuccess("Partición validada correctamente.");
         return true;
       } catch (err: unknown) {

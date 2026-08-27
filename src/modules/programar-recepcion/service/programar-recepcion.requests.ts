@@ -16,4 +16,6 @@ export interface CrearProgramacionRequest {
 
 export interface ProgramacionFilters {
   solo_pendientes?: boolean;
+  fecha_inicio?: string | null;
+  fecha_fin?: string | null;
 }

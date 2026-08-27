@@ -279,7 +279,7 @@ export const ValorizacionCompraPage = () => {
       accessor: "correlativo",
       title: "Correlativo",
       render: (r: RES_ValorizacionCompra) => (
-        <Text fw={700} c="cyan.4">
+        <Text fw={500} c="cyan.4">
           {r.correlativo || (r.numero_correlativo ? `VAL-${r.numero_correlativo}` : "-")}
         </Text>
       ),
@@ -497,11 +497,6 @@ export const ValorizacionCompraPage = () => {
                         <Badge variant="outline" color="indigo" size="xs">
                           G.R.T: {d.grt}
                         </Badge>
-                      )}
-                      {d.fecha_ingreso && (
-                        <Text fz={10} c="dimmed" className="shrink-0">
-                          | {d.fecha_ingreso}
-                        </Text>
                       )}
                     </Group>
 

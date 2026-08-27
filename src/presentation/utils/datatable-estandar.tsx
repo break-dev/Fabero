@@ -23,6 +23,12 @@ interface DataTableEstandarProps {
   loading: boolean;
   columnGroups?: FlexibleGroup[];
   renderExpandedRow?: (record: any) => React.ReactNode;
+  // Control externo opcional de la expansion. Si se provee, el wrapper
+  // expone la fila indicada en `expandedRecordIds` y delega la persistencia
+  // del estado al consumer (vía `onExpandedChange`). Sin esto, la libreria
+  // maneja la expansion con state interno no controlado.
+  expandedRecordIds?: (string | number)[];
+  onExpandedChange?: (ids: (string | number)[]) => void;
   // Selección múltiple opcional. Si se provee `selectedRecords`, se activa
   // la columna de checkboxes en la primera posición.
   selectedRecords?: any[];
@@ -39,6 +45,8 @@ export const DataTableEstandar = ({
   loading,
   columnGroups,
   renderExpandedRow,
+  expandedRecordIds,
+  onExpandedChange,
   selectedRecords,
   onSelectedRecordsChange,
   isRecordSelectable,
@@ -149,6 +157,17 @@ export const DataTableEstandar = ({
           renderExpandedRow
             ? {
                 allowMultiple: false,
+                ...(expandedRecordIds !== undefined || onExpandedChange
+                  ? {
+                      expanded: {
+                        recordIds: expandedRecordIds ?? [],
+                        onRecordIdsChange: onExpandedChange
+                          ? (recordIds: unknown[]) =>
+                              onExpandedChange(recordIds as (string | number)[])
+                          : undefined,
+                      },
+                    }
+                  : {}),
                 content: ({ record }: { record: any }) =>
                   renderExpandedRow(record),
               }

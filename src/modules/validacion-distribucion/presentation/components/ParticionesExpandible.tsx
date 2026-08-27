@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ActionIcon,
   Button,
@@ -42,16 +42,7 @@ interface Props {
   lote: { id_lote_mineral: number; lote_peso_neto: number };
 }
 
-export interface ParticionesExpandibleRef {
-  crearParticion: () => Promise<void>;
-  loading: boolean;
-  creating: boolean;
-}
-
-export const ParticionesExpandible = forwardRef<
-  ParticionesExpandibleRef,
-  Props
->(function ParticionesExpandible({ lote }, ref) {
+export const ParticionesExpandible = ({ lote }: Props) => {
   const hooks = useParticionesLote(lote.id_lote_mineral, lote.lote_peso_neto);
   const { print, prepare } = usePrint();
   const { notifyError } = useNotify();
@@ -77,16 +68,6 @@ export const ParticionesExpandible = forwardRef<
       setPrintingId(null);
     }
   };
-
-  useImperativeHandle(
-    ref,
-    () => ({
-      crearParticion: hooks.crearParticion,
-      loading: hooks.loading,
-      creating: hooks.creating,
-    }),
-    [hooks.crearParticion, hooks.loading, hooks.creating]
-  );
 
   const [edicionModal, setEdicionModal] = useState<{
     open: boolean;
@@ -142,12 +123,12 @@ export const ParticionesExpandible = forwardRef<
     }
   };
 
-  const handleConfirmarValidacion = async () => {
+  const handleConfirmarValidacion = () => {
     if (!modalValidacion.particion) return;
-    const ok = await hooks.validarParticion(modalValidacion.particion.id);
-    if (ok) {
-      setModalValidacion({ open: false, modo: "confirmar", particion: null });
-    }
+    // Cierre optimista: el modal desaparece de inmediato, el toast de
+    // exito/error lo dispara el hook useParticionesLote.validarParticion.
+    setModalValidacion({ open: false, modo: "confirmar", particion: null });
+    void hooks.validarParticion(modalValidacion.particion.id);
   };
 
   const handleCloseModalValidacion = () => {
@@ -213,6 +194,7 @@ export const ParticionesExpandible = forwardRef<
             {hooks.particiones.map((p) => {
               const consistente = hooks.esConsistente(p);
               const eliminada = hooks.isEliminada(p);
+              const yaValidada = p.esta_validado === true;
               const diferencia = round2(
                 (p.peso_inicial ?? 0) -
                   (p.peso_final ?? 0) -
@@ -299,7 +281,7 @@ export const ParticionesExpandible = forwardRef<
                           onClick={() =>
                             setEdicionModal({ open: true, particion: p })
                           }
-                          disabled={eliminada}
+                          disabled={eliminada || yaValidada}
                         >
                           <IconPencil size={13} />
                         </ActionIcon>
@@ -314,7 +296,7 @@ export const ParticionesExpandible = forwardRef<
                         onAutoAdjust={(field, value) =>
                           hooks.ajustarPeso(p.id, field, value)
                         }
-                        disabled={eliminada || p.es_bloqueado}
+                        disabled={eliminada || p.es_bloqueado || yaValidada}
                       />
                     </div>
                   </Table.Td>
@@ -336,7 +318,7 @@ export const ParticionesExpandible = forwardRef<
                               value: p.fecha_hora_peso_inicial,
                             })
                           }
-                          disabled={eliminada || p.es_bloqueado}
+                          disabled={eliminada || p.es_bloqueado || yaValidada}
                         >
                           <IconClock size={13} />
                         </ActionIcon>
@@ -351,7 +333,7 @@ export const ParticionesExpandible = forwardRef<
                         onAutoAdjust={(field, value) =>
                           hooks.ajustarPeso(p.id, field, value)
                         }
-                        disabled={eliminada || p.es_bloqueado}
+                        disabled={eliminada || p.es_bloqueado || yaValidada}
                       />
                     </div>
                   </Table.Td>
@@ -373,7 +355,7 @@ export const ParticionesExpandible = forwardRef<
                               value: p.fecha_hora_peso_final,
                             })
                           }
-                          disabled={eliminada || p.es_bloqueado}
+                          disabled={eliminada || p.es_bloqueado || yaValidada}
                         >
                           <IconClock size={13} />
                         </ActionIcon>
@@ -388,7 +370,7 @@ export const ParticionesExpandible = forwardRef<
                         onAutoAdjust={(field, value) =>
                           hooks.ajustarPeso(p.id, field, value)
                         }
-                        disabled={eliminada || p.es_bloqueado}
+                        disabled={eliminada || p.es_bloqueado || yaValidada}
                         max={lote.lote_peso_neto}
                       />
                     </div>
@@ -398,7 +380,6 @@ export const ParticionesExpandible = forwardRef<
                       const evalPart = evaluarParticion(p);
                       const puedeValidar =
                         !eliminada && evalPart.cumple && evalLote.cumple_suma;
-                      const yaValidada = p.esta_validado === true;
                       const isValidating =
                         hooks.validatingIds?.[p.id] === true;
                       const color: "green" | "yellow" | "gray" = yaValidada
@@ -589,7 +570,7 @@ export const ParticionesExpandible = forwardRef<
       )}
     </Stack>
   );
-});
+};
 
 const round2 = (n: number): number => Math.round(n * 100) / 100;
 

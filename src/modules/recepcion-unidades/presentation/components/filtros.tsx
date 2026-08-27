@@ -1,8 +1,7 @@
-import { IconSearch, IconCalendar, IconTruck, IconArrowsUpDown, IconX } from "@tabler/icons-react";
+import { IconSearch, IconCalendar, IconTruck, IconX } from "@tabler/icons-react";
 import { TextInput, Select, Grid, ActionIcon } from "@mantine/core";
 import type { RecepcionFilters } from "../../service/recepcion-unidades.requests";
 import type { RES_EmpresaTransporte } from "../../../../service/responses/empresa-transporte";
-import { TipoIngreso } from "../../../../shared/enums/_generic/tipo-ingreso";
 
 interface Props {
   filters: RecepcionFilters;
@@ -23,13 +22,6 @@ export const Filtros = ({
       value: String(e.id_empresa_transporte),
       label: e.razon_social,
     }));
-  };
-
-  const getTipoIngresoData = () => {
-    return [
-      { value: TipoIngreso.RecepcionMineral, label: "Recepción de Mineral" },
-      { value: TipoIngreso.DespachoMineral, label: "Despacho de Mineral" },
-    ];
   };
 
   const fieldClasses = {
@@ -130,30 +122,7 @@ export const Filtros = ({
           />
         </Grid.Col>
 
-        {/* Condición Ingreso */}
-        <Grid.Col span={{ base: 12, sm: 4, md: 2 }}>
-          <Select
-            label="Condición Ingreso"
-            placeholder="Seleccione"
-            clearable
-            radius="lg"
-            leftSection={<IconArrowsUpDown size={16} className={filters.tipo_ingreso ? "text-indigo-400" : "text-zinc-500"} />}
-            data={getTipoIngresoData()}
-            value={filters.tipo_ingreso || null}
-            onChange={(val) => handleFilterChange("tipo_ingreso", val || "")}
-            comboboxProps={{
-              transitionProps: { transition: "pop-top-left", duration: 150 },
-              dropdownPadding: 6,
-              shadow: "md",
-            }}
-            classNames={{
-              ...fieldClasses,
-              dropdown: "bg-zinc-950 border-zinc-800 text-white rounded-lg shadow-2xl",
-              option: "hover:bg-zinc-900 rounded-lg text-sm text-zinc-300 hover:text-white transition-colors py-2 px-3 data-[selected]:bg-indigo-600 data-[selected]:text-white",
-            }}
-          />
-        </Grid.Col>
-      </Grid>
+        </Grid>
     </div>
   );
 };

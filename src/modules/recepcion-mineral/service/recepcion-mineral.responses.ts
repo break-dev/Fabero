@@ -38,7 +38,6 @@ export interface RES_LoteMineral {
   peso_actual: number | null;
   id_vehiculo: number | null;
   vehiculo_placa: string | null;
-  vehiculo_serie: string | null;
   id_empresa_transporte: number | null;
   empresa_transporte_razon_social: string | null;
   id_tipo_vehiculo: number | null;
@@ -55,7 +54,6 @@ export interface RecepcionMineralResponse {
   empleado_registro_nombre: string;
   id_vehiculo: number | null;
   vehiculo_placa: string | null;
-  vehiculo_serie: string | null;
   id_empresa_transporte: number | null;
   empresa_transporte_razon_social: string | null;
   id_tipo_vehiculo: number | null;
@@ -80,7 +78,6 @@ export interface RecepcionMineralResponse {
   estado_salida: string | null;
   estado_pesaje: string | null;
   id_sucursal: number | null;
-  es_recepcion_ficticia: boolean;
   lotes: RES_LoteMineral[];
 }
 

@@ -156,17 +156,17 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
   return (
     <>
       <Stack gap="md" className="max-h-[85vh] overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
-        {/* 1. Editar Peso Inicial - Ancho completo, 3 columnas */}
+        {/* 1. Datos del Pesaje - 2 columnas (md:6) */}
         <Paper radius="xl" p="md" className="bg-zinc-900/20 border border-zinc-800/80">
           <Group gap="xs" mb="xs" pb="xs" className="border-b border-zinc-800">
 
             <Text size="xs" fw={800} className="text-indigo-400 uppercase tracking-widest">
-              1. Editar Peso Inicial y Transporte
+              Datos del Pesaje
             </Text>
           </Group>
 
           <Grid gutter="sm">
-            <Grid.Col span={{ base: 12, md: 4 }}>
+            <Grid.Col span={{ base: 12, sm: 6 }}>
               <Select
                 label="Producto:"
                 placeholder="Seleccione"
@@ -179,7 +179,7 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
                 required
               />
             </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 4 }}>
+            <Grid.Col span={{ base: 12, sm: 6 }}>
               <Select
                 label="Tipo Material:"
                 placeholder="Seleccione"
@@ -192,9 +192,8 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
                 required
               />
             </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 4 }}/>
 
-            <Grid.Col span={{ base: 12, md: 4 }}>
+            <Grid.Col span={{ base: 12, sm: 6 }}>
               <Group gap="xs" align="flex-end" wrap="nowrap">
                 <Select
                   label="Proveedor Minero:"
@@ -226,14 +225,14 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
                     radius="lg"
                     size="lg"
                     onClick={() => setOpenProveedorModal(true)}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white h-9.5 w-9.5"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
                   >
                     <IconUserPlus size={16} />
                   </ActionIcon>
                 </Tooltip>
               </Group>
             </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 4 }}>
+            <Grid.Col span={{ base: 12, sm: 6 }}>
               <Group gap="xs" align="flex-end" wrap="nowrap">
                 <Select
                   label="Zona Origen:"
@@ -249,22 +248,23 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
                   size="xs"
                   className="flex-1"
                 />
-                <Tooltip label="Agregar Zona" withArrow>
+                <Tooltip label="Agregar Zona de Origen" withArrow>
                   <ActionIcon
                     type="button"
                     variant="filled"
-                    color="zinc"
+                    color="indigo"
                     radius="lg"
                     size="lg"
                     onClick={() => setOpenZonaModal(true)}
-                    className="bg-zinc-800 text-zinc-300 hover:bg-zinc-700 border border-zinc-700"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
                   >
                     <IconPlus size={16} />
                   </ActionIcon>
                 </Tooltip>
               </Group>
             </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 4 }}>
+
+            <Grid.Col span={{ base: 12, sm: 4 }}>
               <TextInput
                 label="N° Contacto:"
                 type="tel"
@@ -293,7 +293,7 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
                 size="xs"
               />
             </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 4 }}>
+            <Grid.Col span={{ base: 12, sm: 4 }}>
               <TextInput
                 label="Peso Inicial (Kg):"
                 value={pesoInicial}
@@ -304,23 +304,7 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
                 required
               />
             </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 4 }}>
-              {/* Columna vacía para mantener el grid 3x3 balanceado */}
-            </Grid.Col>
-          </Grid>
-        </Paper>
-
-        {/* 2. Registrar Peso Final (Tara) */}
-        <Paper radius="xl" p="md" className="bg-zinc-900/20 border border-zinc-800/80">
-          <Group gap="xs" mb="xs" pb="xs" className="border-b border-zinc-800">
-
-            <Text size="xs" fw={800} className="text-amber-500 uppercase tracking-widest">
-              2. Registrar Peso Final
-            </Text>
-          </Group>
-
-          <Grid gutter="sm">
-            <Grid.Col span={{ base: 12, sm: 12 }}>
+            <Grid.Col span={{ base: 12, sm: 4 }}>
               <TextInput
                 label="Peso Final / Tara (Kg):"
                 placeholder="Ingrese tara en Kilos"
@@ -329,6 +313,7 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
                 classNames={fieldClasses}
                 radius="lg"
                 size="xs"
+                autoFocus
                 required
               />
             </Grid.Col>

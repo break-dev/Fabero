@@ -26,7 +26,6 @@ export const useRecepciones = () => {
     fecha_fin: getTodayString(),
     placa: "",
     id_empresa_transporte: undefined,
-    tipo_ingreso: "",
   });
 
   const fetchRecepciones = async () => {
@@ -62,7 +61,6 @@ export const useRecepciones = () => {
     filters.fecha_fin,
     filters.placa,
     filters.id_empresa_transporte,
-    filters.tipo_ingreso,
   ]);
 
   useEffect(() => {
@@ -109,7 +107,6 @@ export const useRecepciones = () => {
       fecha_fin: getTodayString(),
       placa: "",
       id_empresa_transporte: undefined,
-      tipo_ingreso: "",
     };
     setFilters(cleared);
     setLoading(true);

@@ -31,7 +31,3 @@ export interface DespachoFiltros {
   fecha_inicio?: string;
   fecha_fin?: string;
 }
-
-export interface RegistrarSalidaRequest {
-  observacion?: string;
-}

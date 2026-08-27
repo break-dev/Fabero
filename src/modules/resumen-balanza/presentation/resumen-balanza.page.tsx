@@ -293,7 +293,6 @@ export const ResumenBalanzaPage = () => {
                   correlativo: r.lote_correlativo,
                   numero_correlativo: r.lote_numero_correlativo,
                   vehiculo_placa: r.vehiculo_placa,
-                  vehiculo_serie: r.vehiculo_serie,
                   empresa_transporte_ruc: ruc,
                   empresa_transporte_razon_social: r.empresa_transporte_razon_social,
                   tipo_vehiculo_nombre: r.tipo_vehiculo_nombre,
@@ -390,9 +389,7 @@ export const ResumenBalanzaPage = () => {
               title: "Vehículo / Placa",
               width: 160,
               render: (r: RES_ResumenBalanzaItem) => {
-                const fullPlaca = r.vehiculo_serie
-                  ? `${r.vehiculo_serie}-${r.vehiculo_placa}`
-                  : (r.vehiculo_placa || "SIN PLACA");
+                const fullPlaca = r.vehiculo_placa || "SIN PLACA";
                 return (
                   <div className="flex flex-col gap-1 items-start">
                     <div className="inline-flex items-center justify-center bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-0.5 rounded-md font-bold text-xs tracking-wider uppercase font-mono">

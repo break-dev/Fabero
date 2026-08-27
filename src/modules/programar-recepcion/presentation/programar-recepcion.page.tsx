@@ -1,8 +1,8 @@
 import { Button, Stack } from "@mantine/core";
-import { IconCalendarPlus } from "@tabler/icons-react";
+import { IconCalendarPlus, IconX } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTitlePage } from "../../../hooks/useTitlePage";
-import { useProgramaciones } from "../hooks/useProgramaciones";
+import { useProgramaciones, getTodayString } from "../hooks/useProgramaciones";
 import { FiltrosProgramaciones } from "./components/filtros-programaciones";
 import { TablaProgramaciones } from "./components/tabla-programaciones";
 import { ProgramarRecepcionModal } from "./components/programar-modal";
@@ -15,30 +15,59 @@ export const ProgramarRecepcionPage = () => {
     loading,
     searchQuery,
     setSearchQuery,
+    fechaInicio,
+    setFechaInicio,
+    fechaFin,
+    setFechaFin,
+    resetFilters,
     insertProgramacion,
   } = useProgramaciones();
 
   const [openProgramar, setOpenProgramar] = useState(false);
 
+  const todayStr = getTodayString();
+  const hasActiveFilters =
+    fechaInicio !== todayStr ||
+    fechaFin !== todayStr ||
+    !!searchQuery;
+
   return (
     <div className="space-y-6 animate-fadeIn">
       <div className="flex flex-col xl:flex-row gap-4 items-end justify-between w-full">
-        <div className="flex-1 w-full max-w-md">
-          <FiltrosProgramaciones
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-          />
-        </div>
+        <FiltrosProgramaciones
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          fechaInicio={fechaInicio}
+          setFechaInicio={setFechaInicio}
+          fechaFin={fechaFin}
+          setFechaFin={setFechaFin}
+        />
 
-        <Button
-          radius="lg"
-          size="sm"
-          leftSection={<IconCalendarPlus size={18} />}
-          onClick={() => setOpenProgramar(true)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-900/20 shrink-0 h-9.5 px-6 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
-        >
-          Nueva Programación
-        </Button>
+        <div className="flex items-center gap-2 shrink-0 pb-0.5">
+          {hasActiveFilters && (
+            <Button
+              variant="subtle"
+              color="red"
+              radius="lg"
+              size="sm"
+              leftSection={<IconX size={16} />}
+              onClick={resetFilters}
+              className="text-red-400 hover:bg-red-500/10 transition-colors h-9.5 px-6"
+            >
+              Limpiar
+            </Button>
+          )}
+
+          <Button
+            radius="lg"
+            size="sm"
+            leftSection={<IconCalendarPlus size={18} />}
+            onClick={() => setOpenProgramar(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-900/20 shrink-0 h-9.5 px-6 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+          >
+            Nueva Programación
+          </Button>
+        </div>
       </div>
 
       <Stack gap="md">

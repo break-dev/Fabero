@@ -4,13 +4,11 @@ import type {
   CrearDespachoRequest,
   CrearDistribucionRequest,
   DespachoFiltros,
-  RegistrarSalidaRequest,
 } from "./programacion-despachos.requests";
 import type {
   CrearDistribucionResult,
   DespachoDetalle,
   DespachoListItem,
-  DistribucionItem,
   ItemDisponibleDespacho,
 } from "./programacion-despachos.responses";
 
@@ -63,31 +61,6 @@ export const ProgramacionDespachosService = {
     const { data } = await api.post<IRespuesta<CrearDistribucionResult>>(
       `/programacion-despachos/${idDespacho}/distribuciones`,
       payload,
-    );
-    return data.data;
-  },
-
-  confirmarDistribucion: async (id: number): Promise<DistribucionItem> => {
-    const { data } = await api.patch<IRespuesta<DistribucionItem>>(
-      `/programacion-despachos/distribuciones/${id}/confirmar`,
-    );
-    return data.data;
-  },
-
-  registrarSalida: async (
-    id: number,
-    payload: RegistrarSalidaRequest = {},
-  ): Promise<DistribucionItem> => {
-    const { data } = await api.patch<IRespuesta<DistribucionItem>>(
-      `/programacion-despachos/distribuciones/${id}/salida`,
-      payload,
-    );
-    return data.data;
-  },
-
-  registrarLlegada: async (id: number): Promise<DistribucionItem> => {
-    const { data } = await api.patch<IRespuesta<DistribucionItem>>(
-      `/programacion-despachos/distribuciones/${id}/llegada`,
     );
     return data.data;
   },

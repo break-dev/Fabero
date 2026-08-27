@@ -63,6 +63,7 @@ export const ProgramacionDespachosPage = () => {
     abierto: false,
     distribucion: null,
   });
+  const [anulandoIds, setAnulandoIds] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -89,56 +90,35 @@ export const ProgramacionDespachosPage = () => {
     recargar();
   };
 
-  const abrirModalDistribucion = async (idDespacho: number, detalles: DespachoDetalleItem[]) => {
-    setModalDistribucion({ abierto: true, idDespacho, detalles });
+  const abrirModalDistribucion = async (idDespacho: number) => {
+    try {
+      let detalle =
+        useDespachoDetalleStore.getState().getDetalle(idDespacho) ?? null;
+      if (!detalle) {
+        detalle = await ProgramacionDespachosService.getDespacho(idDespacho);
+        useDespachoDetalleStore.getState().setDetalle(idDespacho, detalle);
+      }
+      const detallesPendientes = detalle.detalles.filter((d) => d.peso_actual > 0);
+      if (detallesPendientes.length === 0) {
+        notifyError("Este despacho no tiene items pendientes para distribuir.");
+        return;
+      }
+      setModalDistribucion({ abierto: true, idDespacho, detalles: detallesPendientes });
+    } catch (e) {
+      console.error(e);
+      notifyError("Error al cargar el detalle del despacho");
+    }
   };
 
   const onDistribucionCreada = (result: CrearDistribucionResult) => {
     notifySuccess("Distribución registrada correctamente");
     recargar();
-    // Invalidar cache del detalle del despacho para que la próxima vez que se
-    // expanda el row (o si está expandido) se haga fetch con la nueva distribución.
     useDespachoDetalleStore.getState().invalidar(result.despacho.cabecera.id);
     setModalDistribucion({ abierto: false, idDespacho: null, detalles: [] });
   };
 
-  const confirmarDistribucion = (id: number) => {
-    ProgramacionDespachosService.confirmarDistribucion(id)
-      .then(() => {
-        notifySuccess("Distribución confirmada");
-        recargar();
-      })
-      .catch((e) => {
-        console.error(e);
-        notifyError("Error al confirmar la distribución");
-      });
-  };
-
-  const registrarSalida = (id: number) => {
-    ProgramacionDespachosService.registrarSalida(id, {})
-      .then(() => {
-        notifySuccess("Salida de planta registrada");
-        recargar();
-      })
-      .catch((e) => {
-        console.error(e);
-        notifyError("Error al registrar la salida");
-      });
-  };
-
-  const registrarLlegada = (id: number) => {
-    ProgramacionDespachosService.registrarLlegada(id)
-      .then(() => {
-        notifySuccess("Llegada al cliente registrada");
-        recargar();
-      })
-      .catch((e) => {
-        console.error(e);
-        notifyError("Error al registrar la llegada");
-      });
-  };
-
   const anularDespacho = (id: number) => {
+    setAnulandoIds((prev) => ({ ...prev, [id]: true }));
     ProgramacionDespachosService.anularDespacho(id)
       .then((actualizado) => {
         notifySuccess("Despacho anulado");
@@ -148,6 +128,13 @@ export const ProgramacionDespachosPage = () => {
       .catch((e) => {
         console.error(e);
         notifyError("Error al anular el despacho");
+      })
+      .finally(() => {
+        setAnulandoIds((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
       });
   };
 
@@ -177,18 +164,15 @@ export const ProgramacionDespachosPage = () => {
         <TablaDespachos
           despachos={despachos}
           loading={loading}
+          onAgregarDistribucion={abrirModalDistribucion}
+          onAnularDespacho={anularDespacho}
+          togglingIds={anulandoIds}
           renderExpandedRow={(record) => (
             <DespachoExpandido
               idDespacho={record.id}
-              onAgregarDistribucion={abrirModalDistribucion}
-              onConfirmarDistribucion={confirmarDistribucion}
-              onRegistrarSalida={registrarSalida}
-              onRegistrarLlegada={registrarLlegada}
-              onAnularDespacho={anularDespacho}
               onVerLog={(dist) =>
                 setLogModal({ abierto: true, distribucion: dist })
               }
-              togglingIds={{}}
             />
           )}
         />

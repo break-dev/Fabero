@@ -78,8 +78,7 @@ export const RecepcionUnidadesPage = () => {
     !!filters.fecha_inicio ||
     !!filters.fecha_fin ||
     !!filters.placa ||
-    filters.id_empresa_transporte !== undefined ||
-    !!filters.tipo_ingreso;
+    filters.id_empresa_transporte !== undefined;
 
   return (
     <div className="space-y-6 animate-fadeIn">

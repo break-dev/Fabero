@@ -151,6 +151,8 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
   const [openItemModal, setOpenItemModal] = useState(false);
   const [itemsDisponibles, setItemsDisponibles] = useState<RES_ItemMineralDisponible[]>([]);
   const [loadingItems, setLoadingItems] = useState(false);
+  const [itemsFechaInicio, setItemsFechaInicio] = useState<string>(todayIso());
+  const [itemsFechaFin, setItemsFechaFin] = useState<string>(todayIso());
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -438,14 +440,18 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
 
   // Cargar items disponibles (lotes o particiones) sin filtrar por proveedor
   const handleOpenItemModal = async () => {
+    const inicio = todayIso();
+    const fin = fechaEnPlanta ?? todayIso();
+    setItemsFechaInicio(inicio);
+    setItemsFechaFin(fin);
     setOpenItemModal(true);
     setLoadingItems(true);
     try {
-      const fechaFiltro = fechaEnPlanta ?? todayIso();
       const data = await ItemsMineralService.get_items_disponibles(
         idSucursal,
         undefined,
-        fechaFiltro,
+        inicio,
+        fin,
       );
       const yaSeleccionados = new Set(items.map(itemKey));
       setItemsDisponibles(
@@ -1264,16 +1270,39 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
         opened={openItemModal}
         loading={loadingItems}
         items={itemsDisponibles}
-        fechaFiltroIngreso={fechaEnPlanta ?? todayIso()}
+        fechaInicioFiltroIngreso={itemsFechaInicio}
+        fechaFinFiltroIngreso={itemsFechaFin}
         onClose={() => setOpenItemModal(false)}
         onConfirm={handleAgregarItems}
-        onFechaFiltroChange={async (nuevaFecha) => {
-          setFechaEnPlanta(nuevaFecha);
+        onFechaInicioChange={async (nuevaFecha) => {
+          setItemsFechaInicio(nuevaFecha);
           setLoadingItems(true);
           try {
             const data = await ItemsMineralService.get_items_disponibles(
               idSucursal,
               undefined,
+              nuevaFecha,
+              itemsFechaFin,
+            );
+            const yaSeleccionados = new Set(items.map(itemKey));
+            setItemsDisponibles(
+              data.filter((i) => !yaSeleccionados.has(itemKey(i)) && !i.en_guia),
+            );
+          } catch (e) {
+            console.error("Error al cargar items disponibles", e);
+            notifyError("No se pudieron cargar los items de mineral disponibles.");
+          } finally {
+            setLoadingItems(false);
+          }
+        }}
+        onFechaFinChange={async (nuevaFecha) => {
+          setItemsFechaFin(nuevaFecha);
+          setLoadingItems(true);
+          try {
+            const data = await ItemsMineralService.get_items_disponibles(
+              idSucursal,
+              undefined,
+              itemsFechaInicio,
               nuevaFecha,
             );
             const yaSeleccionados = new Set(items.map(itemKey));
@@ -1300,28 +1329,37 @@ interface ModalSeleccionarItemProps {
   opened: boolean;
   loading: boolean;
   items: RES_ItemMineralDisponible[];
-  fechaFiltroIngreso: string;
+  fechaInicioFiltroIngreso: string;
+  fechaFinFiltroIngreso: string;
   onClose: () => void;
   onConfirm: (seleccionados: RES_ItemMineralDisponible[]) => void;
-  onFechaFiltroChange: (fecha: string) => void;
+  onFechaInicioChange: (fecha: string) => void;
+  onFechaFinChange: (fecha: string) => void;
 }
 
 const ModalSeleccionarItem = ({
   opened,
   loading,
   items,
-  fechaFiltroIngreso,
+  fechaInicioFiltroIngreso,
+  fechaFinFiltroIngreso,
   onClose,
   onConfirm,
-  onFechaFiltroChange,
+  onFechaInicioChange,
+  onFechaFinChange,
 }: ModalSeleccionarItemProps) => {
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
   const [busqueda, setBusqueda] = useState("");
-  const [fechaFiltro, setFechaFiltro] = useState<string>(fechaFiltroIngreso);
+  const [fechaInicio, setFechaInicio] = useState<string>(fechaInicioFiltroIngreso);
+  const [fechaFin, setFechaFin] = useState<string>(fechaFinFiltroIngreso);
 
   useEffect(() => {
-    setFechaFiltro(fechaFiltroIngreso);
-  }, [fechaFiltroIngreso]);
+    setFechaInicio(fechaInicioFiltroIngreso);
+  }, [fechaInicioFiltroIngreso]);
+
+  useEffect(() => {
+    setFechaFin(fechaFinFiltroIngreso);
+  }, [fechaFinFiltroIngreso]);
 
   const handleClose = () => {
     setSeleccionados(new Set());
@@ -1358,35 +1396,66 @@ const ModalSeleccionarItem = ({
   });
 
   const filtrosHeader = (
-    <div className="flex items-center gap-2">
-      <TextInput
-        placeholder="Buscar correlativo, placa o proveedor..."
-        value={busqueda}
-        onChange={(e) => setBusqueda(e.currentTarget.value)}
-        leftSection={<IconSearch size={12} className="text-zinc-500" />}
-        classNames={fieldClasses}
-        radius="md"
-        size="xs"
-        style={{ width: 200 }}
-      />
-      <CustomDatePicker
-        label=""
-        value={fechaFiltro}
-        onChange={(d) => {
-          if (!d) {
-            const hoy = todayIso();
-            setFechaFiltro(hoy);
-            onFechaFiltroChange(hoy);
-            return;
-          }
-          const pad = (n: number) => n.toString().padStart(2, "0");
-          const iso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-          setFechaFiltro(iso);
-          onFechaFiltroChange(iso);
-        }}
-        placeholder="Fecha ingreso"
-        style={{ width: 150 }}
-      />
+    <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5">
+        <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider whitespace-nowrap">
+          Buscar
+        </span>
+        <TextInput
+          placeholder="Correlativo, placa o proveedor..."
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.currentTarget.value)}
+          leftSection={<IconSearch size={12} className="text-zinc-500" />}
+          classNames={fieldClasses}
+          radius="md"
+          size="xs"
+          style={{ width: 200 }}
+        />
+      </div>
+      <div className="flex items-center gap-1.5">
+        <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider whitespace-nowrap">
+          Inicio
+        </span>
+        <CustomDatePicker
+          value={fechaInicio}
+          onChange={(d) => {
+            if (!d) {
+              const hoy = todayIso();
+              setFechaInicio(hoy);
+              onFechaInicioChange(hoy);
+              return;
+            }
+            const pad = (n: number) => n.toString().padStart(2, "0");
+            const iso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+            setFechaInicio(iso);
+            onFechaInicioChange(iso);
+          }}
+          placeholder="DD/MM/YYYY"
+          style={{ width: 140 }}
+        />
+      </div>
+      <div className="flex items-center gap-1.5">
+        <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider whitespace-nowrap">
+          Fin
+        </span>
+        <CustomDatePicker
+          value={fechaFin}
+          onChange={(d) => {
+            if (!d) {
+              const hoy = todayIso();
+              setFechaFin(hoy);
+              onFechaFinChange(hoy);
+              return;
+            }
+            const pad = (n: number) => n.toString().padStart(2, "0");
+            const iso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+            setFechaFin(iso);
+            onFechaFinChange(iso);
+          }}
+          placeholder="DD/MM/YYYY"
+          style={{ width: 140 }}
+        />
+      </div>
     </div>
   );
 
@@ -1395,7 +1464,7 @@ const ModalSeleccionarItem = ({
       opened={opened}
       close={handleClose}
       title="Seleccionar Lotes o Particiones"
-      size="70%"
+      size="85%"
       rightSection={filtrosHeader}
     >
       <Stack gap="md">

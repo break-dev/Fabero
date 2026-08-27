@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActionIcon,
   Box,
@@ -27,16 +27,16 @@ import { DataTableEstandar } from "../../../presentation/utils/datatable-estanda
 import { CustomDatePicker } from "../../../presentation/utils/date-picker-input";
 import { ModalValidacion } from "../../../presentation/utils/modal-validacion";
 import { useLotesPendientes, getTodayString } from "../hooks/useLotesPendientes";
-import {
-  ParticionesExpandible,
-  type ParticionesExpandibleRef,
-} from "./components/ParticionesExpandible";
+import { normalizeParticion } from "../hooks/useParticionesLote";
+import { ParticionesExpandible } from "./components/ParticionesExpandible";
 import { formatTn, formatDateTime } from "./utils/format-units";
 import { etiquetaCampoFaltante, evaluarLote } from "./utils/evaluador-validacion";
 import { useParticionesLoteStore } from "../../../stores/particiones-lote.store";
 import type { RES_LotePendiente } from "../service/validacion-distribucion.responses";
 import { ValidacionDistribucionService } from "../service/validacion-distribucion.service";
+import type { DTO_CrearParticion } from "../service/validacion-distribucion.requests";
 import { TicketBalanzaPdf } from "../../recepcion-mineral/presentation/components/ticket-balanza-pdf";
+import { useUIStore } from "../../../stores/ui.store";
 
 type Row = RES_LotePendiente;
 type EstadoParticion = "TODOS" | "CON" | "SIN";
@@ -64,7 +64,10 @@ export const ValidacionDistribucionPage = () => {
     null
   );
   const [printingLoteId, setPrintingLoteId] = useState<number | null>(null);
-  const expandibleRefs = useRef<Map<number, ParticionesExpandibleRef>>(new Map());
+
+  // Control imperativo de la fila expandida. Permite auto-expand al crear
+  // particiones y elimina la dependencia del forwardRef del sub-componente.
+  const [expandedLoteId, setExpandedLoteId] = useState<number | null>(null);
 
   // Suscripcion al cache de particiones. Re-render cuando los lotes visibles
   // se hidratan (prefetch) o cambian. Permite que los checkboxes se habiliten
@@ -301,7 +304,7 @@ export const ValidacionDistribucionPage = () => {
     }
   };
 
-  const handleConfirmValidacion = async () => {
+  const handleConfirmValidacion = () => {
     const ctx = modalValidacion.context;
     if (!ctx) {
       // El modal sin context (resumen multi-lotes) solo se cierra.
@@ -310,21 +313,61 @@ export const ValidacionDistribucionPage = () => {
     }
 
     if (ctx.tipo === "lote") {
-      const ok = await validarLote(ctx.idLote);
-      if (ok) {
-        notifySuccess("Lote validado correctamente.");
-        closeModalValidacion();
-      }
+      // Cierre optimista: el modal desaparece de inmediato, el toast de
+      // exito/error lo dispara el hook useLotesPendientes.validarLote.
+      closeModalValidacion();
+      void validarLote(ctx.idLote);
     }
   };
 
-const handleCrearParticion = async (idLote: number) => {
-    const ref = expandibleRefs.current.get(idLote);
-    if (!ref) return;
+  // Crear partición SIN depender de un forwardRef. Llama al service directo,
+  // sincroniza el cache global y dispara auto-expand. Si el backend es la
+  // primera vez (count==0), crea 2 particiones (A con copia ficticia de la
+  // recepción original + B vacía con recepción ficticia nueva).
+  const handleCrearParticion = async (idLote: number) => {
     setCreatingParticionId(idLote);
+    setExpandedLoteId(idLote);
     try {
-      await ref.crearParticion();
+      // Defensa explicita: una partición pertenece al mismo lote que su padre,
+      // por lo tanto hereda la sucursal activa del operador. Esto evita que la
+      // recepcion_unidad ficticia quede con id_sucursal = NULL cuando el backend
+      // recibe un payload vacio.
+      const idSucursal =
+        useUIStore.getState().sucursal_elegida?.id_sucursal ?? null;
+      const payload: DTO_CrearParticion =
+        idSucursal !== null
+          ? { recepcion: { id_sucursal: idSucursal } }
+          : {};
+      const creadas = await ValidacionDistribucionService.crearParticion(
+        idLote,
+        payload
+      );
+      if (creadas.length === 0) {
+        notifyError("No se pudo crear la partición.");
+        return;
+      }
+      // Optimistic: append inmediato al cache del store. El hook
+      // useParticionesLote re-renderiza al toque via la suscripcion
+      // cacheStore((s) => s.byLote[idLote]).
+      const cacheState = useParticionesLoteStore.getState();
+      const cached = cacheState.getCached(idLote);
+      const existentes = cached?.data ?? [];
+      const normalizadas = creadas.map(normalizeParticion);
+      cacheState.setParticiones(idLote, [...existentes, ...normalizadas]);
+
+      // Background: refetch silencioso para que ticket_balanza + recepcion
+      // queden consistentes (no se renderiza nada extra, solo pisa el cache).
+      void cacheState.fetchParticiones(idLote, async (id) => {
+        const raw = await ValidacionDistribucionService.getParticiones(id);
+        return raw.map(normalizeParticion);
+      });
+
       updateRecord(idLote, { tiene_particion: 1 });
+      notifySuccess(
+        creadas.length > 1
+          ? `${creadas.length} particiones creadas correctamente.`
+          : "Partición creada correctamente."
+      );
     } catch {
       notifyError("No se pudo crear la partición.");
     } finally {
@@ -489,18 +532,11 @@ const handleCrearParticion = async (idLote: number) => {
           selectedRecords={selectedLotes}
           onSelectedRecordsChange={setSelectedLotes}
           isRecordSelectable={puedeSeleccionarLote}
-          renderExpandedRow={(r: Row) => (
-            <ParticionesExpandible
-              ref={(instance) => {
-                if (instance) {
-                  expandibleRefs.current.set(r.id_lote_mineral, instance);
-                } else {
-                  expandibleRefs.current.delete(r.id_lote_mineral);
-                }
-              }}
-              lote={r}
-            />
-          )}
+          expandedRecordIds={expandedLoteId !== null ? [expandedLoteId] : []}
+          onExpandedChange={(ids) =>
+            setExpandedLoteId(typeof ids[0] === "number" ? ids[0] : null)
+          }
+          renderExpandedRow={(r: Row) => <ParticionesExpandible lote={r} />}
           columns={[
             {
               accessor: "lote_correlativo",

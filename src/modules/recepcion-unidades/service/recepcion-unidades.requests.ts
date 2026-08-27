@@ -37,7 +37,6 @@ export interface RecepcionFilters {
   fecha_fin?: string;
   placa?: string;
   id_empresa_transporte?: number;
-  tipo_ingreso?: string;
 }
 
 export interface CrearVisitaVehiculoRequest {

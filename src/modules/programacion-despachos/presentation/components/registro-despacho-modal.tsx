@@ -94,8 +94,8 @@ export const RegistroDespachoModal = ({
       : `BLENDING-${it.id_blending}`;
     const label =
       it.tipo_item === "LOTE"
-        ? `${it.correlativo} · Lote · ${it.proveedor_razon_social ?? "—"} · ${(it.peso_actual ?? 0).toFixed(3)} TN`
-        : `${it.correlativo} · Blending · ${(it.peso_actual ?? 0).toFixed(3)} TN`;
+        ? `${it.correlativo} · Lote · ${it.proveedor_razon_social ?? "—"} · ${(it.peso_actual ?? 0).toFixed(3)} KG`
+        : `${it.correlativo} · Blending · ${(it.peso_actual ?? 0).toFixed(3)} KG`;
     return { value, label };
   });
 
@@ -113,15 +113,40 @@ export const RegistroDespachoModal = ({
 
   const handleItemSelect = (uid: number, value: string | null) => {
     if (!value) {
-      ctrl.actualizarItem(uid, { id_lote_mineral: null, id_blending: null });
+      ctrl.actualizarItem(uid, {
+        id_lote_mineral: null,
+        id_blending: null,
+        peso_tomado: 0,
+        peso_maximo: null,
+      });
       return;
     }
+    const item = items.find((it) => {
+      if (value.startsWith("LOTE-")) {
+        return it.id_lote_mineral === Number(value.replace("LOTE-", ""));
+      }
+      if (value.startsWith("BLENDING-")) {
+        return it.id_blending === Number(value.replace("BLENDING-", ""));
+      }
+      return false;
+    });
+    const pesoActual = item?.peso_actual ?? 0;
     if (value.startsWith("LOTE-")) {
       const id = Number(value.replace("LOTE-", ""));
-      ctrl.actualizarItem(uid, { id_lote_mineral: id, id_blending: null });
+      ctrl.actualizarItem(uid, {
+        id_lote_mineral: id,
+        id_blending: null,
+        peso_tomado: pesoActual,
+        peso_maximo: pesoActual,
+      });
     } else if (value.startsWith("BLENDING-")) {
       const id = Number(value.replace("BLENDING-", ""));
-      ctrl.actualizarItem(uid, { id_blending: id, id_lote_mineral: null });
+      ctrl.actualizarItem(uid, {
+        id_blending: id,
+        id_lote_mineral: null,
+        peso_tomado: pesoActual,
+        peso_maximo: pesoActual,
+      });
     }
   };
 
@@ -165,22 +190,9 @@ export const RegistroDespachoModal = ({
           classNames={{ label: "text-zinc-400 text-xs uppercase tracking-wider" }}
         />
 
-        <Group justify="space-between" align="center">
-          <Text size="xs" className="text-zinc-500">
-            Seleccione los lotes / blendings y asigne el peso a despachar (TN). Cada item acepta como máximo su peso actual disponible.
-          </Text>
-          <Button
-            leftSection={<IconPlus size={14} />}
-            variant="light"
-            size="xs"
-            radius="lg"
-            disabled={ctrl.loading || loadingItems}
-            onClick={() => ctrl.agregarItem()}
-            className="bg-indigo-500/10! text-indigo-400! border-indigo-500/20!"
-          >
-            Agregar item
-          </Button>
-        </Group>
+        <Text size="xs" className="text-zinc-500">
+          Seleccione los lotes / blendings y asigne el peso a despachar (KG). Cada item acepta como máximo su peso actual disponible.
+        </Text>
 
         <Stack gap="xs">
           {ctrl.items.length === 0 ? (
@@ -217,17 +229,24 @@ export const RegistroDespachoModal = ({
                     classNames={{ ...fieldClasses, root: "flex-1" }}
                   />
                   <NumberInput
-                    label="Peso Tomado (TN)"
+                    label="Peso Tomado (KG)"
                     placeholder="0.000"
                     min={0}
                     max={maxPeso ?? undefined}
+                    clampOnBlur
                     decimalScale={3}
                     fixedDecimalScale
                     hideControls
                     value={it.peso_tomado || ""}
+                    error={
+                      maxPeso !== null && it.peso_tomado > maxPeso
+                        ? `Máx ${maxPeso.toFixed(3)} KG`
+                        : undefined
+                    }
                     onChange={(val) => {
-                      const n = typeof val === "number" ? val : Number(val);
-                      ctrl.actualizarItem(it.uid, { peso_tomado: isNaN(n) ? 0 : n });
+                      let n = typeof val === "number" ? val : Number(val);
+                      if (isNaN(n)) n = 0;
+                      ctrl.actualizarItem(it.uid, { peso_tomado: n });
                     }}
                     disabled={!key || ctrl.loading}
                     radius="lg"
@@ -260,6 +279,20 @@ export const RegistroDespachoModal = ({
             })
           )}
         </Stack>
+
+        <Group justify="center">
+          <Button
+            leftSection={<IconPlus size={14} />}
+            variant="light"
+            size="xs"
+            radius="lg"
+            disabled={ctrl.loading || loadingItems}
+            onClick={() => ctrl.agregarItem()}
+            className="bg-indigo-500/10! text-indigo-400! border-indigo-500/20!"
+          >
+            Agregar item
+          </Button>
+        </Group>
 
         <Group justify="flex-end" gap="md" mt="md">
           <Button

@@ -186,7 +186,7 @@ export const RegistroDistribucionModal = ({
   }));
   const vehiculosData = vehiculos.map((v) => ({
     value: String(v.id_vehiculo),
-    label: v.placa ? `${v.placa}${v.tipo_vehiculo_nombre ? ` · ${v.tipo_vehiculo_nombre}` : ""}` : `Vehículo #${v.id_vehiculo}`,
+    label: v.placa ? v.placa : `Vehículo #${v.id_vehiculo}`,
   }));
   const tiposVehiculoData = tiposVehiculo.map((t) => ({
     value: String(t.id_tipo_vehiculo),
@@ -463,7 +463,7 @@ export const RegistroDistribucionModal = ({
           <Grid.Col span={{ base: 12, sm: 6 }}>
             <CustomDatePicker
               label="Fecha Estimada de Llegada"
-              placeholder="Seleccione fecha (opcional)"
+              placeholder="Seleccione fecha"
               value={
                 ctrl.form.fecha_estimada_llegada
                   ? parseLocalDate(ctrl.form.fecha_estimada_llegada)
@@ -478,7 +478,9 @@ export const RegistroDistribucionModal = ({
                 ctrl.setField("fecha_estimada_llegada", formatLocalDate(d));
               }}
               disabled={ctrl.loading}
-              clearable
+              withAsterisk
+              required
+              minDate={new Date()}
               radius="lg"
               size="sm"
             />
@@ -556,14 +558,14 @@ export const RegistroDistribucionModal = ({
                           )}
                           {max !== null && (
                             <Text fz={10} c="indigo.4" fw={600}>
-                              Pendiente: {max.toFixed(3)} TN
+                              Pendiente: {max.toFixed(3)} KG
                             </Text>
                           )}
                         </Group>
                       </Stack>
                     </Group>
                     <NumberInput
-                      label="Peso Tomado (TN)"
+                      label="Peso Tomado (KG)"
                       placeholder="0.000"
                       min={0}
                       max={max ?? undefined}
