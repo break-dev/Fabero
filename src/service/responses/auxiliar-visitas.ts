@@ -7,7 +7,7 @@ export interface RES_MotivoIngreso {
 export interface RES_Visitante {
   id_visitante: number;
   nombre: string;
-  apellido: string;
-  dni: string;
+  apellido: string | null;
+  dni: string | null;
   telefono: string | null;
 }

@@ -333,9 +333,9 @@ export const AuxService = {
    */
   crear_visitante: async (payload: {
     nombre: string;
-    apellido: string;
-    dni: string;
-    telefono: string | null;
+    apellido?: string | null;
+    dni?: string | null;
+    telefono?: string | null;
   }): Promise<IRespuesta<RES_Visitante>> => {
     const { data } = await api.post<IRespuesta<RES_Visitante>>(
       `${path}/visitantes`,
