@@ -50,21 +50,23 @@ export const RegistroDespachoModal = ({
   plantas,
   loadingPlantas,
 }: Props) => {
-  const ctrl = useRegistroDespacho((nuevo) => {
-    onSuccess(nuevo);
-    onClose();
-  });
-  const { notifyError } = useNotify();
-
   const [items, setItems] = useState<ItemDisponibleDespacho[]>([]);
   const [loadingItems, setLoadingItems] = useState(false);
 
+  const handleClose = () => {
+    ctrl.reset();
+    setItems([]);
+    onClose();
+  };
+
+  const ctrl = useRegistroDespacho((nuevo) => {
+    onSuccess(nuevo);
+    handleClose();
+  });
+  const { notifyError } = useNotify();
+
   useEffect(() => {
-    if (!opened) {
-      ctrl.reset();
-      setItems([]);
-      return;
-    }
+    if (!opened) return;
     let cancelled = false;
     setLoadingItems(true);
     ProgramacionDespachosService.getItemsDisponibles()
@@ -81,6 +83,7 @@ export const RegistroDespachoModal = ({
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opened]);
 
   const plantasData = plantas.map((p) => ({
@@ -156,7 +159,7 @@ export const RegistroDespachoModal = ({
   return (
     <ModalEstandar
       opened={opened}
-      close={onClose}
+      close={handleClose}
       title="Registrar Despacho"
       size="xl"
       validateClose={ctrl.items.length > 0 || ctrl.idPlantaDestino !== null}
@@ -233,7 +236,6 @@ export const RegistroDespachoModal = ({
                     placeholder="0.000"
                     min={0}
                     max={maxPeso ?? undefined}
-                    clampOnBlur
                     decimalScale={3}
                     fixedDecimalScale
                     hideControls
@@ -297,7 +299,7 @@ export const RegistroDespachoModal = ({
         <Group justify="flex-end" gap="md" mt="md">
           <Button
             variant="subtle"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={ctrl.loading}
             radius="xl"
             size="sm"
