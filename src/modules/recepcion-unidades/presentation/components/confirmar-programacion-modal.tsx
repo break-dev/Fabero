@@ -564,6 +564,7 @@ const esDespacho =
                               dni: v.dni,
                               telefono: v.telefono,
                               foto_documento: v.foto_documento,
+                              id_visitante: v.id_visitante,
                             },
                           })
                         }

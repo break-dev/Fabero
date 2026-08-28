@@ -300,6 +300,7 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
       telefono?: string;
       es_conductor?: boolean;
       foto_documento?: File[];
+      id_visitante?: number;
     }) => {
       setVisitantes((prev) => [
         ...prev,
@@ -312,6 +313,7 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
           es_conductor: Boolean(datos.es_conductor),
           foto_documento: datos.foto_documento ?? [],
           foto_documento_existente: null,
+          id_visitante: datos.id_visitante,
         },
       ]);
       notifySuccess("Acompañante de unidad agregado");

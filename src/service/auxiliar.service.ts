@@ -344,6 +344,19 @@ export const AuxService = {
     return data;
   },
 
+  /**
+   * Listar visitantes con búsqueda opcional.
+   */
+  get_visitantes: async (
+    search?: string,
+  ): Promise<RES_Visitante[]> => {
+    const { data } = await api.get<IRespuesta<RES_Visitante[]>>(
+      `${path}/visitantes`,
+      { params: search ? { search } : {} },
+    );
+    return data.data;
+  },
+
   get_sucursales: async (): Promise<RES_Sucursal[]> => {
     const { data } = await api.get(`${path}/sucursales`);
     return data.data;

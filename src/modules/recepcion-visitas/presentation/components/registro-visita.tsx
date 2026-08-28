@@ -23,15 +23,14 @@ import {
   IconTruck,
   IconUserCheck,
   IconPhoto,
-  IconSearch,
   IconPlus,
   IconSparkles,
 } from "@tabler/icons-react";
 import { useRegistroVisita, type VisitanteFormItem } from "../../hooks/useRegistroVisita";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
+import { SelectVisitante } from "../../../../presentation/utils/select-visitante";
 import { RegistroMotivoIngreso } from "../../../../presentation/utils/registro-motivo-ingreso";
 import { MultiFilePicker } from "../../../../presentation/utils/archivo/multifile-picker";
-import { AuxService } from "../../../../service/auxiliar.service";
 import { useNotify } from "../../../../hooks/useNotify";
 import { useAIFileAnalysis } from "../../../../hooks/ia/useAIFileAnalysis";
 import {
@@ -133,7 +132,6 @@ export const RegistroVisita = ({ onCancel, onSuccess }: Props) => {
     fotos_documento: [],
   });
 
-  const [searchingDni, setSearchingDni] = useState(false);
   const [visitorError, setVisitorError] = useState<string | null>(null);
 
   const { notifySuccess, notifyInfo, notifyError } = useNotify();
@@ -250,32 +248,6 @@ export const RegistroVisita = ({ onCancel, onSuccess }: Props) => {
     input:
       "bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-zinc-300 transition-all",
     label: "text-zinc-400 font-medium text-xs mb-1.5",
-  };
-
-  const handleDniChange = async (val: string) => {
-    const cleanVal = val.replace(/\D/g, "").slice(0, 8);
-    setVisitorForm((prev) => ({ ...prev, dni: cleanVal }));
-    setVisitorError(null);
-
-    if (cleanVal.length === 8) {
-      setSearchingDni(true);
-      try {
-        const res = await AuxService.buscar_visitante_por_dni(cleanVal);
-        if (res.success && res.data) {
-          setVisitorForm((prev) => ({
-            ...prev,
-            id_visitante: res.data.id_visitante,
-            nombre: res.data.nombre,
-            apellido: res.data.apellido,
-            telefono: res.data.telefono || "",
-          }));
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setSearchingDni(false);
-      }
-    }
   };
 
   // Guardar vehículo acompañante (crear o editar)
@@ -918,47 +890,20 @@ export const RegistroVisita = ({ onCancel, onSuccess }: Props) => {
             </Alert>
           )}
 
-          <TextInput
-            label="DNI (8 dígitos)"
-            placeholder="Ingrese DNI..."
-            radius="lg"
-            value={visitorForm.dni}
-            onChange={(e) => handleDniChange(e.target.value)}
-            rightSection={searchingDni ? <Loader size={16} /> : <IconSearch size={16} className="text-zinc-500" />}
-            classNames={fieldClasses}
-          />
-
-          <Grid gutter="sm">
-            <Grid.Col span={6}>
-              <TextInput
-                label="Nombres (Opcional)"
-                placeholder="Nombre(s)"
-                radius="lg"
-                value={visitorForm.nombre}
-                onChange={(e) => setVisitorForm((prev) => ({ ...prev, nombre: e.target.value }))}
-                classNames={fieldClasses}
-              />
-            </Grid.Col>
-
-            <Grid.Col span={6}>
-              <TextInput
-                label="Apellidos (Opcional)"
-                placeholder="Apellido(s)"
-                radius="lg"
-                value={visitorForm.apellido}
-                onChange={(e) => setVisitorForm((prev) => ({ ...prev, apellido: e.target.value }))}
-                classNames={fieldClasses}
-              />
-            </Grid.Col>
-          </Grid>
-
-          <TextInput
-            label="Teléfono / Celular (Opcional)"
-            placeholder="987654321"
-            radius="lg"
-            value={visitorForm.telefono}
-            onChange={(e) => setVisitorForm((prev) => ({ ...prev, telefono: e.target.value }))}
-            classNames={fieldClasses}
+          <SelectVisitante
+            label="Visitante"
+            placeholder="Buscar por nombre o DNI..."
+            value={visitorForm.id_visitante ?? null}
+            onChange={(v) => {
+              setVisitorForm((prev) => ({
+                ...prev,
+                id_visitante: v.id_visitante,
+                nombre: v.nombre,
+                apellido: v.apellido,
+                dni: v.dni,
+                telefono: v.telefono ?? "",
+              }));
+            }}
           />
 
           <MultiFilePicker

@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Stack, Group, Button, TextInput } from "@mantine/core";
+import { Stack, Group, Button } from "@mantine/core";
 import { FileButton } from "@mantine/core";
 import { IconFileUpload, IconUserCheck } from "@tabler/icons-react";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
+import { SelectVisitante } from "../../../../presentation/utils/select-visitante";
 
 export interface DatosAcompananteForm {
   nombre: string;
@@ -11,6 +12,7 @@ export interface DatosAcompananteForm {
   telefono?: string;
   es_conductor?: boolean;
   foto_documento?: File[];
+  id_visitante?: number;
 }
 
 interface Props {
@@ -19,12 +21,6 @@ interface Props {
   onClose: () => void;
   onGuardar: (datos: DatosAcompananteForm) => void;
 }
-
-const fieldClasses = {
-  input:
-    "bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-zinc-300 focus:ring-1 focus:ring-zinc-300 transition-all",
-  label: "text-zinc-300 mb-1 font-medium text-xs",
-};
 
 export const AgregarAcompananteModal = ({
   opened,
@@ -39,7 +35,9 @@ export const AgregarAcompananteModal = ({
   const [fotos, setFotos] = useState<File[]>(
     datosIniciales?.foto_documento ?? [],
   );
-  const [errorNombre, setErrorNombre] = useState<string | null>(null);
+  const [idVisitante, setIdVisitante] = useState<number | undefined>(
+    datosIniciales?.id_visitante,
+  );
 
   const [prevProps, setPrevProps] = useState({ datosIniciales, opened });
 
@@ -53,18 +51,16 @@ export const AgregarAcompananteModal = ({
     setDni(datosIniciales?.dni ?? "");
     setTelefono(datosIniciales?.telefono ?? "");
     setFotos(datosIniciales?.foto_documento ?? []);
-    setErrorNombre(null);
+    setIdVisitante(datosIniciales?.id_visitante);
   }
 
   const handleClose = () => {
-    setErrorNombre(null);
     onClose();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!nombre.trim()) {
-      setErrorNombre("El nombre es obligatorio.");
       return;
     }
 
@@ -75,6 +71,7 @@ export const AgregarAcompananteModal = ({
       telefono: telefono.trim() || undefined,
       es_conductor: false,
       foto_documento: fotos,
+      id_visitante: idVisitante,
     });
 
     handleClose();
@@ -91,51 +88,18 @@ export const AgregarAcompananteModal = ({
     >
       <form onSubmit={handleSubmit}>
         <Stack gap="md">
-          <TextInput
-            label="Nombre"
-            placeholder="Nombre completo o primer nombre"
-            required
-            value={nombre}
-            onChange={(e) => {
-              setNombre(e.target.value);
-              if (errorNombre) setErrorNombre(null);
+          <SelectVisitante
+            label="Visitante"
+            placeholder="Buscar por nombre o DNI..."
+            value={idVisitante ?? null}
+            onChange={(v) => {
+              setIdVisitante(v.id_visitante);
+              setNombre(v.nombre);
+              setApellido(v.apellido);
+              setDni(v.dni);
+              setTelefono(v.telefono ?? "");
             }}
-            error={errorNombre}
-            radius="xl"
-            classNames={fieldClasses}
           />
-
-          <TextInput
-            label="Apellido"
-            placeholder="Apellidos (opcional)"
-            value={apellido}
-            onChange={(e) => setApellido(e.target.value)}
-            radius="xl"
-            classNames={fieldClasses}
-          />
-
-          <Group grow wrap="nowrap">
-            <TextInput
-              label="DNI / Documento"
-              placeholder="Ej. 12345678"
-              maxLength={8}
-              value={dni}
-              onChange={(e) =>
-                setDni(e.target.value.replace(/\D/g, "").slice(0, 8))
-              }
-              radius="xl"
-              classNames={fieldClasses}
-            />
-
-            <TextInput
-              label="Teléfono"
-              placeholder="Ej. 987654321"
-              value={telefono}
-              onChange={(e) => setTelefono(e.target.value)}
-              radius="xl"
-              classNames={fieldClasses}
-            />
-          </Group>
 
           <Group
             align="center"
