@@ -52,10 +52,11 @@ const formatPlacaInput = (val: string): string => {
 /**
  * Formato compacto: 12000.000 -> "12000", 12000.500 -> "12000.5"
  */
-const formatPeso = (n: number): string => {
-  if (!Number.isFinite(n)) return "0";
+const formatPeso = (n: unknown): string => {
+  const num = Number(n);
+  if (!Number.isFinite(num)) return "0";
   // Redondear a 3 decimales, luego quitar ceros finales.
-  const rounded = Math.round(n * 1000) / 1000;
+  const rounded = Math.round(num * 1000) / 1000;
   const s = rounded.toFixed(3);
   return s.replace(/\.?0+$/, "") || "0";
 };
@@ -93,8 +94,8 @@ const DetallePesajeItem = ({ detalle, onSaved }: DetallePesajeItemProps) => {
   const taraMenorBruto =
     ctrl.taraNum > 0 && ctrl.brutoNum > 0 && ctrl.taraNum < ctrl.brutoNum;
 
-  const humedad = detalle.lote_ley_humedad ?? 0;
-  const pesoHumedo = detalle.peso_tomado ?? 0;
+  const humedad = Number(detalle.lote_ley_humedad) || 0;
+  const pesoHumedo = Number(detalle.peso_tomado) || 0;
   const pesoSeco = pesoHumedo * (1 - humedad / 100);
 
   return (
@@ -181,7 +182,7 @@ const DetallePesajeItem = ({ detalle, onSaved }: DetallePesajeItemProps) => {
               min={0}
               decimalScale={3}
               hideControls
-              value={pesado ? Number((detalle.peso_tara ?? 0).toFixed(3)) : ctrl.pesoTara}
+              value={pesado ? (Number(detalle.peso_tara) || 0).toFixed(3) : ctrl.pesoTara}
               onChange={(val) => ctrl.setPesoTara(val ?? "")}
               disabled={ctrl.loadingTara || ctrl.loadingBruto}
               size="xs"
@@ -220,7 +221,7 @@ const DetallePesajeItem = ({ detalle, onSaved }: DetallePesajeItemProps) => {
               min={0}
               decimalScale={3}
               hideControls
-              value={pesado ? Number((detalle.peso_bruto ?? 0).toFixed(3)) : ctrl.pesoBruto}
+              value={pesado ? (Number(detalle.peso_bruto) || 0).toFixed(3) : ctrl.pesoBruto}
               onChange={(val) => ctrl.setPesoBruto(val ?? "")}
               disabled={ctrl.loadingTara || ctrl.loadingBruto}
               size="xs"

@@ -22,6 +22,7 @@ import type { RES_Proveedor } from "../../../service/responses/proveedor";
 import type { RES_TipoVehiculo } from "../../../service/responses/tipo-vehiculo";
 import type { EmpresaTransporteResponse } from "../../empresas-transporte/service/empresas-transporte.responses";
 import type { ProveedorResponse } from "../../proveedores-mineros/service/proveedores.responses";
+import { TipoIngreso } from "../../../shared/enums/_generic/tipo-ingreso";
 import { useUIStore } from "../../../stores/ui.store";
 
 export interface VisitanteFormItem {
@@ -115,7 +116,6 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
         })) ?? [],
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [programacion, opened]);
 
   const [vehiculos, setVehiculos] = useState<VehiculoAcompananteItem[]>(
@@ -213,17 +213,23 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
     notifySuccess(`Vehículo registrado`);
   }, [notifySuccess, programacion?.id_vehiculo]);
 
-  const handleTipoVehiculoCreado = useCallback(async (_idTipo: number) => {
-    try {
-      const tps = await AuxService.get_tipos_vehiculo();
-      if (Array.isArray(tps)) {
-        setTiposVehiculoCatalog(tps);
+  const handleTipoVehiculoCreado = useCallback(
+    async (idTipo?: number) => {
+      try {
+        const tps = await AuxService.get_tipos_vehiculo();
+        if (Array.isArray(tps)) {
+          setTiposVehiculoCatalog(tps);
+        }
+        if (idTipo && !programacion?.id_tipo_vehiculo) {
+          setIdTipoVehiculoEditado(idTipo);
+        }
+        notifySuccess(`Tipo de vehículo registrado`);
+      } catch (e) {
+        console.error(e);
       }
-      notifySuccess(`Tipo de vehículo registrado`);
-    } catch (e) {
-      console.error(e);
-    }
-  }, [notifySuccess]);
+    },
+    [notifySuccess, programacion?.id_tipo_vehiculo],
+  );
 
   const handleEmpresaCreada = useCallback((nueva: EmpresaTransporteResponse) => {
     const resEmp: RES_EmpresaTransporte = {
@@ -596,6 +602,7 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
           id_conductor: idConductor,
           id_proveedor_minero: idProv || undefined,
           id_sucursal: sucursalTarget,
+          tipo_ingreso: TipoIngreso.RecepcionMineral,
           guia_remitente: gRemitente || undefined,
           guia_transportista: gTransportista || undefined,
           id_motivo_ingreso: hasVisitaInfo ? motivoFinal : undefined,

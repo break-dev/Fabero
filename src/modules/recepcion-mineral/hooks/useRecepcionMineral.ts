@@ -9,6 +9,7 @@ import { useUIStore } from "../../../stores/ui.store";
 import { useNotify } from "../../../hooks/useNotify";
 import { mostrarConfirmacion } from "../../../presentation/utils/modal-confirmacion";
 import { CondicionIngreso } from "../../../shared/enums/_generic/condicion-ingreso";
+import type { DistribucionDetalleItem } from "../../programacion-despachos/service/programacion-despachos.responses";
 
 export const useRecepcionMineral = () => {
   const sucursal = useUIStore((state) => state.sucursal_elegida);
@@ -255,6 +256,32 @@ export const useRecepcionMineral = () => {
     });
   };
 
+  const actualizarDetalleDistribucion = (
+    recepcionId: number,
+    detalleActualizado: DistribucionDetalleItem,
+  ) => {
+    const replaceDetalle = (detalles: DistribucionDetalleItem[] | undefined) =>
+      (detalles ?? []).map((d) =>
+        d.id === detalleActualizado.id ? detalleActualizado : d,
+      );
+
+    setEnProcesoList((prev) =>
+      prev.map((r) =>
+        r.id === recepcionId
+          ? { ...r, distribucion_detalles: replaceDetalle(r.distribucion_detalles) }
+          : r,
+      ),
+    );
+
+    if (selectedRecepcion?.id === recepcionId) {
+      setSelectedRecepcion((prev) =>
+        prev
+          ? { ...prev, distribucion_detalles: replaceDetalle(prev.distribucion_detalles) }
+          : prev,
+      );
+    }
+  };
+
   const registrarPesoInicial = async (recepcionId: number, loteId: number, dto: DTO_PesoInicial) => {
     try {
       const loteActualizado = await RecepcionMineralService.registrar_peso_inicial(loteId, dto);
@@ -359,6 +386,7 @@ export const useRecepcionMineral = () => {
     eliminarLote,
     registrarPesoInicial,
     registrarPesoFinal,
+    actualizarDetalleDistribucion,
     cerrarProceso,
   };
 };

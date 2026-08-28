@@ -16,7 +16,7 @@ import type { RES_TipoVehiculo } from "../../../service/responses/tipo-vehiculo"
 import type { RES_Conductor } from "../../../service/responses/conductor";
 import type { RES_Empresa } from "../../../service/responses/empresa";
 import type { RES_Vehiculo } from "../../../service/responses/vehiculo";
-import type { RecepcionMineralResponse, RES_LoteMineral } from "../service/recepcion-mineral.responses";
+import type { RES_LoteMineral } from "../service/recepcion-mineral.responses";
 import { useTicketBalanza } from "../hooks/useTicketBalanza";
 
 export const RecepcionMineralPage = () => {
@@ -37,6 +37,7 @@ export const RecepcionMineralPage = () => {
     eliminarLote,
     registrarPesoInicial,
     registrarPesoFinal,
+    actualizarDetalleDistribucion,
     cerrarProceso,
   } = useRecepcionMineral();
 
@@ -270,16 +271,7 @@ export const RecepcionMineralPage = () => {
                           key={ru.id}
                           ru={ru}
                           onDetalleUpdated={(actualizado) => {
-                            // Actualización local del detalle sin recargar toda la lista.
-                            // El servidor ya persistió los cambios; basta reflejar
-                            // el nuevo detalle en el state local de la unidad seleccionada.
-                            const updatedRecepcion: RecepcionMineralResponse = {
-                              ...ru,
-                              distribucion_detalles: (ru.distribucion_detalles ?? []).map((d) =>
-                                d.id === actualizado.id ? actualizado : d,
-                              ),
-                            };
-                            setSelectedRecepcion(updatedRecepcion);
+                            actualizarDetalleDistribucion(ru.id, actualizado);
                           }}
                           cerrarProceso={cerrarProceso}
                           closingProcesoId={closingProcesoId}

@@ -2,9 +2,11 @@
 import { useEffect } from "react";
 import { pdf } from "@react-pdf/renderer";
 import { usePrinterStore, type PrintJob } from "../../../stores/printer.store";
+import { useNotify } from "../../../hooks/useNotify";
 
 const PrintJobRunner = ({ job }: { job: PrintJob }) => {
   const dequeueJob = usePrinterStore((s) => s.dequeueJob);
+  const { notifyError } = useNotify();
 
   useEffect(() => {
     let cancelled = false;
@@ -18,24 +20,28 @@ const PrintJobRunner = ({ job }: { job: PrintJob }) => {
 
         const url = URL.createObjectURL(blob);
         win = window.open(url, job.config.target || "_blank");
-        revokeFn = () => URL.revokeObjectURL(url);
 
-        // Liberar el object URL.
-        if (win && !job.config.target) {
-          win.addEventListener("load", revokeFn, { once: true });
+        if (!win) {
+          notifyError(
+            "El navegador bloqueó la ventana del ticket. Habilita las ventanas emergentes para este sitio.",
+          );
+          URL.revokeObjectURL(url);
         } else {
-          setTimeout(() => {
-            if (revokeFn) revokeFn();
-          }, 10_000);
-
-          if (!win && !job.config.target) {
-            console.warn(
-              "Permite ventanas emergentes en este sitio para abrir el PDF.",
-            );
+          revokeFn = () => URL.revokeObjectURL(url);
+          if (!job.config.target) {
+            win.addEventListener("load", revokeFn, { once: true });
+          } else {
+            setTimeout(() => revokeFn?.(), 30_000);
           }
         }
       } catch (err) {
         console.error("Error al generar el PDF:", err);
+        const detail = err instanceof Error ? err.message : "";
+        notifyError(
+          detail
+            ? `Error al generar el PDF del ticket: ${detail}`
+            : "Error al generar el PDF del ticket. Revisa la consola.",
+        );
       } finally {
         if (!cancelled) {
           await job.config.onAfterPrint?.();
@@ -48,11 +54,8 @@ const PrintJobRunner = ({ job }: { job: PrintJob }) => {
 
     return () => {
       cancelled = true;
-      if (win && revokeFn) {
-        win.removeEventListener("load", revokeFn);
-      }
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dequeueJob, job.document, job.id, job.config.target, notifyError, job.config]);
 
   return null;
 };

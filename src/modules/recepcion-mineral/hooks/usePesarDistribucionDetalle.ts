@@ -102,7 +102,9 @@ export const usePesarDistribucionDetalle = ({
           notifySuccess("Pesaje registrado correctamente");
         }
 
-        // Auto-imprimir ticket (primer pesaje = ticket generado, segundo = reusa el mismo).
+        // Imprimir el ticket después de cada pesaje. La ventana target (nombre fijo
+        // en useTicketBalanza) se reutiliza, así que pesar tara y luego bruto solo
+        // REFRESCA la misma ventana con los pesos actualizados.
         if (idLoteMineralParaTicket !== null) {
           onPrintTicket?.();
         }

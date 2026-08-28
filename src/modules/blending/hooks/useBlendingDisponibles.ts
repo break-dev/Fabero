@@ -59,6 +59,14 @@ export const useBlendingDisponibles = () => {
     fetchCatalogos();
   }, [fetchCatalogos]);
 
+  // Auto-recargar disponibles cuando cambian los filtros (empresa o proveedor).
+  useEffect(() => {
+    if (idEmpresaSeleccionada !== null || idProveedorSeleccionado !== null) {
+      fetchDisponibles();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idEmpresaSeleccionada, idProveedorSeleccionado]);
+
   const limpiarDisponibles = useCallback(() => {
     setDisponibles([]);
     if (empresas.length > 0) {

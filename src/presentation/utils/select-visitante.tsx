@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActionIcon,
   Group,
@@ -53,9 +53,7 @@ export const SelectVisitante = ({
   w,
 }: SelectVisitanteProps) => {
   const [search, setSearch] = useState("");
-  const [data, setData] = useState<
-    Array<{ value: string; label: string }>
-  >([]);
+  const [visitantes, setVisitantes] = useState<RES_Visitante[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
   const { notifyError } = useNotify();
@@ -65,17 +63,7 @@ export const SelectVisitante = ({
       setLoading(true);
       try {
         const lista = await AuxService.get_visitantes(q.trim() || undefined);
-        setData(
-          lista.map((v) => {
-            const nombreCompleto = [v.nombre, v.apellido].filter(Boolean).join(" ");
-            const dniStr = v.dni ? ` (${v.dni})` : "";
-            const telStr = showPhone && v.telefono ? ` · ${v.telefono}` : "";
-            return {
-              value: String(v.id_visitante),
-              label: `${nombreCompleto}${dniStr}${telStr}`,
-            };
-          }),
-        );
+        setVisitantes(lista);
       } catch (e) {
         console.error(e);
         notifyError("No se pudieron cargar los visitantes");
@@ -83,13 +71,27 @@ export const SelectVisitante = ({
         setLoading(false);
       }
     },
-    [notifyError, showPhone],
+    [notifyError],
   );
 
   useEffect(() => {
     cargar("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // `data` deriva de la lista completa para que el Select tenga
+  // acceso a la label del visitante recién creado (sin re-fetch).
+  const data = useMemo(() => {
+    return visitantes.map((v) => {
+      const nombreCompleto = [v.nombre, v.apellido].filter(Boolean).join(" ");
+      const dniStr = v.dni ? ` (${v.dni})` : "";
+      const telStr = showPhone && v.telefono ? ` · ${v.telefono}` : "";
+      return {
+        value: String(v.id_visitante),
+        label: `${nombreCompleto}${dniStr}${telStr}`,
+      };
+    });
+  }, [visitantes, showPhone]);
 
   const handleSearchChange = (q: string) => {
     setSearch(q);
@@ -98,6 +100,9 @@ export const SelectVisitante = ({
 
   const handleVisitanteCreado = (v: RES_Visitante) => {
     setModalCrearAbierto(false);
+    // Prepend el visitante nuevo al state local para que el Select lo muestre
+    // de inmediato, sin re-fetch ni esperar al próximo `cargar`.
+    setVisitantes((prev) => [v, ...prev]);
     onChange({
       id_visitante: v.id_visitante,
       nombre: v.nombre,
@@ -132,18 +137,16 @@ export const SelectVisitante = ({
               return;
             }
             const id = Number(val);
-            AuxService.get_visitantes().then((lista) => {
-              const v = lista.find((x) => x.id_visitante === id);
-              if (v) {
-                onChange({
-                  id_visitante: v.id_visitante,
-                  nombre: v.nombre,
-                  apellido: v.apellido ?? "",
-                  dni: v.dni ?? "",
-                  telefono: v.telefono ?? null,
-                });
-              }
-            });
+            const v = visitantes.find((x) => x.id_visitante === id);
+            if (v) {
+              onChange({
+                id_visitante: v.id_visitante,
+                nombre: v.nombre,
+                apellido: v.apellido ?? "",
+                dni: v.dni ?? "",
+                telefono: v.telefono ?? null,
+              });
+            }
           }}
           w={w}
           classNames={{
