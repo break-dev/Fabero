@@ -107,10 +107,13 @@ export const ConfirmarProgramacionModal = ({
     label: c.dni ? `${c.nombre_completo} (${c.dni})` : c.nombre_completo,
   }));
 
-  const proveedoresOptions = (ctrl.proveedoresCatalog ?? []).map((p) => ({
-    value: String(p.id_proveedor),
-    label: p.razon_social,
-  }));
+const proveedoresOptions = (ctrl.proveedoresCatalog ?? []).map((p) => ({
+  value: String(p.id_proveedor),
+  label: p.razon_social,
+}));
+
+const esDespacho =
+  ctrl.programacion?.tipo_ingreso === "Despacho de Mineral";
 
   const tiposVehiculoOptions = (ctrl.tiposVehiculoCatalog ?? []).map((tv) => ({
     value: String(tv.id_tipo_vehiculo),
@@ -305,53 +308,55 @@ export const ConfirmarProgramacionModal = ({
               </div>
             </Grid.Col>
 
-            <Grid.Col span={{ base: 12, sm: 6 }}>
-              <div className="flex gap-2 items-end">
-                <Select
-                  label="Proveedor Minero"
-                  placeholder={ctrl.loadingCatalogos ? "Cargando..." : "Seleccione proveedor"}
-                  data={proveedoresOptions}
-                  value={
-                    ctrl.programacion?.id_proveedor_minero
-                      ? String(ctrl.programacion.id_proveedor_minero)
-                      : ctrl.idProveedorMineroEditado
-                        ? String(ctrl.idProveedorMineroEditado)
-                        : null
-                  }
-                  onChange={(val) => ctrl.setIdProveedorMineroEditado(val ? Number(val) : null)}
-                  leftSection={<IconUser className="w-4 h-4 text-zinc-500" />}
-                  searchable
-                  radius="xl"
-                  className="flex-1"
-                  disabled={confirmando}
-                  readOnly={Boolean(ctrl.programacion?.id_proveedor_minero)}
-                  rightSection={
-                    ctrl.programacion?.id_proveedor_minero ? (
-                      <IconLock size={14} className="text-zinc-500" />
-                    ) : ctrl.loadingCatalogos ? (
-                      <Loader size={16} />
-                    ) : undefined
-                  }
-                  classNames={fieldClasses}
-                />
-                {!ctrl.programacion?.id_proveedor_minero && (
-                  <Tooltip label="Registrar Nuevo Proveedor Minero" withArrow>
-                    <ActionIcon
-                      type="button"
-                      variant="filled"
-                      color="zinc"
-                      radius="xl"
-                      size="lg"
-                      disabled={confirmando}
-                      onClick={() => setOpenProveedorModal(true)}
-                      className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 mb-0.5"
-                    >
-                      <IconPlus size={18} />
-                    </ActionIcon>
-                  </Tooltip>
-                )}
-              </div>
-            </Grid.Col>
+            {!esDespacho && (
+              <Grid.Col span={{ base: 12, sm: 6 }}>
+                <div className="flex gap-2 items-end">
+                  <Select
+                    label="Proveedor Minero"
+                    placeholder={ctrl.loadingCatalogos ? "Cargando..." : "Seleccione proveedor"}
+                    data={proveedoresOptions}
+                    value={
+                      ctrl.programacion?.id_proveedor_minero
+                        ? String(ctrl.programacion.id_proveedor_minero)
+                        : ctrl.idProveedorMineroEditado
+                          ? String(ctrl.idProveedorMineroEditado)
+                          : null
+                    }
+                    onChange={(val) => ctrl.setIdProveedorMineroEditado(val ? Number(val) : null)}
+                    leftSection={<IconUser className="w-4 h-4 text-zinc-500" />}
+                    searchable
+                    radius="xl"
+                    className="flex-1"
+                    disabled={confirmando}
+                    readOnly={Boolean(ctrl.programacion?.id_proveedor_minero)}
+                    rightSection={
+                      ctrl.programacion?.id_proveedor_minero ? (
+                        <IconLock size={14} className="text-zinc-500" />
+                      ) : ctrl.loadingCatalogos ? (
+                        <Loader size={16} />
+                      ) : undefined
+                    }
+                    classNames={fieldClasses}
+                  />
+                  {!ctrl.programacion?.id_proveedor_minero && (
+                    <Tooltip label="Registrar Nuevo Proveedor Minero" withArrow>
+                      <ActionIcon
+                        type="button"
+                        variant="filled"
+                        color="zinc"
+                        radius="xl"
+                        size="lg"
+                        disabled={confirmando}
+                        onClick={() => setOpenProveedorModal(true)}
+                        className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 mb-0.5"
+                      >
+                        <IconPlus size={18} />
+                      </ActionIcon>
+                    </Tooltip>
+                  )}
+                </div>
+              </Grid.Col>
+            )}
 
             <Grid.Col span={{ base: 12, sm: 6 }}>
               <div className="flex gap-2 items-end">
@@ -403,42 +408,44 @@ export const ConfirmarProgramacionModal = ({
           </Grid>
 
           {/* Guías */}
-          <div className="pt-3 border-t border-zinc-800 space-y-2">
-            <Group gap="xs">
-              <IconFileText className="w-4 h-4 text-indigo-400" />
-              <Text size="xs" fw={600} className="text-zinc-300">
-                Guías (opcional)
-              </Text>
-            </Group>
-            <Grid gutter="sm">
-              <Grid.Col span={{ base: 6, sm: 6 }}>
-                <TextInput
-                  label="Guía Remitente"
-                  placeholder="Ej. 001-123456"
-                  radius="xl"
-                  value={ctrl.programacion?.guia_remitente ?? ctrl.guiaRemitente}
-                  onChange={(e) => ctrl.setGuiaRemitente(e.currentTarget.value)}
-                  readOnly={Boolean(ctrl.programacion?.guia_remitente)}
-                  disabled={confirmando}
-                  rightSection={ctrl.programacion?.guia_remitente ? <IconLock size={14} className="text-zinc-500" /> : undefined}
-                  classNames={fieldClasses}
-                />
-              </Grid.Col>
-              <Grid.Col span={{ base: 6, sm: 6 }}>
-                <TextInput
-                  label="Guía Transportista"
-                  placeholder="Ej. 001-123456"
-                  radius="xl"
-                  value={ctrl.programacion?.guia_transportista ?? ctrl.guiaTransportista}
-                  onChange={(e) => ctrl.setGuiaTransportista(e.currentTarget.value)}
-                  readOnly={Boolean(ctrl.programacion?.guia_transportista)}
-                  disabled={confirmando}
-                  rightSection={ctrl.programacion?.guia_transportista ? <IconLock size={14} className="text-zinc-500" /> : undefined}
-                  classNames={fieldClasses}
-                />
-              </Grid.Col>
-            </Grid>
-          </div>
+          {!esDespacho && (
+            <div className="pt-3 border-t border-zinc-800 space-y-2">
+              <Group gap="xs">
+                <IconFileText className="w-4 h-4 text-indigo-400" />
+                <Text size="xs" fw={600} className="text-zinc-300">
+                  Guías (opcional)
+                </Text>
+              </Group>
+              <Grid gutter="sm">
+                <Grid.Col span={{ base: 6, sm: 6 }}>
+                  <TextInput
+                    label="Guía Remitente"
+                    placeholder="Ej. 001-123456"
+                    radius="xl"
+                    value={ctrl.programacion?.guia_remitente ?? ctrl.guiaRemitente}
+                    onChange={(e) => ctrl.setGuiaRemitente(e.currentTarget.value)}
+                    readOnly={Boolean(ctrl.programacion?.guia_remitente)}
+                    disabled={confirmando}
+                    rightSection={ctrl.programacion?.guia_remitente ? <IconLock size={14} className="text-zinc-500" /> : undefined}
+                    classNames={fieldClasses}
+                  />
+                </Grid.Col>
+                <Grid.Col span={{ base: 6, sm: 6 }}>
+                  <TextInput
+                    label="Guía Transportista"
+                    placeholder="Ej. 001-123456"
+                    radius="xl"
+                    value={ctrl.programacion?.guia_transportista ?? ctrl.guiaTransportista}
+                    onChange={(e) => ctrl.setGuiaTransportista(e.currentTarget.value)}
+                    readOnly={Boolean(ctrl.programacion?.guia_transportista)}
+                    disabled={confirmando}
+                    rightSection={ctrl.programacion?.guia_transportista ? <IconLock size={14} className="text-zinc-500" /> : undefined}
+                    classNames={fieldClasses}
+                  />
+                </Grid.Col>
+              </Grid>
+            </div>
+          )}
 
           {programacion?.fecha_estimada_llegada && (
             <div className="pt-2 text-xs border-t border-zinc-800">

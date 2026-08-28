@@ -26,6 +26,11 @@ export interface CrearDistribucionDetalleRequest {
   peso_tomado: number;
 }
 
+export interface PesarDistribucionDetalleRequest {
+  peso_tara?: number | null;
+  peso_bruto?: number | null;
+}
+
 export interface DespachoFiltros {
   id_planta_destino?: number;
   fecha_inicio?: string;

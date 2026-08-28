@@ -239,6 +239,7 @@ export const CardProcesoBalanza = ({
   };
 
   const unitClosed = ru.estado_pesaje === "Pesado";
+  const esProgramacion = ru.es_programacion === 1;
 
   return (
     <Paper
@@ -249,7 +250,7 @@ export const CardProcesoBalanza = ({
     >
       {/* Layout 2 columnas */}
       <Grid columns={24} gutter="xs">
-        {/* === Columna Izquierda: Datos de la unidad (siempe editables) === */}
+        {/* === Columna Izquierda: Datos de la unidad (Condición siempre bloqueada; resto bloqueado si es programación) === */}
         <Grid.Col span={{ base: 24, md: 8 }}>
           <Paper
             radius="md"
@@ -260,7 +261,7 @@ export const CardProcesoBalanza = ({
               <Group gap={6} align="center">
                 <div className="w-2 h-2 rounded-full animate-pulse bg-amber-400 shadow-[0_0_6px_#fbbf24]" />
                 <Text size="10px" fw={700} className="text-indigo-400 uppercase tracking-wider">
-                  Datos de la unidad
+                  Unidad
                 </Text>
                 <Text size="12px" fw={700} className="text-zinc-500 font-mono">
                   {formatPlacaInput(ru.vehiculo_placa || "")}
@@ -272,7 +273,7 @@ export const CardProcesoBalanza = ({
             </Group>
 
             <Grid gutter="xs">
-              {/* Condición */}
+              {/* Condición (siempre bloqueada: tipo_ingreso se setea al crear la unidad) */}
               <Grid.Col span={{ base: 12, sm: 6 }}>
                 <Select
                   label="Condición"
@@ -287,6 +288,7 @@ export const CardProcesoBalanza = ({
                   style={{ maxWidth: 180 }}
                   classNames={selectInputClasses}
                   comboboxProps={{ withinPortal: true }}
+                  disabled
                 />
               </Grid.Col>
 
@@ -315,19 +317,22 @@ export const CardProcesoBalanza = ({
                     classNames={selectInputClasses}
                     comboboxProps={{ withinPortal: true }}
                     className="flex-1"
+                    disabled={esProgramacion}
                   />
-                  <Tooltip label="Registrar Vehículo" withArrow>
-                    <ActionIcon
-                      variant="filled"
-                      color="indigo"
-                      radius="md"
-                      size="sm"
-                      className="mb-0.5 bg-indigo-600 hover:bg-indigo-700"
-                      onClick={() => setOpenNewVehiculoModal(true)}
-                    >
-                      <IconTruck size={12} />
-                    </ActionIcon>
-                  </Tooltip>
+                  {!esProgramacion && (
+                    <Tooltip label="Registrar Vehículo" withArrow>
+                      <ActionIcon
+                        variant="filled"
+                        color="indigo"
+                        radius="md"
+                        size="sm"
+                        className="mb-0.5 bg-indigo-600 hover:bg-indigo-700"
+                        onClick={() => setOpenNewVehiculoModal(true)}
+                      >
+                        <IconTruck size={12} />
+                      </ActionIcon>
+                    </Tooltip>
+                  )}
                 </div>
               </Grid.Col>
 
@@ -360,19 +365,22 @@ export const CardProcesoBalanza = ({
                     classNames={selectInputClasses}
                     comboboxProps={{ withinPortal: true }}
                     className="flex-1"
+                    disabled={esProgramacion}
                   />
-                  <Tooltip label="Registrar Empresa de Transporte" withArrow>
-                    <ActionIcon
-                      variant="filled"
-                      color="indigo"
-                      radius="md"
-                      size="sm"
-                      className="mb-0.5 bg-indigo-600 hover:bg-indigo-700"
-                      onClick={() => setOpenNewEmpresaTransporteModal(true)}
-                    >
-                      <IconBuildingFactory size={12} />
-                    </ActionIcon>
-                  </Tooltip>
+                  {!esProgramacion && (
+                    <Tooltip label="Registrar Empresa de Transporte" withArrow>
+                      <ActionIcon
+                        variant="filled"
+                        color="indigo"
+                        radius="md"
+                        size="sm"
+                        className="mb-0.5 bg-indigo-600 hover:bg-indigo-700"
+                        onClick={() => setOpenNewEmpresaTransporteModal(true)}
+                      >
+                        <IconBuildingFactory size={12} />
+                      </ActionIcon>
+                    </Tooltip>
+                  )}
                 </div>
               </Grid.Col>
 
@@ -404,19 +412,22 @@ export const CardProcesoBalanza = ({
                     classNames={selectInputClasses}
                     comboboxProps={{ withinPortal: true }}
                     className="flex-1"
+                    disabled={esProgramacion}
                   />
-                  <Tooltip label="Registrar Tipo de Vehículo" withArrow>
-                    <ActionIcon
-                      variant="filled"
-                      color="indigo"
-                      radius="md"
-                      size="sm"
-                      className="mb-0.5 bg-indigo-600 hover:bg-indigo-700"
-                      onClick={() => setOpenNewTipoVehiculoModal(true)}
-                    >
-                      <IconCar size={12} />
-                    </ActionIcon>
-                  </Tooltip>
+                  {!esProgramacion && (
+                    <Tooltip label="Registrar Tipo de Vehículo" withArrow>
+                      <ActionIcon
+                        variant="filled"
+                        color="indigo"
+                        radius="md"
+                        size="sm"
+                        className="mb-0.5 bg-indigo-600 hover:bg-indigo-700"
+                        onClick={() => setOpenNewTipoVehiculoModal(true)}
+                      >
+                        <IconCar size={12} />
+                      </ActionIcon>
+                    </Tooltip>
+                  )}
                 </div>
               </Grid.Col>
 
@@ -436,6 +447,7 @@ export const CardProcesoBalanza = ({
                   maxLength={7}
                   style={{ maxWidth: 180 }}
                   classNames={fieldClasses}
+                  disabled={esProgramacion}
                 />
               </Grid.Col>
 
@@ -456,28 +468,31 @@ export const CardProcesoBalanza = ({
                         label: `${c.nombre_completo} (${c.dni})`,
                       }))}
                     value={idCond || null}
-onChange={(val) => {
-                    setIdCond(val || "");
-                    if (val) handleSaveField("conductor", Number(val));
-                  }}
-                  size="xs"
-                  style={{ maxWidth: 180 }}
-                  classNames={selectInputClasses}
-                  comboboxProps={{ withinPortal: true }}
-                  className="flex-1"
-                />
-                  <Tooltip label="Agregar Conductor" withArrow>
-                    <ActionIcon
-                      variant="filled"
-                      color="indigo"
-                      radius="md"
-                      size="sm"
-                      className="mb-0.5 bg-indigo-600 hover:bg-indigo-700"
-                      onClick={() => setOpenNewConductorModal(true)}
-                    >
-                      <IconUserPlus size={12} />
-                    </ActionIcon>
-                  </Tooltip>
+                    onChange={(val) => {
+                      setIdCond(val || "");
+                      if (val) handleSaveField("conductor", Number(val));
+                    }}
+                    size="xs"
+                    style={{ maxWidth: 180 }}
+                    classNames={selectInputClasses}
+                    comboboxProps={{ withinPortal: true }}
+                    className="flex-1"
+                    disabled={esProgramacion}
+                  />
+                  {!esProgramacion && (
+                    <Tooltip label="Agregar Conductor" withArrow>
+                      <ActionIcon
+                        variant="filled"
+                        color="indigo"
+                        radius="md"
+                        size="sm"
+                        className="mb-0.5 bg-indigo-600 hover:bg-indigo-700"
+                        onClick={() => setOpenNewConductorModal(true)}
+                      >
+                        <IconUserPlus size={12} />
+                      </ActionIcon>
+                    </Tooltip>
+                  )}
                 </div>
               </Grid.Col>
             </Grid>

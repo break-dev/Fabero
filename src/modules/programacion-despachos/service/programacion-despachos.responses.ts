@@ -40,11 +40,20 @@ export interface DistribucionDetalleItem {
   id_despacho_detalle: number;
   numero_particion: number | null;
   peso_tomado: number;
+  id_ticket_balanza: number | null;
+  ticket_correlativo: string | null;
+  peso_tara: number | null;
+  fecha_hora_peso_tara: string | null;
+  peso_bruto: number | null;
+  fecha_hora_peso_bruto: string | null;
+  peso_neto: number | null;
   detalle_id_lote_mineral: number | null;
   detalle_id_blending: number | null;
   lote_correlativo: string | null;
+  lote_ley_humedad: number | null;
   blending_correlativo: string | null;
   proveedor_razon_social: string | null;
+  despacho_correlativo: string | null;
 }
 
 export interface DistribucionItem {

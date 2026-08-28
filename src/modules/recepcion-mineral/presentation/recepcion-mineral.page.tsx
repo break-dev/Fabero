@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Grid, Paper, Text, Group, Center, Loader, Stack } from "@mantine/core";
+import { Grid, Paper, Text, Group, Center, Loader, Stack, Badge } from "@mantine/core";
 import { IconScale, IconChecklist } from "@tabler/icons-react";
 import { useTitlePage } from "../../../hooks/useTitlePage";
 import { mostrarConfirmacion } from "../../../presentation/utils/modal-confirmacion";
@@ -10,12 +10,13 @@ import { ModalPesoInicial } from "./components/modal-peso-inicial";
 import { ModalPesoFinal } from "./components/modal-peso-final";
 import { ModalCondicionIngreso } from "./components/modal-condicion-ingreso";
 import { CardProcesoBalanza } from "./components/card-proceso-balanza";
+import { CardDistribucionBalanza } from "./components/card-distribucion-balanza";
 import type { RES_EmpresaTransporte } from "../../../service/responses/empresa-transporte";
 import type { RES_TipoVehiculo } from "../../../service/responses/tipo-vehiculo";
 import type { RES_Conductor } from "../../../service/responses/conductor";
 import type { RES_Empresa } from "../../../service/responses/empresa";
 import type { RES_Vehiculo } from "../../../service/responses/vehiculo";
-import type { RES_LoteMineral } from "../service/recepcion-mineral.responses";
+import type { RecepcionMineralResponse, RES_LoteMineral } from "../service/recepcion-mineral.responses";
 import { useTicketBalanza } from "../hooks/useTicketBalanza";
 
 export const RecepcionMineralPage = () => {
@@ -183,14 +184,28 @@ export const RecepcionMineralPage = () => {
                         }}
                         className={`cursor-pointer border transition-all duration-200 select-none overflow-hidden flex flex-col relative bg-zinc-950/30 border-zinc-900/80 `}
                       >
-                        {/* Header: Placa */}
+                        {/* Header: Placa + Badge tipo ingreso */}
                         <div
-                          className={`py-2 px-3 text-center font-bold text-xs tracking-wider font-mono uppercase bg-zinc-800 text-zinc-300`}
+                          className={`py-2 px-3 font-bold text-xs tracking-wider font-mono uppercase bg-zinc-800 text-zinc-300`}
                         >
-                          <Group justify="center" gap={8} wrap="nowrap">
+                          <Group justify="space-between" align="center" gap={6} wrap="nowrap">
                             <span className="truncate">
                               {getFullPlaca(ru.vehiculo_placa)}
                             </span>
+                            <Badge
+                              size="xs"
+                              variant="filled"
+                              radius="sm"
+                              color={
+                                ru.tipo_ingreso === "Despacho de Mineral"
+                                  ? "yellow"
+                                  : "teal"
+                              }
+                            >
+                              {ru.tipo_ingreso === "Despacho de Mineral"
+                                ? "Despacho"
+                                : "Recepción"}
+                            </Badge>
                           </Group>
                         </div>
 
@@ -247,28 +262,53 @@ export const RecepcionMineralPage = () => {
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col gap-8 overflow-y-auto min-h-0 pr-2">
-                  {unidadesAOperar.map((ru) => (
-                    <CardProcesoBalanza
-                      key={ru.id}
-                      ru={ru}
-                      empresas={empresas}
-                      tiposVehiculo={tiposVehiculo}
-                      vehiculos={vehiculos}
-                      conductores={conductores}
-                      setSelectedRecepcionIdForLote={
-                        setSelectedRecepcionIdForLote
-                      }
-                      setCondicionModalOpen={setCondicionModalOpen}
-                      deletingLoteId={deletingLoteId}
-                      closingProcesoId={closingProcesoId}
-                      validarCampo={validarCampo}
-                      eliminarLote={eliminarLote}
-                      printTicketBalanza={printTicketBalanza}
-                      setActiveLotePesoInicial={setActiveLotePesoInicial}
-                      setActiveLotePesoFinal={setActiveLotePesoFinal}
-                      cerrarProceso={cerrarProceso}
-                    />
-                  ))}
+                  {unidadesAOperar.map((ru) => {
+                    const esDespacho = ru.tipo_ingreso === "Despacho de Mineral";
+                    if (esDespacho) {
+                      return (
+                        <CardDistribucionBalanza
+                          key={ru.id}
+                          ru={ru}
+                          onDetalleUpdated={(actualizado) => {
+                            // Actualización local del detalle sin recargar toda la lista.
+                            // El servidor ya persistió los cambios; basta reflejar
+                            // el nuevo detalle en el state local de la unidad seleccionada.
+                            const updatedRecepcion: RecepcionMineralResponse = {
+                              ...ru,
+                              distribucion_detalles: (ru.distribucion_detalles ?? []).map((d) =>
+                                d.id === actualizado.id ? actualizado : d,
+                              ),
+                            };
+                            setSelectedRecepcion(updatedRecepcion);
+                          }}
+                          cerrarProceso={cerrarProceso}
+                          closingProcesoId={closingProcesoId}
+                        />
+                      );
+                    }
+                    return (
+                      <CardProcesoBalanza
+                        key={ru.id}
+                        ru={ru}
+                        empresas={empresas}
+                        tiposVehiculo={tiposVehiculo}
+                        vehiculos={vehiculos}
+                        conductores={conductores}
+                        setSelectedRecepcionIdForLote={
+                          setSelectedRecepcionIdForLote
+                        }
+                        setCondicionModalOpen={setCondicionModalOpen}
+                        deletingLoteId={deletingLoteId}
+                        closingProcesoId={closingProcesoId}
+                        validarCampo={validarCampo}
+                        eliminarLote={eliminarLote}
+                        printTicketBalanza={printTicketBalanza}
+                        setActiveLotePesoInicial={setActiveLotePesoInicial}
+                        setActiveLotePesoFinal={setActiveLotePesoFinal}
+                        cerrarProceso={cerrarProceso}
+                      />
+                    );
+                  })}
                 </div>
               )}
             </Paper>

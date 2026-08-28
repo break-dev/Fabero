@@ -1,5 +1,6 @@
 import type { RES_CambiosLog } from "../../../service/responses/_generic/cambios-log";
 import type { EstadoBase } from "../../../shared/enums/_generic/estado-base";
+import type { DistribucionDetalleItem } from "../../programacion-despachos/service/programacion-despachos.responses";
 
 export interface RES_LoteMineral {
   id: number;
@@ -77,8 +78,10 @@ export interface RecepcionMineralResponse {
   estado: string;
   estado_salida: string | null;
   estado_pesaje: string | null;
+  es_programacion: number;
   id_sucursal: number | null;
   lotes: RES_LoteMineral[];
+  distribucion_detalles: DistribucionDetalleItem[];
 }
 
 export interface RES_TicketBalanzaData {
@@ -114,6 +117,8 @@ export interface RES_TicketBalanzaData {
   fecha_hora_peso_final: string | null;
   peso_tara: number | null;
   peso_neto: number | null;
+  despacho_correlativo?: string | null;
+  planta_destino_nombre?: string | null;
   operador: string | null;
   dni_operador: string | null;
   cargo_operador: string | null;

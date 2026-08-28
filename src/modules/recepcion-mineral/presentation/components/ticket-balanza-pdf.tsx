@@ -230,6 +230,9 @@ export const TicketBalanzaPdf = ({ data }: TicketBalanzaPdfProps) => {
             <Text style={styles.ticketNumberText}>
               N° {data.ticket_numero ?? data.id_lote}
             </Text>
+            {data.despacho_correlativo && (
+              <Text style={styles.dateText}>DESPACHO: {data.despacho_correlativo}</Text>
+            )}
             <Text style={styles.dateText}>
               FECHA: {formatFechaSolo(data.fecha_hora_peso_inicial || data.fecha_impresion || "")}
             </Text>
@@ -292,13 +295,14 @@ export const TicketBalanzaPdf = ({ data }: TicketBalanzaPdfProps) => {
         <View style={styles.fieldRow}>
           <Text style={styles.fieldLabel}>DESTINO...:</Text>
           <Text style={styles.fieldValue}>
-            {formatUbicacion(
-              data.direccion_sucursal,
-              data.nombre_sucursal,
-              data.distrito_sucursal,
-              data.provincia_sucursal,
-              data.departamento_sucursal
-            )}
+            {data.planta_destino_nombre ||
+              formatUbicacion(
+                data.direccion_sucursal,
+                data.nombre_sucursal,
+                data.distrito_sucursal,
+                data.provincia_sucursal,
+                data.departamento_sucursal
+              )}
           </Text>
         </View>
 

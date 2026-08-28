@@ -95,6 +95,8 @@ export const ProgramarRecepcionModal = ({ opened, onClose, onSuccess }: Props) =
     label: p.razon_social,
   }));
 
+  const esDespacho = form.tipo_ingreso === TipoIngreso.DespachoMineral;
+
   return (
     <>
       <ModalEstandar
@@ -146,7 +148,14 @@ export const ProgramarRecepcionModal = ({ opened, onClose, onSuccess }: Props) =
                 placeholder="Seleccione el tipo"
                 data={tipoIngresoData}
                 value={form.tipo_ingreso ?? null}
-                onChange={(val) => setField("tipo_ingreso", val || undefined)}
+                onChange={(val) => {
+                  setField("tipo_ingreso", val || undefined);
+                  if (val === TipoIngreso.DespachoMineral) {
+                    setField("id_proveedor_minero", undefined);
+                    setField("guia_remitente", undefined);
+                    setField("guia_transportista", undefined);
+                  }
+                }}
                 leftSection={<IconArrowsUpDown className="w-4 h-4 text-zinc-500" />}
                 radius="xl"
                 disabled={loading}
@@ -188,39 +197,41 @@ export const ProgramarRecepcionModal = ({ opened, onClose, onSuccess }: Props) =
               </div>
             </Grid.Col>
 
-            <Grid.Col span={{ base: 12, sm: 6 }}>
-              <div className="flex gap-2 items-end">
-                <Select
-                  label="Proveedor Minero"
-                  placeholder={loadingProveedores ? "Cargando proveedores..." : "Seleccione (opcional)"}
-                  data={proveedoresData}
-                  value={form.id_proveedor_minero ? String(form.id_proveedor_minero) : null}
-                  onChange={(val) => setField("id_proveedor_minero", val ? Number(val) : undefined)}
-                  leftSection={<IconUser className="w-4 h-4 text-zinc-500" />}
-                  searchable
-                  clearable
-                  radius="xl"
-                  disabled={loadingProveedores || loading}
-                  rightSection={loadingProveedores ? <Loader size={16} /> : undefined}
-                  classNames={fieldClasses}
-                  className="flex-1"
-                />
-                <Tooltip label="Registrar nuevo proveedor minero">
-                  <ActionIcon
-                    type="button"
-                    variant="filled"
-                    color="zinc"
+            {!esDespacho && (
+              <Grid.Col span={{ base: 12, sm: 6 }}>
+                <div className="flex gap-2 items-end">
+                  <Select
+                    label="Proveedor Minero"
+                    placeholder={loadingProveedores ? "Cargando proveedores..." : "Seleccione (opcional)"}
+                    data={proveedoresData}
+                    value={form.id_proveedor_minero ? String(form.id_proveedor_minero) : null}
+                    onChange={(val) => setField("id_proveedor_minero", val ? Number(val) : undefined)}
+                    leftSection={<IconUser className="w-4 h-4 text-zinc-500" />}
+                    searchable
+                    clearable
                     radius="xl"
-                    size="lg"
-                    disabled={loading}
-                    onClick={() => setOpenProveedorModal(true)}
-                    className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 mb-0.5"
-                  >
-                    <IconPlus size={18} />
-                  </ActionIcon>
-                </Tooltip>
-              </div>
-            </Grid.Col>
+                    disabled={loadingProveedores || loading}
+                    rightSection={loadingProveedores ? <Loader size={16} /> : undefined}
+                    classNames={fieldClasses}
+                    className="flex-1"
+                  />
+                  <Tooltip label="Registrar nuevo proveedor minero">
+                    <ActionIcon
+                      type="button"
+                      variant="filled"
+                      color="zinc"
+                      radius="xl"
+                      size="lg"
+                      disabled={loading}
+                      onClick={() => setOpenProveedorModal(true)}
+                      className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 mb-0.5"
+                    >
+                      <IconPlus size={18} />
+                    </ActionIcon>
+                  </Tooltip>
+                </div>
+              </Grid.Col>
+            )}
 
             <Grid.Col span={{ base: 12, sm: 6 }}>
               <CustomDatePicker
@@ -242,29 +253,32 @@ export const ProgramarRecepcionModal = ({ opened, onClose, onSuccess }: Props) =
               />
             </Grid.Col>
 
-            <Grid.Col span={{ base: 6, sm: 6 }}>
-              <TextInput
-                label="Guía Remitente"
-                placeholder="Ej. 001-123456"
-                radius="xl"
-                value={form.guia_remitente ?? ""}
-                onChange={(e) => setField("guia_remitente", e.target.value.toUpperCase())}
-                disabled={loading}
-                classNames={fieldClasses}
-              />
-            </Grid.Col>
-
-            <Grid.Col span={{ base: 6, sm: 6 }}>
-              <TextInput
-                label="Guía Transportista"
-                placeholder="Ej. 001-123456"
-                radius="xl"
-                value={form.guia_transportista ?? ""}
-                onChange={(e) => setField("guia_transportista", e.target.value.toUpperCase())}
-                disabled={loading}
-                classNames={fieldClasses}
-              />
-            </Grid.Col>
+            {!esDespacho && (
+              <>
+                <Grid.Col span={{ base: 6, sm: 6 }}>
+                  <TextInput
+                    label="Guía Remitente"
+                    placeholder="Ej. 001-123456"
+                    radius="xl"
+                    value={form.guia_remitente ?? ""}
+                    onChange={(e) => setField("guia_remitente", e.target.value.toUpperCase())}
+                    disabled={loading}
+                    classNames={fieldClasses}
+                  />
+                </Grid.Col>
+                <Grid.Col span={{ base: 6, sm: 6 }}>
+                  <TextInput
+                    label="Guía Transportista"
+                    placeholder="Ej. 001-123456"
+                    radius="xl"
+                    value={form.guia_transportista ?? ""}
+                    onChange={(e) => setField("guia_transportista", e.target.value.toUpperCase())}
+                    disabled={loading}
+                    classNames={fieldClasses}
+                  />
+                </Grid.Col>
+              </>
+            )}
           </Grid>
 
           <Group justify="flex-end" gap="md" mt="xl">
