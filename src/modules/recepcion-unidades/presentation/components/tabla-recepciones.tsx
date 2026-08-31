@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Text, Button, Select, Textarea, Badge, Group, ActionIcon, Tooltip, Stack } from "@mantine/core";
 import { DataTableEstandar } from "../../../../presentation/utils/datatable-estandar";
-import { IconPaperclip, IconClipboardCheck, IconNote, IconHistory, IconTruck } from "@tabler/icons-react";
+import { IconPaperclip, IconClipboardCheck, IconPencil, IconHistory, IconTruck } from "@tabler/icons-react";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
 import { ArchivoCard } from "../../../../presentation/utils/archivo/archivo-card";
 import { MultiFilePicker } from "../../../../presentation/utils/archivo/multifile-picker";
@@ -106,9 +106,70 @@ export const TablaRecepciones = ({
             width: 50,
           },
           {
+            accessor: "acciones",
+            title: "Acciones",
+            textAlign: "center",
+            width: 110,
+            render: (r: RecepcionUnidadResponse) => {
+              const tieneObservacionoEvidencias =
+                (r.observacion !== null && r.observacion.trim().length > 0) ||
+                (Array.isArray(r.evidencias) && r.evidencias.length > 0);
+
+              const noConfirmada = r.es_programacion && !r.id_empleado_recepcion;
+              const disabledReason = "Confirme la programación para habilitar";
+
+              return (
+                <Group gap={6} wrap="nowrap" justify="center">
+                  <Tooltip
+                    label={
+                      noConfirmada ? disabledReason : "Ver historial de cambios"
+                    }
+                    withArrow
+                  >
+                    <ActionIcon
+                      variant="light"
+                      color="gray"
+                      radius="xl"
+                      size="md"
+                      disabled={noConfirmada}
+                      onClick={() => onVerHistorial(r)}
+                      className="bg-zinc-700/10 hover:bg-zinc-700/20 text-zinc-400 border border-zinc-500/10 disabled:opacity-40"
+                    >
+                      <IconHistory size={16} />
+                    </ActionIcon>
+                  </Tooltip>
+
+                  <Tooltip
+                    label={
+                      noConfirmada
+                        ? disabledReason
+                        : tieneObservacionoEvidencias
+                          ? "Editar observación y evidencias"
+                          : "Agregar observación y evidencias"
+                    }
+                    withArrow
+                  >
+                    <ActionIcon
+                      variant="light"
+                      color="indigo"
+                      radius="xl"
+                      size="md"
+                      disabled={noConfirmada}
+                      onClick={() => onEditarObservacionEvidencias(r)}
+                      className="bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/10 disabled:opacity-40"
+                    >
+                      <IconPencil size={16} />
+                    </ActionIcon>
+                  </Tooltip>
+                </Group>
+              );
+            },
+          },
+          {
             accessor: "tipo",
             title: "Tipo",
             width: 170,
+            textAlign: "center",
             render: (r: RecepcionUnidadResponse) => {
               const esProgramacionSinConfirmar =
                 r.es_programacion && !r.id_empleado_recepcion;
@@ -276,7 +337,7 @@ export const TablaRecepciones = ({
                     {formatFecha(r.fecha_hora_salida)}
                   </Text>
                 ) : (
-                  !r.es_programacion && (
+                  !(r.es_programacion && !r.id_empleado_recepcion) && (
                     <Button
                       size="compact-xs"
                       color="red"
@@ -350,66 +411,6 @@ export const TablaRecepciones = ({
                 >
                   Ver ({r.evidencias.length})
                 </Button>
-              );
-            },
-          },
-          {
-            accessor: "acciones",
-            title: "Acciones",
-            textAlign: "center",
-            width: 110,
-            render: (r: RecepcionUnidadResponse) => {
-              const tieneObservacionoEvidencias =
-                (r.observacion !== null && r.observacion.trim().length > 0) ||
-                (Array.isArray(r.evidencias) && r.evidencias.length > 0);
-
-              const noConfirmada = r.es_programacion && !r.id_empleado_recepcion;
-              const disabledReason = "Confirme la programación para habilitar";
-
-              return (
-                <Group gap={6} wrap="nowrap" justify="center">
-                  <Tooltip
-                    label={
-                      noConfirmada ? disabledReason : "Ver historial de cambios"
-                    }
-                    withArrow
-                  >
-                    <ActionIcon
-                      variant="light"
-                      color="gray"
-                      radius="xl"
-                      size="md"
-                      disabled={noConfirmada}
-                      onClick={() => onVerHistorial(r)}
-                      className="bg-zinc-700/10 hover:bg-zinc-700/20 text-zinc-400 border border-zinc-500/10 disabled:opacity-40"
-                    >
-                      <IconHistory size={16} />
-                    </ActionIcon>
-                  </Tooltip>
-
-                  <Tooltip
-                    label={
-                      noConfirmada
-                        ? disabledReason
-                        : tieneObservacionoEvidencias
-                          ? "Editar observación y evidencias"
-                          : "Agregar observación y evidencias"
-                    }
-                    withArrow
-                  >
-                    <ActionIcon
-                      variant="light"
-                      color="indigo"
-                      radius="xl"
-                      size="md"
-                      disabled={noConfirmada}
-                      onClick={() => onEditarObservacionEvidencias(r)}
-                      className="bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/10 disabled:opacity-40"
-                    >
-                      <IconNote size={16} />
-                    </ActionIcon>
-                  </Tooltip>
-                </Group>
               );
             },
           },

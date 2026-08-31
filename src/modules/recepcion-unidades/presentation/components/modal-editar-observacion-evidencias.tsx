@@ -9,7 +9,7 @@ import {
   Loader,
   Badge,
 } from "@mantine/core";
-import { IconDeviceFloppy, IconNote } from "@tabler/icons-react";
+import { IconDeviceFloppy, IconNote, IconTruck } from "@tabler/icons-react";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
 import { MultiFilePicker } from "../../../../presentation/utils/archivo/multifile-picker";
 import { RecepcionUnidadesService } from "../../service/recepcion-unidades.service";
@@ -33,6 +33,7 @@ export const ModalEditarObservacionEvidencias = ({
   const { notifySuccess, notifyError } = useNotify();
 
   const [observacion, setObservacion] = useState<string>("");
+  const [observacionSalida, setObservacionSalida] = useState<string>("");
   const [motivo, setMotivo] = useState<string>("");
   const [evidenciasArchivos, setEvidenciasArchivos] = useState<File[]>([]);
   const [evidenciasExistentes, setEvidenciasExistentes] = useState<IArchivo[]>([]);
@@ -45,6 +46,7 @@ export const ModalEditarObservacionEvidencias = ({
     }
     if (initializedId !== recepcion.id) {
       setObservacion(recepcion.observacion ?? "");
+      setObservacionSalida(recepcion.observacion_salida ?? "");
       setMotivo("");
       setEvidenciasArchivos([]);
       setEvidenciasExistentes(
@@ -75,6 +77,8 @@ export const ModalEditarObservacionEvidencias = ({
     if (recepcion === null) return false;
     const obsOriginal = recepcion.observacion ?? "";
     if ((observacion ?? "") !== obsOriginal) return true;
+    const obsSalidaOriginal = recepcion.observacion_salida ?? "";
+    if ((observacionSalida ?? "") !== obsSalidaOriginal) return true;
     if (motivo.trim().length > 0) return true;
     if (evidenciasArchivos.length > 0) return true;
     const evidenciasOriginales = Array.isArray(recepcion.evidencias)
@@ -92,17 +96,18 @@ export const ModalEditarObservacionEvidencias = ({
         recepcion.id,
         {
           observacion: observacion.trim().length > 0 ? observacion : null,
+          observacion_salida: observacionSalida.trim().length > 0 ? observacionSalida : null,
           motivo: motivo.trim().length > 0 ? motivo.trim() : null,
           evidencias_existentes: evidenciasExistentes,
           evidencias: evidenciasArchivos,
         },
       );
-      notifySuccess("Observación y evidencias actualizadas");
+      notifySuccess("Observaciones y evidencias actualizadas");
       onGuardada(actualizada);
       onClose();
     } catch (e) {
       console.error(e);
-      notifyError("No se pudo actualizar la observación y evidencias");
+      notifyError("No se pudo actualizar las observaciones y evidencias");
     } finally {
       setLoading(false);
     }
@@ -114,13 +119,13 @@ export const ModalEditarObservacionEvidencias = ({
     <ModalEstandar
       opened={opened && recepcion !== null}
       close={handleClose}
-      title={`Editar Observación y Evidencias — Recepción #${recepcion?.id ?? ""}`}
+      title={`Editar Observaciones y Evidencias — Recepción #${recepcion?.id ?? ""}`}
       size="xl"
       validateClose={hayCambios}
       closeConfirmationTitle="Cerrar sin guardar"
       closeConfirmationMessage={
         <>
-          Tienes cambios sin guardar en la observación o las evidencias.
+          Tienes cambios sin guardar en las observaciones o las evidencias.
           ¿Estás seguro que deseas cerrar? Se perderán los cambios pendientes.
         </>
       }
@@ -167,6 +172,35 @@ export const ModalEditarObservacionEvidencias = ({
                   "bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-zinc-300 focus:ring-1 focus:ring-zinc-300 transition-all",
               }}
             />
+
+            {recepcion.fecha_hora_salida && (
+              <div className="mt-2 pt-4 border-t border-zinc-800">
+                <Group gap="xs" mb="xs">
+                  <IconTruck className="w-4 h-4 text-amber-400" />
+                  <Text
+                    size="xs"
+                    fw={700}
+                    className="text-zinc-300 uppercase tracking-wider"
+                  >
+                    Observación de Salida
+                  </Text>
+                </Group>
+                <Textarea
+                  placeholder="Escribe una observación para la salida (opcional)"
+                  value={observacionSalida}
+                  onChange={(e) => setObservacionSalida(e.currentTarget.value)}
+                  minRows={3}
+                  maxRows={8}
+                  autosize
+                  disabled={loading}
+                  radius="lg"
+                  classNames={{
+                    input:
+                      "bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-zinc-300 focus:ring-1 focus:ring-zinc-300 transition-all",
+                  }}
+                />
+              </div>
+            )}
 
             <TextInput
               label="Motivo del cambio"

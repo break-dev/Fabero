@@ -200,6 +200,7 @@ export const RecepcionUnidadesService = {
     const formData = new FormData();
     formData.append("_method", "PUT");
     appendIfDefined(formData, "observacion", dto.observacion ?? null);
+    appendIfDefined(formData, "observacion_salida", dto.observacion_salida ?? null);
     appendIfDefined(formData, "motivo", dto.motivo ?? null);
     if (dto.evidencias_existentes && dto.evidencias_existentes.length > 0) {
       formData.append("evidencias_existentes", JSON.stringify(dto.evidencias_existentes));

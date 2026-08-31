@@ -3,6 +3,7 @@ import type { TipoIngreso } from "../../../shared/enums/_generic/tipo-ingreso";
 
 export interface DTO_EditarObservacionEvidencias {
   observacion?: string | null;
+  observacion_salida?: string | null;
   motivo?: string | null;
   evidencias_existentes?: IArchivo[];
   evidencias?: File[];
