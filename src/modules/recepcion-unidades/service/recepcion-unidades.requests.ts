@@ -1,4 +1,12 @@
+import type { IArchivo } from "../../../shared/interfaces/archivo";
 import type { TipoIngreso } from "../../../shared/enums/_generic/tipo-ingreso";
+
+export interface DTO_EditarObservacionEvidencias {
+  observacion?: string | null;
+  motivo?: string | null;
+  evidencias_existentes?: IArchivo[];
+  evidencias?: File[];
+}
 
 export interface CrearRecepcionRequest {
   id_vehiculo?: number;

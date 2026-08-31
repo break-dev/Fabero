@@ -8,9 +8,9 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 const api = axios.create({
   baseURL: API_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  // Sin Content-Type default: el transformRequest interno de axios setea
+  // 'application/json' para bodies JSON. Para FormData lo deja libre y el
+  // browser auto-asigna 'multipart/form-data; boundary=...' con boundary válido.
 });
 
 // Interceptor para agregar token de autenticacion

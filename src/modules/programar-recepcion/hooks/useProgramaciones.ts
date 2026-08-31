@@ -14,6 +14,7 @@ export const useProgramaciones = () => {
   const [programaciones, setProgramaciones] = useState<ProgramacionListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [estadoConfirmacion, setEstadoConfirmacion] = useState<"todos" | "pendientes" | "confirmadas">("todos");
   const [fechaInicio, setFechaInicio] = useState<string>(getTodayString());
   const [fechaFin, setFechaFin] = useState<string>(getTodayString());
   const { notifyError } = useNotify();
@@ -22,7 +23,7 @@ export const useProgramaciones = () => {
     setLoading(true);
     try {
       const data = await ProgramarRecepcionService.getProgramaciones({
-        solo_pendientes: true,
+        estado_confirmacion: estadoConfirmacion,
         fecha_inicio: fechaInicio || undefined,
         fecha_fin: fechaFin || undefined,
       });
@@ -35,11 +36,11 @@ export const useProgramaciones = () => {
     }
   };
 
-  // Re-fetch reactivo al cambiar fechas.
+  // Re-fetch reactivo al cambiar fechas o estado.
   useEffect(() => {
     void fetchProgramaciones();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fechaInicio, fechaFin]);
+  }, [fechaInicio, fechaFin, estadoConfirmacion]);
 
   const programacionesFiltradas = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
@@ -57,6 +58,7 @@ export const useProgramaciones = () => {
 
   const resetFilters = () => {
     setSearchQuery("");
+    setEstadoConfirmacion("todos");
     setFechaInicio(getTodayString());
     setFechaFin(getTodayString());
   };
@@ -76,6 +78,8 @@ export const useProgramaciones = () => {
     loading,
     searchQuery,
     setSearchQuery,
+    estadoConfirmacion,
+    setEstadoConfirmacion,
     fechaInicio,
     setFechaInicio,
     fechaFin,

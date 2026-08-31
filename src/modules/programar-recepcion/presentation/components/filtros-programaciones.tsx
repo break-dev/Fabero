@@ -1,11 +1,13 @@
-import { Box, TextInput, ActionIcon } from "@mantine/core";
-import { IconSearch, IconX } from "@tabler/icons-react";
+import { Box, TextInput, ActionIcon, Select } from "@mantine/core";
+import { IconSearch, IconX, IconFilter } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { CustomDatePicker } from "../../../../presentation/utils/date-picker-input";
 
 interface Props {
   searchQuery: string;
   onSearchChange: (value: string) => void;
+  estadoConfirmacion: "todos" | "pendientes" | "confirmadas";
+  setEstadoConfirmacion: (value: "todos" | "pendientes" | "confirmadas") => void;
   fechaInicio: string;
   setFechaInicio: (value: string) => void;
   fechaFin: string;
@@ -22,6 +24,8 @@ const fieldClasses = {
 export const FiltrosProgramaciones = ({
   searchQuery,
   onSearchChange,
+  estadoConfirmacion,
+  setEstadoConfirmacion,
   fechaInicio,
   setFechaInicio,
   fechaFin,
@@ -29,6 +33,24 @@ export const FiltrosProgramaciones = ({
 }: Props) => {
   return (
     <div className="flex flex-wrap items-end gap-3 animate-fadeIn">
+      <Box className="w-44">
+        <Select
+          label="Estado"
+          data={[
+            { value: "todos", label: "Todas" },
+            { value: "pendientes", label: "Sin confirmar" },
+            { value: "confirmadas", label: "Confirmadas" },
+          ]}
+          value={estadoConfirmacion}
+          onChange={(val) =>
+            setEstadoConfirmacion((val as "todos" | "pendientes" | "confirmadas") || "todos")
+          }
+          leftSection={<IconFilter size={14} className="text-zinc-500" />}
+          radius="lg"
+          classNames={fieldClasses}
+        />
+      </Box>
+
       <Box className="w-44">
         <CustomDatePicker
           label="Fecha Inicio"

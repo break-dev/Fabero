@@ -498,6 +498,9 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
           id_proveedor_minero: idProv ?? undefined,
           guia_remitente: gRemitente || undefined,
           guia_transportista: gTransportista || undefined,
+          observacion: observacion || undefined,
+          motivo: 'Confirmación inicial',
+          evidencias: evidencias.length > 0 ? evidencias : undefined,
         });
 
         const updatedRecepcion: RecepcionUnidadResponse = {
@@ -559,7 +562,6 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
             id_recepcion_unidad: programacion.id,
             id_motivo_ingreso: motivoFinal,
             observacion: observacion || undefined,
-            evidencias,
             vehiculos: vehiculos.map((v) => ({
               id: v.id,
               placa: v.placa,

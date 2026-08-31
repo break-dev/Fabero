@@ -138,7 +138,7 @@ export const ArchivoCard = ({
 
       {/* Decorative accent */}
       <div
-        className={`absolute bottom-0 left-0 h-[2px] w-0 group-hover/card:w-full transition-all duration-500 bg-${config.color.split(".")[0]}-500/40`}
+        className={`absolute bottom-0 left-0 h-0.5 w-0 group-hover/card:w-full transition-all duration-500 bg-${config.color.split(".")[0]}-500/40`}
       />
     </Paper>
   );

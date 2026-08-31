@@ -4,6 +4,8 @@ import { useRecepciones } from "../hooks/useRecepciones";
 import { Filtros } from "./components/filtros";
 import { TablaRecepciones } from "./components/tabla-recepciones";
 import { ConfirmarProgramacionModal } from "./components/confirmar-programacion-modal";
+import { ModalEditarObservacionEvidencias } from "./components/modal-editar-observacion-evidencias";
+import { ModalVerHistorial } from "./components/modal-ver-historial";
 import { useEffect, useState } from "react";
 import { IconPlus, IconX } from "@tabler/icons-react";
 import {
@@ -32,6 +34,9 @@ export const RecepcionUnidadesPage = () => {
   const [programacionAConfirmar, setProgramacionAConfirmar] =
     useState<RecepcionUnidadResponse | null>(null);
   const [programacionConfirmadaFull, setProgramacionConfirmadaFull] =
+    useState<RecepcionUnidadResponse | null>(null);
+  const [recepcionAEditar, setRecepcionAEditar] = useState<RecepcionUnidadResponse | null>(null);
+  const [recepcionAVerHistorial, setRecepcionAVerHistorial] =
     useState<RecepcionUnidadResponse | null>(null);
 
   useEffect(() => {
@@ -126,6 +131,8 @@ export const RecepcionUnidadesPage = () => {
           loading={loading}
           onUpdateRecepcion={updateRecepcion}
           onConfirmarProgramacion={(r) => setProgramacionAConfirmar(r)}
+          onEditarObservacionEvidencias={(r) => setRecepcionAEditar(r)}
+          onVerHistorial={(r) => setRecepcionAVerHistorial(r)}
         />
       </Stack>
 
@@ -149,6 +156,21 @@ export const RecepcionUnidadesPage = () => {
         onConfirmada={(actualizada) => {
           updateRecepcion(actualizada);
         }}
+      />
+
+      <ModalEditarObservacionEvidencias
+        opened={!!recepcionAEditar}
+        recepcion={recepcionAEditar}
+        onClose={() => setRecepcionAEditar(null)}
+        onGuardada={(actualizada) => {
+          updateRecepcion(actualizada);
+        }}
+      />
+
+      <ModalVerHistorial
+        opened={!!recepcionAVerHistorial}
+        recepcion={recepcionAVerHistorial}
+        onClose={() => setRecepcionAVerHistorial(null)}
       />
     </div>
   );

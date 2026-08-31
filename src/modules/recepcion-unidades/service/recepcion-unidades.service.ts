@@ -3,6 +3,7 @@ import type {
   ConfirmarVisitaPayload,
   CrearRecepcionRequest,
   CrearVisitaVehiculoRequest,
+  DTO_EditarObservacionEvidencias,
   RecepcionFilters,
 } from "./recepcion-unidades.requests";
 import type {
@@ -82,9 +83,7 @@ export const RecepcionUnidadesService = {
       });
     }
 
-    const { data } = await api.post("/recepcion-unidades", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const { data } = await api.post("/recepcion-unidades", formData);
     return data.data;
   },
 
@@ -104,9 +103,7 @@ export const RecepcionUnidadesService = {
         formData.append("evidencias[]", f);
       });
 
-      const { data } = await api.post(`/recepcion-unidades/${id}/salida`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const { data } = await api.post(`/recepcion-unidades/${id}/salida`, formData);
       return data.data;
     }
 
@@ -161,9 +158,7 @@ export const RecepcionUnidadesService = {
       }
     });
 
-    const { data } = await api.post("/recepcion-visitas/por-programacion", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const { data } = await api.post("/recepcion-visitas/por-programacion", formData);
     return data.data;
   },
 
@@ -182,9 +177,7 @@ export const RecepcionUnidadesService = {
       payload.archivos.forEach((file) => formData.append("archivos[]", file));
     }
 
-    const { data } = await api.post("/visitas-vehiculo", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const { data } = await api.post("/visitas-vehiculo", formData);
     return data.data;
   },
 
@@ -194,5 +187,31 @@ export const RecepcionUnidadesService = {
   eliminarVehiculoVisitado: async (id: number): Promise<IRespuesta<null>> => {
     const { data } = await api.delete(`/visitas-vehiculo/${id}`);
     return data;
+  },
+
+  /**
+   * Editar la observación y/o evidencias de una recepción ya confirmada.
+   * Persiste los cambios en `recepcion_unidad` con su entrada en `log_cambios`.
+   */
+  actualizarObservacionEvidencias: async (
+    id: number,
+    dto: DTO_EditarObservacionEvidencias,
+  ): Promise<RecepcionUnidadResponse> => {
+    const formData = new FormData();
+    formData.append("_method", "PUT");
+    appendIfDefined(formData, "observacion", dto.observacion ?? null);
+    appendIfDefined(formData, "motivo", dto.motivo ?? null);
+    if (dto.evidencias_existentes && dto.evidencias_existentes.length > 0) {
+      formData.append("evidencias_existentes", JSON.stringify(dto.evidencias_existentes));
+    }
+    if (dto.evidencias && dto.evidencias.length > 0) {
+      dto.evidencias.forEach((file) => formData.append("evidencias[]", file));
+    }
+
+    const { data } = await api.post(
+      `/programar-recepcion/${id}/observacion-evidencias`,
+      formData,
+    );
+    return data.data;
   },
 };

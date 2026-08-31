@@ -15,6 +15,7 @@ export interface CrearProgramacionRequest {
 }
 
 export interface ProgramacionFilters {
+  estado_confirmacion?: "todos" | "pendientes" | "confirmadas";
   solo_pendientes?: boolean;
   fecha_inicio?: string | null;
   fecha_fin?: string | null;

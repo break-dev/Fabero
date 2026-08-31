@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Text, Button, Select, Textarea, Badge, Group } from "@mantine/core";
+import { Text, Button, Select, Textarea, Badge, Group, ActionIcon, Tooltip, Stack } from "@mantine/core";
 import { DataTableEstandar } from "../../../../presentation/utils/datatable-estandar";
-import { IconPaperclip, IconClipboardCheck } from "@tabler/icons-react";
+import { IconPaperclip, IconClipboardCheck, IconNote, IconHistory, IconTruck } from "@tabler/icons-react";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
 import { ArchivoCard } from "../../../../presentation/utils/archivo/archivo-card";
 import { MultiFilePicker } from "../../../../presentation/utils/archivo/multifile-picker";
@@ -16,6 +16,8 @@ interface Props {
   loading: boolean;
   onUpdateRecepcion: (r: RecepcionUnidadResponse) => void;
   onConfirmarProgramacion: (r: RecepcionUnidadResponse) => void;
+  onEditarObservacionEvidencias: (r: RecepcionUnidadResponse) => void;
+  onVerHistorial: (r: RecepcionUnidadResponse) => void;
 }
 
 export const TablaRecepciones = ({
@@ -23,6 +25,8 @@ export const TablaRecepciones = ({
   loading,
   onUpdateRecepcion,
   onConfirmarProgramacion,
+  onEditarObservacionEvidencias,
+  onVerHistorial,
 }: Props) => {
   const [selectedEvidencias, setSelectedEvidencias] = useState<IArchivo[] | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -100,37 +104,62 @@ export const TablaRecepciones = ({
             title: "#",
             textAlign: "center",
             width: 50,
-            render: (_: RecepcionUnidadResponse, index: number) => index + 1,
           },
           {
             accessor: "tipo",
             title: "Tipo",
-            width: 130,
+            width: 170,
             render: (r: RecepcionUnidadResponse) => {
-              if (r.es_programacion && !r.id_empleado_recepcion) {
+              const esProgramacionSinConfirmar =
+                r.es_programacion && !r.id_empleado_recepcion;
+
+              const badge = (() => {
+                if (esProgramacionSinConfirmar) {
+                  return (
+                    <Badge color="yellow" variant="light" radius="md" size="sm">
+                      Programación
+                    </Badge>
+                  );
+                }
+                if (r.es_programacion && r.id_empleado_recepcion) {
+                  return (
+                    <Badge color="indigo" variant="light" radius="md" size="sm">
+                      Confirmada
+                    </Badge>
+                  );
+                }
                 return (
-                  <Badge color="yellow" variant="light" radius="md" size="sm">
-                    Programación
+                  <Badge color="gray" variant="light" radius="md" size="sm">
+                    Directa
                   </Badge>
                 );
-              }
-              if (r.es_programacion && r.id_empleado_recepcion) {
-                return (
-                  <Badge color="indigo" variant="light" radius="md" size="sm">
-                    Confirmada
-                  </Badge>
-                );
-              }
+              })();
+
               return (
-                <Badge color="gray" variant="light" radius="md" size="sm">
-                  Directa
-                </Badge>
+                <Group gap={6} wrap="nowrap" justify="center">
+                  {badge}
+                  {esProgramacionSinConfirmar && (
+                    <Tooltip label="Confirmar información" withArrow>
+                      <ActionIcon
+                        variant="filled"
+                        color="indigo"
+                        radius="xl"
+                        size="md"
+                        onClick={() => onConfirmarProgramacion(r)}
+                        className="bg-indigo-600 hover:bg-indigo-500 text-white"
+                      >
+                        <IconClipboardCheck size={16} />
+                      </ActionIcon>
+                    </Tooltip>
+                  )}
+                </Group>
               );
             },
           },
           {
             accessor: "fecha_hora_ingreso",
             title: "Fecha Ingreso",
+            textAlign: "center",
             width: 180,
             render: (r: RecepcionUnidadResponse) => (
               <div>
@@ -148,6 +177,7 @@ export const TablaRecepciones = ({
           {
             accessor: "fecha_estimada_llegada",
             title: "F. Est. Llegada",
+            textAlign: "center",
             width: 180,
             render: (r: RecepcionUnidadResponse) => (
               <div>
@@ -165,6 +195,7 @@ export const TablaRecepciones = ({
           {
             accessor: "vehiculo_placa",
             title: "Vehículo",
+            textAlign: "center",
             width: 170,
             render: (r: RecepcionUnidadResponse) => {
               if (!r.vehiculo_placa) {
@@ -175,7 +206,7 @@ export const TablaRecepciones = ({
                 );
               }
               return (
-                <div className="flex flex-col gap-1.5 items-start">
+                <div className="flex flex-col gap-1.5 items-center">
                   <div className="inline-flex items-center justify-center bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-0.5 rounded-md font-bold text-xs tracking-wider uppercase font-mono">
                     {r.vehiculo_placa}
                   </div>
@@ -189,6 +220,7 @@ export const TablaRecepciones = ({
           {
             accessor: "empresa_transporte_razon_social",
             title: "Transportista",
+            textAlign: "center",
             width: 200,
             render: (r: RecepcionUnidadResponse) => (
               <div>
@@ -201,6 +233,7 @@ export const TablaRecepciones = ({
           {
             accessor: "conductor_nombre_completo",
             title: "Conductor",
+            textAlign: "center",
             width: 200,
             render: (r: RecepcionUnidadResponse) => (
               <div>
@@ -216,71 +249,61 @@ export const TablaRecepciones = ({
           {
             accessor: "observacion",
             title: "Observación",
-            width: 200,
-            render: (r: RecepcionUnidadResponse) => (
-              <Text size="xs" className="text-zinc-400 italic max-w-45" truncate title={r.observacion || ""}>
-                {r.observacion || "—"}
-              </Text>
-            ),
-          },
-          {
-            accessor: "acciones",
-            title: "Acciones",
+            textAlign: "center",
             width: 200,
             render: (r: RecepcionUnidadResponse) => {
-              // Programación sin confirmar → mostrar botón "Confirmar información"
-              if (r.es_programacion && !r.id_empleado_recepcion) {
-                return (
-                  <Button
-                    size="xs"
-                    color="indigo"
-                    radius="xl"
-                    leftSection={<IconClipboardCheck size={14} />}
-                    onClick={() => onConfirmarProgramacion(r)}
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all duration-200 h-7 px-3.5"
-                  >
-                    Confirmar información
-                  </Button>
-                );
+              if (!r.observacion) {
+                return <Text size="xs" className="text-zinc-500 italic max-w-45">—</Text>;
               }
-              // Recepción normal → botón "Registrar Salida" si no tiene fecha de salida
-              if (!r.fecha_hora_salida) {
-                return (
-                  <Button
-                    size="xs"
-                    color="red"
-                    radius="lg"
-                    onClick={() => {
-                      setExitRecord(r);
-                      setEstadoSalida(null);
-                      setObservacionSalida("");
-                      setEvidenciasSalida([]);
-                    }}
-                    className="bg-red-600 hover:bg-red-700 text-white font-semibold transition-all duration-200 h-7 px-3.5"
-                  >
-                    Registrar Salida
-                  </Button>
-                );
-              }
-              return <Text size="xs" className="text-zinc-500 italic">—</Text>;
+              return (
+                <Tooltip label={r.observacion} multiline w={320} withArrow>
+                  <Text size="xs" className="text-zinc-400 italic max-w-45 truncate">
+                    {r.observacion}
+                  </Text>
+                </Tooltip>
+              );
             },
           },
           {
             accessor: "fecha_hora_salida",
             title: "Salida",
+            textAlign: "center",
             width: 170,
             render: (r: RecepcionUnidadResponse) => (
-              <Text size="sm" className="text-zinc-200" fw={500}>
-                {formatFecha(r.fecha_hora_salida)}
-              </Text>
+              <Stack gap={4} align="center">
+                {r.fecha_hora_salida ? (
+                  <Text size="sm" className="text-zinc-200" fw={500}>
+                    {formatFecha(r.fecha_hora_salida)}
+                  </Text>
+                ) : (
+                  !r.es_programacion && (
+                    <Button
+                      size="compact-xs"
+                      color="red"
+                      radius="lg"
+                      leftSection={<IconTruck size={12} />}
+                      onClick={() => {
+                        setExitRecord(r);
+                        setEstadoSalida(null);
+                        setObservacionSalida("");
+                        setEvidenciasSalida([]);
+                      }}
+                      className="bg-red-600 hover:bg-red-700 text-white font-semibold h-6 px-2.5"
+                    >
+                      Registrar Salida
+                    </Button>
+                  )
+                )}
+              </Stack>
             ),
           },
           {
             accessor: "estado_salida",
             title: "Estado Unidad",
+            textAlign: "center",
             width: 150,
             render: (r: RecepcionUnidadResponse) => (
-              <Group gap="xs">
+              <Group gap="xs" justify="center">
                 <Text size="sm" className="text-zinc-200">
                   {r.estado_salida ?? r.estado ?? "—"}
                 </Text>
@@ -290,16 +313,25 @@ export const TablaRecepciones = ({
           {
             accessor: "observacion_salida",
             title: "Observación Salida",
+            textAlign: "center",
             width: 200,
-            render: (r: RecepcionUnidadResponse) => (
-              <Text size="xs" className="text-zinc-400 italic max-w-45" truncate title={r.observacion_salida || ""}>
-                {r.observacion_salida || "—"}
-              </Text>
-            ),
+            render: (r: RecepcionUnidadResponse) => {
+              if (!r.observacion_salida) {
+                return <Text size="xs" className="text-zinc-500 italic max-w-45">—</Text>;
+              }
+              return (
+                <Tooltip label={r.observacion_salida} multiline w={320} withArrow>
+                  <Text size="xs" className="text-zinc-400 italic max-w-45 truncate">
+                    {r.observacion_salida}
+                  </Text>
+                </Tooltip>
+              );
+            },
           },
           {
             accessor: "evidencias",
             title: "Evidencias",
+            textAlign: "center",
             width: 140,
             render: (r: RecepcionUnidadResponse) => {
               if (!Array.isArray(r.evidencias) || r.evidencias.length === 0) {
@@ -318,6 +350,66 @@ export const TablaRecepciones = ({
                 >
                   Ver ({r.evidencias.length})
                 </Button>
+              );
+            },
+          },
+          {
+            accessor: "acciones",
+            title: "Acciones",
+            textAlign: "center",
+            width: 110,
+            render: (r: RecepcionUnidadResponse) => {
+              const tieneObservacionoEvidencias =
+                (r.observacion !== null && r.observacion.trim().length > 0) ||
+                (Array.isArray(r.evidencias) && r.evidencias.length > 0);
+
+              const noConfirmada = r.es_programacion && !r.id_empleado_recepcion;
+              const disabledReason = "Confirme la programación para habilitar";
+
+              return (
+                <Group gap={6} wrap="nowrap" justify="center">
+                  <Tooltip
+                    label={
+                      noConfirmada ? disabledReason : "Ver historial de cambios"
+                    }
+                    withArrow
+                  >
+                    <ActionIcon
+                      variant="light"
+                      color="gray"
+                      radius="xl"
+                      size="md"
+                      disabled={noConfirmada}
+                      onClick={() => onVerHistorial(r)}
+                      className="bg-zinc-700/10 hover:bg-zinc-700/20 text-zinc-400 border border-zinc-500/10 disabled:opacity-40"
+                    >
+                      <IconHistory size={16} />
+                    </ActionIcon>
+                  </Tooltip>
+
+                  <Tooltip
+                    label={
+                      noConfirmada
+                        ? disabledReason
+                        : tieneObservacionoEvidencias
+                          ? "Editar observación y evidencias"
+                          : "Agregar observación y evidencias"
+                    }
+                    withArrow
+                  >
+                    <ActionIcon
+                      variant="light"
+                      color="indigo"
+                      radius="xl"
+                      size="md"
+                      disabled={noConfirmada}
+                      onClick={() => onEditarObservacionEvidencias(r)}
+                      className="bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/10 disabled:opacity-40"
+                    >
+                      <IconNote size={16} />
+                    </ActionIcon>
+                  </Tooltip>
+                </Group>
               );
             },
           },

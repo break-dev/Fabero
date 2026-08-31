@@ -15,6 +15,8 @@ export const ProgramarRecepcionPage = () => {
     loading,
     searchQuery,
     setSearchQuery,
+    estadoConfirmacion,
+    setEstadoConfirmacion,
     fechaInicio,
     setFechaInicio,
     fechaFin,
@@ -29,6 +31,7 @@ export const ProgramarRecepcionPage = () => {
   const hasActiveFilters =
     fechaInicio !== todayStr ||
     fechaFin !== todayStr ||
+    estadoConfirmacion !== "todos" ||
     !!searchQuery;
 
   return (
@@ -37,6 +40,8 @@ export const ProgramarRecepcionPage = () => {
         <FiltrosProgramaciones
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
+          estadoConfirmacion={estadoConfirmacion}
+          setEstadoConfirmacion={setEstadoConfirmacion}
           fechaInicio={fechaInicio}
           setFechaInicio={setFechaInicio}
           fechaFin={fechaFin}

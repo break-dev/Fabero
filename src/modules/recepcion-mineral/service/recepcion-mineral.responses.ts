@@ -82,6 +82,7 @@ export interface RecepcionMineralResponse {
   id_sucursal: number | null;
   lotes: RES_LoteMineral[];
   distribucion_detalles: DistribucionDetalleItem[];
+  log_cambios?: RES_CambiosLog[] | null;
 }
 
 export interface RES_TicketBalanzaData {
