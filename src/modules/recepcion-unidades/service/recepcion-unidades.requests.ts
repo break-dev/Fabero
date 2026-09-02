@@ -1,4 +1,5 @@
 import type { IArchivo } from "../../../shared/interfaces/archivo";
+import type { IDocumentoProgramacion } from "../../../shared/interfaces/documentos-programacion";
 import type { TipoIngreso } from "../../../shared/enums/_generic/tipo-ingreso";
 
 export interface DTO_EditarObservacionEvidencias {
@@ -23,6 +24,9 @@ export interface CrearRecepcionRequest {
   id_sucursal?: number;
   guia_remitente?: string;
   guia_transportista?: string;
+  guia_remitente_file?: File | null;
+  guia_transportista_file?: File | null;
+  documentos_programacion_existentes?: IDocumentoProgramacion | null;
   id_motivo_ingreso?: number;
   vehiculos?: {
     id?: number;

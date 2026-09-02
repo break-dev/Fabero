@@ -6,6 +6,7 @@ import { Filtros } from "./components/filtros";
 import { TablaVisitas } from "./components/tabla-visitas";
 import { RegistroVisita } from "./components/registro-visita";
 import { ModalEstandar } from "../../../presentation/utils/modal-estandar";
+import { RefreshButton } from "../../../presentation/utils/refresh-button";
 import { IconPlus, IconX } from "@tabler/icons-react";
 import "../hooks/useModuleAIContext";
 import {
@@ -26,6 +27,7 @@ export const RecepcionVisitasPage = () => {
     insertRecepcion,
     updateRecepcion,
     clearFilters,
+    fetchRecepciones,
   } = useRecepcionVisitas();
 
   const [openRegistro, setOpenRegistro] = useState(false);
@@ -121,7 +123,9 @@ export const RecepcionVisitasPage = () => {
               Limpiar
             </Button>
           )}
-          
+
+          <RefreshButton onClick={fetchRecepciones} loading={loading} label="Recargar visitas" />
+
           <Button
             radius="lg"
             size="sm"

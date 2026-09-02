@@ -122,6 +122,29 @@ export const TablaRecepciones = ({
                 <Group gap={6} wrap="nowrap" justify="center">
                   <Tooltip
                     label={
+                      Array.isArray(r.evidencias) && r.evidencias.length > 0
+                        ? `Ver ${r.evidencias.length} evidencia(s)`
+                        : "Sin evidencias"
+                    }
+                    withArrow
+                  >
+                    <ActionIcon
+                      variant="light"
+                      color="indigo"
+                      radius="xl"
+                      size="md"
+                      disabled={
+                        !Array.isArray(r.evidencias) || r.evidencias.length === 0
+                      }
+                      onClick={() => handleOpenEvidencias(r.evidencias)}
+                      className="bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/10 disabled:opacity-40"
+                    >
+                      <IconPaperclip size={16} />
+                    </ActionIcon>
+                  </Tooltip>
+
+                  <Tooltip
+                    label={
                       noConfirmada ? disabledReason : "Ver historial de cambios"
                     }
                     withArrow
@@ -218,42 +241,6 @@ export const TablaRecepciones = ({
             },
           },
           {
-            accessor: "fecha_hora_ingreso",
-            title: "Fecha Ingreso",
-            textAlign: "center",
-            width: 180,
-            render: (r: RecepcionUnidadResponse) => (
-              <div>
-                <Text size="sm" className="text-zinc-200" fw={500}>
-                  {formatFecha(r.fecha_hora_ingreso)}
-                </Text>
-                {r.fecha_hora_ingreso && (
-                  <Text size="xs" className="text-zinc-500">
-                    Por: {r.empleado_recepcion_nombre ?? r.empleado_registro_nombre ?? "—"}
-                  </Text>
-                )}
-              </div>
-            ),
-          },
-          {
-            accessor: "fecha_estimada_llegada",
-            title: "F. Est. Llegada",
-            textAlign: "center",
-            width: 180,
-            render: (r: RecepcionUnidadResponse) => (
-              <div>
-                <Text size="sm" className="text-zinc-200" fw={500}>
-                  {r.fecha_estimada_llegada ?? "—"}
-                </Text>
-                {r.fecha_estimada_llegada && (
-                  <Text size="xs" className="text-zinc-500">
-                    Autorizó: {r.empleado_autoriza_nombre ?? "—"}
-                  </Text>
-                )}
-              </div>
-            ),
-          },
-          {
             accessor: "vehiculo_placa",
             title: "Vehículo",
             textAlign: "center",
@@ -292,38 +279,40 @@ export const TablaRecepciones = ({
             ),
           },
           {
-            accessor: "conductor_nombre_completo",
-            title: "Conductor",
+            accessor: "fecha_hora_ingreso",
+            title: "Fecha Ingreso",
             textAlign: "center",
-            width: 200,
+            width: 180,
             render: (r: RecepcionUnidadResponse) => (
               <div>
                 <Text size="sm" className="text-zinc-200" fw={500}>
-                  {r.conductor_nombre_completo ?? "—"}
+                  {formatFecha(r.fecha_hora_ingreso)}
                 </Text>
-                <Text size="xs" className="text-zinc-500">
-                  Licencia: {r.conductor_numero_licencia ?? "—"}
-                </Text>
+                {r.fecha_hora_ingreso && (
+                  <Text size="xs" className="text-zinc-500">
+                    Por: {r.empleado_recepcion_nombre ?? r.empleado_registro_nombre ?? "—"}
+                  </Text>
+                )}
               </div>
             ),
           },
           {
-            accessor: "observacion",
-            title: "Observación",
+            accessor: "fecha_estimada_llegada",
+            title: "F. Est. Llegada",
             textAlign: "center",
-            width: 200,
-            render: (r: RecepcionUnidadResponse) => {
-              if (!r.observacion) {
-                return <Text size="xs" className="text-zinc-500 italic max-w-45">—</Text>;
-              }
-              return (
-                <Tooltip label={r.observacion} multiline w={320} withArrow>
-                  <Text size="xs" className="text-zinc-400 italic max-w-45 truncate">
-                    {r.observacion}
+            width: 180,
+            render: (r: RecepcionUnidadResponse) => (
+              <div>
+                <Text size="sm" className="text-zinc-200" fw={500}>
+                  {r.fecha_estimada_llegada ?? "—"}
+                </Text>
+                {r.fecha_estimada_llegada && (
+                  <Text size="xs" className="text-zinc-500">
+                    Autorizó: {r.empleado_autoriza_nombre ?? "—"}
                   </Text>
-                </Tooltip>
-              );
-            },
+                )}
+              </div>
+            ),
           },
           {
             accessor: "fecha_hora_salida",
@@ -359,6 +348,40 @@ export const TablaRecepciones = ({
             ),
           },
           {
+            accessor: "conductor_nombre_completo",
+            title: "Conductor",
+            textAlign: "center",
+            width: 200,
+            render: (r: RecepcionUnidadResponse) => (
+              <div>
+                <Text size="sm" className="text-zinc-200" fw={500}>
+                  {r.conductor_nombre_completo ?? "—"}
+                </Text>
+                <Text size="xs" className="text-zinc-500">
+                  Licencia: {r.conductor_numero_licencia ?? "—"}
+                </Text>
+              </div>
+            ),
+          },
+          {
+            accessor: "observacion",
+            title: "Observación",
+            textAlign: "center",
+            width: 200,
+            render: (r: RecepcionUnidadResponse) => {
+              if (!r.observacion) {
+                return <Text size="xs" className="text-zinc-500 italic max-w-45">—</Text>;
+              }
+              return (
+                <Tooltip label={r.observacion} multiline w={320} withArrow>
+                  <Text size="xs" className="text-zinc-400 italic max-w-45 truncate">
+                    {r.observacion}
+                  </Text>
+                </Tooltip>
+              );
+            },
+          },
+          {
             accessor: "estado_salida",
             title: "Estado Unidad",
             textAlign: "center",
@@ -386,31 +409,6 @@ export const TablaRecepciones = ({
                     {r.observacion_salida}
                   </Text>
                 </Tooltip>
-              );
-            },
-          },
-          {
-            accessor: "evidencias",
-            title: "Evidencias",
-            textAlign: "center",
-            width: 140,
-            render: (r: RecepcionUnidadResponse) => {
-              if (!Array.isArray(r.evidencias) || r.evidencias.length === 0) {
-                return <Text size="xs" className="text-zinc-500 italic">Sin archivos</Text>;
-              }
-
-              return (
-                <Button
-                  size="xs"
-                  variant="light"
-                  color="indigo"
-                  radius="xl"
-                  leftSection={<IconPaperclip size={14} />}
-                  onClick={() => handleOpenEvidencias(r.evidencias)}
-                  className="bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/10"
-                >
-                  Ver ({r.evidencias.length})
-                </Button>
               );
             },
           },

@@ -25,6 +25,7 @@ import { ModalRegistroPago } from "./components/modal-registro-pago";
 import { ModalAnularComprobante } from "./components/modal-anular-comprobante";
 import { ModalEstandar } from "../../../presentation/utils/modal-estandar";
 import { ArchivoCard } from "../../../presentation/utils/archivo/archivo-card";
+import { RefreshButton } from "../../../presentation/utils/refresh-button";
 import type { IArchivo } from "../../../shared/interfaces/archivo";
 import { ContabilidadCompraService } from "../service/contabilidad-compra.service";
 import type { TipoAprobacionComprobante } from "../../../shared/enums/contabilidad-compra/tipo-aprobacion-comprobante";
@@ -262,6 +263,11 @@ export default function ContabilidadCompraPage() {
               Limpiar
             </Button>
           )}
+          <RefreshButton
+            onClick={() => void cargarComprobantes(false)}
+            loading={loading}
+            label="Recargar comprobantes"
+          />
           <Button
             color="indigo"
             radius="lg"

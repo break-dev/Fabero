@@ -1,4 +1,5 @@
 import type { IArchivo } from "../../../shared/interfaces/archivo";
+import type { IDocumentoProgramacion } from "../../../shared/interfaces/documentos-programacion";
 import type { RES_CambiosLog } from "../../../service/responses/_generic/cambios-log";
 import type { TipoIngreso } from "../../../shared/enums/_generic/tipo-ingreso";
 
@@ -19,6 +20,7 @@ export interface ProgramacionListItem {
   tipo_ingreso: TipoIngreso | string | null;
   guia_remitente: string | null;
   guia_transportista: string | null;
+  documentos_programacion: IDocumentoProgramacion | null;
   fecha_estimada_llegada: string | null;
   observacion: string | null;
   es_programacion: boolean;
@@ -97,6 +99,7 @@ export interface ProgramacionDetail {
   fecha_estimada_llegada: string | null;
   guia_remitente: string | null;
   guia_transportista: string | null;
+  documentos_programacion: IDocumentoProgramacion | null;
   es_recepcion_ficticia: boolean;
   visita?: ProgramacionVisitaPayload | null;
   log_cambios?: RES_CambiosLog[] | null;

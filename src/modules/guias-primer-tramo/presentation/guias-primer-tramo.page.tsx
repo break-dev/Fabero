@@ -23,6 +23,7 @@ import { useGuiasPrimerTramo } from "../hooks/useGuiasPrimerTramo";
 import { ModalGuiaPrimerTramo } from "./components/modal-guia-primer-tramo";
 import { HistorialModal } from "./components/historial-modal";
 import { DataTableEstandar } from "../../../presentation/utils/datatable-estandar";
+import { RefreshButton } from "../../../presentation/utils/refresh-button";
 import type { DTO_CrearGuiaPrimerTramo, DTO_ActualizarGuiaPrimerTramo } from "../service/guias-primer-tramo.requests";
 import type { RES_GuiaPrimerTramo } from "../service/guias-primer-tramo.responses";
 import { MotivoTraslado } from "../../../shared/enums/_generic/motivo-traslado";
@@ -196,6 +197,20 @@ export const GuiasPrimerTramoPage = () => {
           >
             Limpiar
           </Button>
+          <RefreshButton
+            onClick={() => {
+              if (idSucursal) {
+                fetchGuias({
+                  id_sucursal: idSucursal,
+                  fecha_inicio: fechaInicio,
+                  fecha_fin: fechaFin,
+                });
+              }
+            }}
+            loading={loading}
+            disabled={!idSucursal}
+            label="Recargar guías"
+          />
           <Button
             leftSection={<IconPlus size={16} />}
             radius="lg"

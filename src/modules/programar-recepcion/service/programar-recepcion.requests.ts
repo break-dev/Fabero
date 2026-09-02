@@ -1,4 +1,5 @@
 import type { TipoIngreso } from "../../../shared/enums/_generic/tipo-ingreso";
+import type { IDocumentoProgramacion } from "../../../shared/interfaces/documentos-programacion";
 
 export interface CrearProgramacionRequest {
   id_empresa_transporte: number;
@@ -10,6 +11,9 @@ export interface CrearProgramacionRequest {
   fecha_estimada_llegada?: string;
   guia_remitente?: string;
   guia_transportista?: string;
+  guia_remitente_file?: File | null;
+  guia_transportista_file?: File | null;
+  documentos_programacion_existentes?: IDocumentoProgramacion | null;
   observacion?: string;
   tipo_ingreso?: TipoIngreso | string;
 }

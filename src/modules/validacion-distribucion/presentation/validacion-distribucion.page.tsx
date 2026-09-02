@@ -37,6 +37,7 @@ import { ValidacionDistribucionService } from "../service/validacion-distribucio
 import type { DTO_CrearParticion } from "../service/validacion-distribucion.requests";
 import { TicketBalanzaPdf } from "../../recepcion-mineral/presentation/components/ticket-balanza-pdf";
 import { useUIStore } from "../../../stores/ui.store";
+import { RefreshButton } from "../../../presentation/utils/refresh-button";
 
 type Row = RES_LotePendiente;
 type EstadoParticion = "TODOS" | "CON" | "SIN";
@@ -57,6 +58,7 @@ export const ValidacionDistribucionPage = () => {
     validarLotes,
     validatingIds,
     validatingAll,
+    cargar,
   } = useLotesPendientes();
   const { notifyError, notifySuccess } = useNotify();
   const { print, prepare } = usePrint();
@@ -522,6 +524,14 @@ export const ValidacionDistribucionPage = () => {
               </Button>
             </div>
           )}
+
+          <div className="flex items-center gap-2 shrink-0 pb-0.5">
+            <RefreshButton
+              onClick={() => void cargar()}
+              loading={loading}
+              label="Recargar lotes"
+            />
+          </div>
         </div>
 
         <DataTableEstandar

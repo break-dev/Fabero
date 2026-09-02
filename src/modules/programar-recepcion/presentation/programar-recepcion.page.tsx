@@ -6,6 +6,7 @@ import { useProgramaciones, getTodayString } from "../hooks/useProgramaciones";
 import { FiltrosProgramaciones } from "./components/filtros-programaciones";
 import { TablaProgramaciones } from "./components/tabla-programaciones";
 import { ProgramarRecepcionModal } from "./components/programar-modal";
+import { RefreshButton } from "../../../presentation/utils/refresh-button";
 
 export const ProgramarRecepcionPage = () => {
   useTitlePage("Programar Recepción", true);
@@ -23,6 +24,7 @@ export const ProgramarRecepcionPage = () => {
     setFechaFin,
     resetFilters,
     insertProgramacion,
+    fetchProgramaciones,
   } = useProgramaciones();
 
   const [openProgramar, setOpenProgramar] = useState(false);
@@ -63,6 +65,12 @@ export const ProgramarRecepcionPage = () => {
             </Button>
           )}
 
+          <RefreshButton
+            onClick={fetchProgramaciones}
+            loading={loading}
+            label="Recargar programaciones"
+          />
+
           <Button
             radius="lg"
             size="sm"
@@ -100,6 +108,7 @@ export const ProgramarRecepcionPage = () => {
             tipo_ingreso: nueva.tipo_ingreso,
             guia_remitente: nueva.guia_remitente,
             guia_transportista: nueva.guia_transportista,
+            documentos_programacion: nueva.documentos_programacion,
             fecha_estimada_llegada: nueva.fecha_estimada_llegada,
             observacion: nueva.observacion,
             es_programacion: nueva.es_programacion,

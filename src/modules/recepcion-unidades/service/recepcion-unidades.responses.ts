@@ -1,4 +1,5 @@
 import type { IArchivo } from "../../../shared/interfaces/archivo";
+import type { IDocumentoProgramacion } from "../../../shared/interfaces/documentos-programacion";
 import type { RES_CambiosLog } from "../../../service/responses/_generic/cambios-log";
 import type { TipoIngreso } from "../../../shared/enums/_generic/tipo-ingreso";
 import type { EstadoUnidad } from "../../../shared/enums/_generic/estado-unidad";
@@ -42,6 +43,7 @@ export interface RecepcionUnidadResponse {
   fecha_estimada_llegada: string | null;
   guia_remitente: string | null;
   guia_transportista: string | null;
+  documentos_programacion: IDocumentoProgramacion | null;
   es_recepcion_ficticia: boolean;
   visita?: ProgramacionVisitaPayload | null;
   log_cambios?: RES_CambiosLog[] | null;

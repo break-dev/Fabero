@@ -41,6 +41,7 @@ import { RegistroTipoVehiculoSimple } from "../../../../presentation/utils/regis
 import { RegistroEmpresaTransporte } from "../../../../presentation/utils/registro-empresa-transporte";
 import { ModalRegistroProveedor } from "../../../../presentation/utils/modal-registro-proveedor";
 import { MultiFilePicker } from "../../../../presentation/utils/archivo/multifile-picker";
+import { ArchivoCard } from "../../../../presentation/utils/archivo/archivo-card";
 
 interface Props {
   opened: boolean;
@@ -224,6 +225,8 @@ const esDespacho =
                   label="Vehículo"
                   placeholder={ctrl.loadingCatalogos ? "Cargando..." : "Seleccione vehículo"}
                   data={vehiculosOptions}
+                  withAsterisk
+                  required
                   value={
                     ctrl.programacion?.id_vehiculo
                       ? String(ctrl.programacion.id_vehiculo)
@@ -315,6 +318,8 @@ const esDespacho =
                     label="Proveedor Minero"
                     placeholder={ctrl.loadingCatalogos ? "Cargando..." : "Seleccione proveedor"}
                     data={proveedoresOptions}
+                    withAsterisk
+                    required
                     value={
                       ctrl.programacion?.id_proveedor_minero
                         ? String(ctrl.programacion.id_proveedor_minero)
@@ -417,7 +422,7 @@ const esDespacho =
                 </Text>
               </Group>
               <Grid gutter="sm">
-                <Grid.Col span={{ base: 6, sm: 6 }}>
+                <Grid.Col span={{ base: 12, sm: 6 }}>
                   <TextInput
                     label="Guía Remitente"
                     placeholder="Ej. 001-123456"
@@ -430,7 +435,7 @@ const esDespacho =
                     classNames={fieldClasses}
                   />
                 </Grid.Col>
-                <Grid.Col span={{ base: 6, sm: 6 }}>
+                <Grid.Col span={{ base: 12, sm: 6 }}>
                   <TextInput
                     label="Guía Transportista"
                     placeholder="Ej. 001-123456"
@@ -444,14 +449,47 @@ const esDespacho =
                   />
                 </Grid.Col>
               </Grid>
+
+              {/* Documentos de programación (archivos subidos al programar) */}
+              {ctrl.programacion?.documentos_programacion && (
+                <div className="pt-2 space-y-2">
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="space-y-2">
+                      <Text size="10px" fw={700} className="text-zinc-500 uppercase tracking-widest">
+                        Guía Remitente
+                      </Text>
+                      {ctrl.programacion.documentos_programacion.guia_remitente ? (
+                        <ArchivoCard
+                          archivo={ctrl.programacion.documentos_programacion.guia_remitente}
+                        />
+                      ) : (
+                        <Text size="xs" c="zinc.6" fs="italic">
+                          Sin archivo adjunto.
+                        </Text>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Text size="10px" fw={700} className="text-zinc-500 uppercase tracking-widest">
+                        Guía Transportista
+                      </Text>
+                      {ctrl.programacion.documentos_programacion.guia_transportista ? (
+                        <ArchivoCard
+                          archivo={ctrl.programacion.documentos_programacion.guia_transportista}
+                        />
+                      ) : (
+                        <Text size="xs" c="zinc.6" fs="italic">
+                          Sin archivo adjunto.
+                        </Text>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {programacion?.fecha_estimada_llegada && (
-            <div className="pt-2 text-xs border-t border-zinc-800">
-              <FieldReadOnly label="Fecha Estimada" value={programacion.fecha_estimada_llegada} />
-            </div>
-          )}
+         
         </div>
 
         {/* Evidencias de la Recepción */}
@@ -938,18 +976,6 @@ const esDespacho =
   );
 };
 
-interface FieldReadOnlyProps {
-  label: string;
-  value: string;
-}
 
-const FieldReadOnly = ({ label, value }: FieldReadOnlyProps) => (
-  <div>
-    <Text size="10px" fw={700} className="text-zinc-500 uppercase tracking-wider">
-      {label}
-    </Text>
-    <Text size="sm" className="text-zinc-200">
-      {value}
-    </Text>
-  </div>
-);
+
+

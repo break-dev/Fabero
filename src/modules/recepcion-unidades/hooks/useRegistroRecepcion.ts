@@ -368,7 +368,9 @@ export const useRegistroRecepcion = (
       console.error("Error al registrar la recepción de unidad:", err);
       const axiosError = err as { response?: { status?: number; data?: { message?: string } } };
       const status = axiosError.response?.status;
-      const rawMsg = axiosError.response?.data?.message;
+      const rawMsg =
+        axiosError.response?.data?.message ??
+        (err instanceof Error ? err.message : null);
 
       const isInternalError =
         status === 500 ||

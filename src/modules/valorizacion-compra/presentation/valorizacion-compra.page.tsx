@@ -33,6 +33,7 @@ import { ModalAnularValorizacion } from "./components/modal-anular-valorizacion"
 import { CambiosLogViewer } from "../../../presentation/utils/cambios-log-viewer";
 import { ModalEstandar } from "../../../presentation/utils/modal-estandar";
 import { ArchivoCard } from "../../../presentation/utils/archivo/archivo-card";
+import { RefreshButton } from "../../../presentation/utils/refresh-button";
 import { EstadoValorizacionCompra } from "../../../shared/enums/valorizacion-compra/estado-valorizacion-compra";
 import { EstadoBase } from "../../../shared/enums/_generic/estado-base";
 import type { RES_CambiosLog } from "../../../service/responses/_generic/cambios-log";
@@ -658,7 +659,7 @@ export const ValorizacionCompraPage = () => {
           </div>
         </div>
 
-        {/* Botones de Acción: Limpiar y Nueva Valorización */}
+        {/* Botones de Acción: Limpiar, Recargar y Nueva Valorización */}
         <div className="flex items-center gap-2 shrink-0 pb-0.5">
           {hasActiveFilters && (
             <Button
@@ -673,6 +674,12 @@ export const ValorizacionCompraPage = () => {
               Limpiar
             </Button>
           )}
+
+          <RefreshButton
+            onClick={() => void cargarValorizaciones()}
+            loading={loading}
+            label="Recargar valorizaciones"
+          />
 
           <Button
             radius="lg"

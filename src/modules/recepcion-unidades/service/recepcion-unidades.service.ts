@@ -13,6 +13,17 @@ import type {
 } from "./recepcion-unidades.responses";
 import type { IRespuesta } from "../../../shared/interfaces/_response";
 
+/**
+ * Lanza un Error con el `message` real del backend cuando `success === false`
+ * (por ejemplo, HTTP 409 por conflicto de unicidad de guía por proveedor).
+ * Esto permite que el `catch` del hook lo capture y `notifyError` muestre el mensaje.
+ */
+const assertBusinessSuccess = (data: { success?: boolean; message?: string | null }): void => {
+  if (data.success === false) {
+    throw new Error(data.message || "Operación rechazada por el servidor.");
+  }
+};
+
 const appendIfDefined = (fd: FormData, key: string, value: unknown): void => {
   if (value === null || value === undefined || value === "") return;
   fd.append(key, String(value));
@@ -84,6 +95,7 @@ export const RecepcionUnidadesService = {
     }
 
     const { data } = await api.post("/recepcion-unidades", formData);
+    assertBusinessSuccess(data);
     return data.data;
   },
 

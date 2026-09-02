@@ -11,6 +11,7 @@ import { ModalPesoFinal } from "./components/modal-peso-final";
 import { ModalCondicionIngreso } from "./components/modal-condicion-ingreso";
 import { CardProcesoBalanza } from "./components/card-proceso-balanza";
 import { CardDistribucionBalanza } from "./components/card-distribucion-balanza";
+import { RefreshButton } from "../../../presentation/utils/refresh-button";
 import type { RES_EmpresaTransporte } from "../../../service/responses/empresa-transporte";
 import type { RES_TipoVehiculo } from "../../../service/responses/tipo-vehiculo";
 import type { RES_Conductor } from "../../../service/responses/conductor";
@@ -39,6 +40,7 @@ export const RecepcionMineralPage = () => {
     registrarPesoFinal,
     actualizarDetalleDistribucion,
     cerrarProceso,
+    loadRecepciones,
   } = useRecepcionMineral();
 
   const getFullPlaca = (placa: string | null) => {
@@ -110,7 +112,7 @@ export const RecepcionMineralPage = () => {
               p="md"
               className="bg-zinc-950/40 border border-zinc-900/80 min-h-125 h-full flex flex-col gap-4"
             >
-              <div className="border-b border-zinc-900 pb-3 flex justify-between items-center gap-1 w-full">
+              <div className="border-b border-zinc-900 pb-3 flex justify-between items-center gap-2 w-full">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <IconChecklist
                     size={18}
@@ -125,6 +127,11 @@ export const RecepcionMineralPage = () => {
                     Unidades en Planta
                   </Text>
                 </div>
+                <RefreshButton
+                  onClick={loadRecepciones}
+                  loading={loading}
+                  label="Recargar unidades"
+                />
               </div>
 
               <Stack gap="sm" className="flex-1 overflow-y-auto pr-1">

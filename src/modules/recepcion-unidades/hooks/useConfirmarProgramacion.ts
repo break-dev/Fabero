@@ -13,6 +13,7 @@ import type {
 } from "../service/recepcion-unidades.responses";
 import type { ProgramacionDetail } from "../../programar-recepcion/service/programar-recepcion.responses";
 import type { RES_MotivoIngreso } from "../../../service/responses/auxiliar-visitas";
+import type { IDocumentoProgramacion } from "../../../shared/interfaces/documentos-programacion";
 import { useNotify } from "../../../hooks/useNotify";
 
 import type { RES_EmpresaTransporte } from "../../../service/responses/empresa-transporte";
@@ -116,7 +117,7 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
         })) ?? [],
       );
     }
-  }, [programacion, opened]);
+  }, [programacion?.id, opened]);
 
   const [vehiculos, setVehiculos] = useState<VehiculoAcompananteItem[]>(
     programacion?.visita?.vehiculos ?? [],
@@ -539,6 +540,7 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
           fecha_estimada_llegada: updated.fecha_estimada_llegada,
           guia_remitente: updated.guia_remitente,
           guia_transportista: updated.guia_transportista,
+          documentos_programacion: (updated.documentos_programacion as IDocumentoProgramacion | null) ?? programacion.documentos_programacion ?? null,
           es_recepcion_ficticia: updated.es_recepcion_ficticia,
           visita: updated.visita as RecepcionUnidadResponse["visita"],
         };
@@ -626,7 +628,16 @@ export const useConfirmarProgramacion = ({ programacion, opened = true }: Props)
       }
     } catch (e) {
       console.error(e);
-      notifyError("Error al procesar la recepción de unidad");
+      const axiosLike = e as {
+        response?: { data?: { message?: string } };
+        message?: string;
+      };
+      const backendMsg = axiosLike?.response?.data?.message;
+      const fallback =
+        e instanceof Error && e.message
+          ? e.message
+          : "Error al procesar la recepción de unidad";
+      notifyError(backendMsg || fallback);
       return null;
     } finally {
       setLoadingConfirmar(false);

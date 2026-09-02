@@ -30,7 +30,16 @@ export const useProgramaciones = () => {
       setProgramaciones(data);
     } catch (e) {
       console.error(e);
-      notifyError("Ocurrió un error al cargar las programaciones");
+      const axiosLike = e as {
+        response?: { data?: { message?: string } };
+        message?: string;
+      };
+      const backendMsg = axiosLike?.response?.data?.message;
+      const fallback =
+        e instanceof Error && e.message
+          ? e.message
+          : "Ocurrió un error al cargar las programaciones";
+      notifyError(backendMsg || fallback);
     } finally {
       setLoading(false);
     }

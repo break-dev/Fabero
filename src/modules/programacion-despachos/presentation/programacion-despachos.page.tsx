@@ -13,6 +13,7 @@ import type {
   DistribucionItem,
 } from "../service/programacion-despachos.responses";
 import { FiltrosDespachos } from "./components/filtros-despachos";
+import { RefreshButton } from "../../../presentation/utils/refresh-button";
 import { TablaDespachos } from "./components/tabla-despachos";
 import { RegistroDespachoModal } from "./components/registro-despacho-modal";
 import { RegistroDistribucionModal } from "./components/registro-distribucion-modal";
@@ -149,15 +150,22 @@ export const ProgramacionDespachosPage = () => {
           />
         </div>
 
-        <Button
-          radius="lg"
-          size="sm"
-          leftSection={<IconTruckDelivery size={18} />}
-          onClick={() => setOpenRegistroDespacho(true)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-900/20 shrink-0 h-9.5 px-6 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
-        >
-          Registrar Despacho
-        </Button>
+        <div className="flex items-center gap-2 shrink-0 pb-0.5">
+          <RefreshButton
+            onClick={() => void recargar()}
+            loading={loading}
+            label="Recargar despachos"
+          />
+          <Button
+            radius="lg"
+            size="sm"
+            leftSection={<IconTruckDelivery size={18} />}
+            onClick={() => setOpenRegistroDespacho(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-900/20 shrink-0 h-9.5 px-6 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+          >
+            Registrar Despacho
+          </Button>
+        </div>
       </div>
 
       <Stack gap="md">

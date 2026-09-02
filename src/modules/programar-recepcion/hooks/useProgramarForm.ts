@@ -24,6 +24,9 @@ const INITIAL_FORM: CrearProgramacionRequest = {
   fecha_estimada_llegada: "",
   guia_remitente: "",
   guia_transportista: "",
+  guia_remitente_file: null,
+  guia_transportista_file: null,
+  documentos_programacion_existentes: null,
   observacion: "",
 };
 
@@ -99,6 +102,14 @@ export const useProgramarForm = (
       notifyError("Debe seleccionar la empresa de transporte.");
       return false;
     }
+    if (!form.id_vehiculo) {
+      notifyError("Debe seleccionar el vehículo.");
+      return false;
+    }
+    if (!form.id_proveedor_minero) {
+      notifyError("Debe seleccionar el proveedor minero.");
+      return false;
+    }
 
     const idSucursalFinal =
       form.id_sucursal ||
@@ -117,7 +128,16 @@ export const useProgramarForm = (
       return true;
     } catch (e) {
       console.error(e);
-      notifyError("Error al registrar la programación");
+      const axiosLike = e as {
+        response?: { data?: { message?: string } };
+        message?: string;
+      };
+      const backendMsg = axiosLike?.response?.data?.message;
+      const fallback =
+        e instanceof Error && e.message
+          ? e.message
+          : "Error al registrar la programación";
+      notifyError(backendMsg || fallback);
       return false;
     } finally {
       setLoading(false);

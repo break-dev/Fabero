@@ -6,7 +6,8 @@ import { TablaRecepciones } from "./components/tabla-recepciones";
 import { ConfirmarProgramacionModal } from "./components/confirmar-programacion-modal";
 import { ModalEditarObservacionEvidencias } from "./components/modal-editar-observacion-evidencias";
 import { ModalVerHistorial } from "./components/modal-ver-historial";
-import { useEffect, useState } from "react";
+import { RefreshButton } from "../../../presentation/utils/refresh-button";
+import { useEffect, useMemo, useState } from "react";
 import { IconPlus, IconX } from "@tabler/icons-react";
 import {
   ProgramarRecepcionService,
@@ -27,6 +28,7 @@ export const RecepcionUnidadesPage = () => {
     updateRecepcion,
     clearFilters,
     clearTextFilterAndSearch,
+    fetchRecepciones,
   } = useRecepciones();
 
   const [openRegistro, setOpenRegistro] = useState(false);
@@ -47,6 +49,7 @@ export const RecepcionUnidadesPage = () => {
           const full = await ProgramarRecepcionService.getProgramacion(
             programacionAConfirmar.id,
           );
+          if (cancelado) return;
           const merged: RecepcionUnidadResponse = {
             ...programacionAConfirmar,
             id_vehiculo: full.id_vehiculo,
@@ -62,12 +65,19 @@ export const RecepcionUnidadesPage = () => {
             fecha_hora_final_pesaje: full.fecha_hora_final_pesaje,
             estado: full.estado,
             fecha_hora_ingreso: full.fecha_hora_ingreso,
+            guia_remitente: full.guia_remitente,
+            guia_transportista: full.guia_transportista,
+            documentos_programacion:
+              full.documentos_programacion ??
+              programacionAConfirmar.documentos_programacion ??
+              null,
             evidencias: [],
             visita: full.visita as RecepcionUnidadResponse["visita"],
           };
-          if (!cancelado) setProgramacionConfirmadaFull(merged);
+          setProgramacionConfirmadaFull(merged);
         } catch {
-          if (!cancelado) setProgramacionConfirmadaFull(programacionAConfirmar);
+          if (cancelado) return;
+          setProgramacionConfirmadaFull(programacionAConfirmar);
         }
       } else {
         setProgramacionConfirmadaFull(null);
@@ -78,6 +88,12 @@ export const RecepcionUnidadesPage = () => {
       cancelado = true;
     };
   }, [programacionAConfirmar]);
+
+  // Memoizar la prop del modal para estabilizar su referencia y evitar re-renders innecesarios.
+  const programacionParaModal = useMemo(
+    () => programacionConfirmadaFull ?? programacionAConfirmar,
+    [programacionConfirmadaFull, programacionAConfirmar],
+  );
 
   const hasActiveFilters =
     !!filters.fecha_inicio ||
@@ -112,6 +128,8 @@ export const RecepcionUnidadesPage = () => {
               Limpiar
             </Button>
           )}
+
+          <RefreshButton onClick={fetchRecepciones} loading={loading} label="Recargar recepciones" />
 
           <Button
             radius="lg"
@@ -148,7 +166,7 @@ export const RecepcionUnidadesPage = () => {
 
       <ConfirmarProgramacionModal
         opened={!!programacionAConfirmar}
-        programacion={programacionConfirmadaFull ?? programacionAConfirmar}
+        programacion={programacionParaModal}
         onClose={() => {
           setProgramacionAConfirmar(null);
           setProgramacionConfirmadaFull(null);

@@ -14,6 +14,7 @@ import { ModalEditarResumenLote } from "./components/modal-editar-resumen-lote";
 import { useTicketLote } from "../../recepcion-mineral/hooks/useTicketLote";
 import { useTicketBalanza } from "../../recepcion-mineral/hooks/useTicketBalanza";
 import { CambiosLogViewer } from "../../../presentation/utils/cambios-log-viewer";
+import { RefreshButton } from "../../../presentation/utils/refresh-button";
 
 export const ResumenBalanzaPage = () => {
   useTitlePage("Resumen de Balanza", true);
@@ -236,9 +237,9 @@ export const ResumenBalanzaPage = () => {
           </Grid>
         </div>
 
-        {/* Botón de Limpiar a la Derecha */}
-        {hasActiveFilters && (
-          <div className="flex items-center gap-2 shrink-0 pb-0.5">
+        {/* Botón de Recargar a la Derecha */}
+        <div className="flex items-center gap-2 shrink-0 pb-0.5">
+          {hasActiveFilters && (
             <Button
               variant="subtle"
               color="red"
@@ -250,8 +251,14 @@ export const ResumenBalanzaPage = () => {
             >
               Limpiar
             </Button>
-          </div>
-        )}
+          )}
+
+          <RefreshButton
+            onClick={loadResumen}
+            loading={loading}
+            label="Recargar resumen"
+          />
+        </div>
       </div>
 
       {/* Tabla Resumen al estilo Recepción de Unidades */}

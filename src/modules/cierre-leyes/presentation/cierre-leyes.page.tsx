@@ -14,6 +14,7 @@ import { TablaCierreLeyes } from "./components/tabla-cierre-leyes";
 import { ModalIniciarAnalisis } from "./components/modal-iniciar-analisis";
 import type { FiltrosLotesSugeridos } from "../service/cierre-leyes.service";
 import { EstadoLeyes } from "../../../shared/enums/_generic/estado-leyes";
+import { RefreshButton } from "../../../presentation/utils/refresh-button";
 
 const ESTADOS_LEYES_OPCIONES = [
   { value: EstadoLeyes.Pendiente, label: "Pendiente" },
@@ -200,7 +201,7 @@ export const CierreLeyesPage = () => {
           />
         </div>
 
-        {/* Botones: Limpiar + Agregar registro */}
+        {/* Botones: Limpiar + Recargar + Agregar registro */}
         <div className="md:col-span-3 flex items-end justify-end gap-2">
           <Button
             variant="subtle"
@@ -212,6 +213,11 @@ export const CierreLeyesPage = () => {
           >
             Limpiar
           </Button>
+          <RefreshButton
+            onClick={() => void cargarLotes(filtrosActuales)}
+            loading={ctrl.loading}
+            label="Recargar cierres"
+          />
           <Button
             leftSection={<PlusIcon className="w-4 h-4" />}
             onClick={handleAbrirModal}

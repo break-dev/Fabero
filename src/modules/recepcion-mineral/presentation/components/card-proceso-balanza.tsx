@@ -94,6 +94,7 @@ export const CardProcesoBalanza = ({
   };
 
   // Los inputs siempre son editables; el guardado es automático al cambiar select (onChange) o al perder foco (onBlur).
+  // La condición (tipo_ingreso) se setea al crear la unidad y siempre queda bloqueada (no editable).
   const [condIng, setCondIng] = useState(ru.tipo_ingreso || "");
   const [selectedPlaca, setSelectedPlaca] = useState<string>(
     formatPlacaInput(ru.vehiculo_placa || ""),
@@ -281,14 +282,15 @@ export const CardProcesoBalanza = ({
                   data={["Recepción de Mineral", "Despacho de Mineral"]}
                   value={condIng || null}
                   onChange={(val) => {
-                    setCondIng(val || "");
-                    if (val) handleSaveField("condicion_ingreso", val);
+                    // Bloqueado: la condición se fija al crear la unidad y no debe editarse aquí.
+                    setCondIng(val || ru.tipo_ingreso || "");
                   }}
                   size="xs"
                   style={{ maxWidth: 180 }}
                   classNames={selectInputClasses}
                   comboboxProps={{ withinPortal: true }}
                   disabled
+                  readOnly
                 />
               </Grid.Col>
 

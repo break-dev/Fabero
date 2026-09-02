@@ -32,6 +32,7 @@ import { ModalEditarBlending } from "./components/modal-editar-blending";
 import { ModalHistorialBlending } from "./components/modal-historial-blending";
 import { CustomDatePicker } from "../../../presentation/utils/date-picker-input";
 import { formatNumber } from "../../../shared/functions/formatNumber";
+import { RefreshButton } from "../../../presentation/utils/refresh-button";
 
 export const BlendingPage = () => {
   useTitlePage("Blending", true);
@@ -269,6 +270,8 @@ export const BlendingPage = () => {
               Limpiar
             </Button>
           )}
+
+          <RefreshButton onClick={() => void refetch()} loading={loading} label="Recargar blendings" />
 
           <Button
             radius="lg"
