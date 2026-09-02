@@ -10,6 +10,10 @@ import { RefreshButton } from "../../../presentation/utils/refresh-button";
 import { useEffect, useMemo, useState } from "react";
 import { IconPlus, IconX } from "@tabler/icons-react";
 import {
+  defaultFechaInicio,
+  defaultFechaFin,
+} from "../../../presentation/utils/filtro-rango-fechas";
+import {
   ProgramarRecepcionService,
 } from "../../programar-recepcion/service/programar-recepcion.service";
 import type { RecepcionUnidadResponse } from "../service/recepcion-unidades.responses";
@@ -96,8 +100,8 @@ export const RecepcionUnidadesPage = () => {
   );
 
   const hasActiveFilters =
-    !!filters.fecha_inicio ||
-    !!filters.fecha_fin ||
+    filters.fecha_inicio !== defaultFechaInicio() ||
+    filters.fecha_fin !== defaultFechaFin() ||
     !!filters.placa ||
     filters.id_empresa_transporte !== undefined;
 

@@ -1,6 +1,7 @@
 import { api } from "../../../service/_api";
 import type { DTO_PesoInicial, DTO_PesoFinal, DTO_CrearLote } from "./recepcion-mineral.requests";
-import type { RecepcionMineralResponse, RES_LoteMineral, RES_TicketBalanzaData } from "./recepcion-mineral.responses";
+import type { RecepcionMineralResponse, RES_LoteMineral } from "./recepcion-mineral.responses";
+import type { RES_TicketBalanzaData } from "../../../service/responses/ticket-balanza";
 
 const PATH = "/recepcion-mineral";
 

@@ -1,7 +1,6 @@
 import { Box, TextInput, ActionIcon, Select } from "@mantine/core";
 import { IconSearch, IconX, IconFilter } from "@tabler/icons-react";
-import dayjs from "dayjs";
-import { CustomDatePicker } from "../../../../presentation/utils/date-picker-input";
+import { DateRangeFilter } from "../../../../presentation/utils/filtro-rango-fechas";
 
 interface Props {
   searchQuery: string;
@@ -51,29 +50,14 @@ export const FiltrosProgramaciones = ({
         />
       </Box>
 
-      <Box className="w-44">
-        <CustomDatePicker
-          label="Fecha Inicio"
-          placeholder="Seleccionar"
-          value={fechaInicio || null}
-          onChange={(val) =>
-            setFechaInicio(val ? dayjs(val).format("YYYY-MM-DD") : "")
-          }
-          classNames={fieldClasses}
-        />
-      </Box>
-
-      <Box className="w-44">
-        <CustomDatePicker
-          label="Fecha Fin"
-          placeholder="Seleccionar"
-          value={fechaFin || null}
-          onChange={(val) =>
-            setFechaFin(val ? dayjs(val).format("YYYY-MM-DD") : "")
-          }
-          classNames={fieldClasses}
-        />
-      </Box>
+      <DateRangeFilter
+        fechaInicio={fechaInicio || null}
+        fechaFin={fechaFin || null}
+        onFechaInicioChange={setFechaInicio}
+        onFechaFinChange={setFechaFin}
+        classNames={fieldClasses}
+        showClearButton={false}
+      />
 
       <Box className="w-56">
         <TextInput

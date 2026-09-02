@@ -2,11 +2,15 @@ import { Button, Stack } from "@mantine/core";
 import { IconCalendarPlus, IconX } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTitlePage } from "../../../hooks/useTitlePage";
-import { useProgramaciones, getTodayString } from "../hooks/useProgramaciones";
+import { useProgramaciones } from "../hooks/useProgramaciones";
 import { FiltrosProgramaciones } from "./components/filtros-programaciones";
 import { TablaProgramaciones } from "./components/tabla-programaciones";
 import { ProgramarRecepcionModal } from "./components/programar-modal";
 import { RefreshButton } from "../../../presentation/utils/refresh-button";
+import {
+  defaultFechaInicio,
+  defaultFechaFin,
+} from "../../../presentation/utils/filtro-rango-fechas";
 
 export const ProgramarRecepcionPage = () => {
   useTitlePage("Programar Recepción", true);
@@ -29,10 +33,11 @@ export const ProgramarRecepcionPage = () => {
 
   const [openProgramar, setOpenProgramar] = useState(false);
 
-  const todayStr = getTodayString();
+  const defaultInicio = defaultFechaInicio();
+  const defaultFin = defaultFechaFin();
   const hasActiveFilters =
-    fechaInicio !== todayStr ||
-    fechaFin !== todayStr ||
+    fechaInicio !== defaultInicio ||
+    fechaFin !== defaultFin ||
     estadoConfirmacion !== "todos" ||
     !!searchQuery;
 

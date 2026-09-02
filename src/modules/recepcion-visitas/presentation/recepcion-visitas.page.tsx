@@ -8,6 +8,10 @@ import { RegistroVisita } from "./components/registro-visita";
 import { ModalEstandar } from "../../../presentation/utils/modal-estandar";
 import { RefreshButton } from "../../../presentation/utils/refresh-button";
 import { IconPlus, IconX } from "@tabler/icons-react";
+import {
+  defaultFechaInicio,
+  defaultFechaFin,
+} from "../../../presentation/utils/filtro-rango-fechas";
 import "../hooks/useModuleAIContext";
 import {
   useRecepcionVisitasContextStore,
@@ -97,7 +101,9 @@ export const RecepcionVisitasPage = () => {
     useIAStore.getState().setContextoModulo(ctx);
   }, [filtrosCtx, totalCtx, resumenCtx, modalCtx, formCtx]);
 
-  const hasActiveFilters = !!filters.fecha_inicio || !!filters.fecha_fin;
+  const hasActiveFilters =
+    filters.fecha_inicio !== defaultFechaInicio() ||
+    filters.fecha_fin !== defaultFechaFin();
 
   return (
     <div className="space-y-6 animate-fadeIn">

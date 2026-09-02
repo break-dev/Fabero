@@ -7,9 +7,8 @@ import {
   SimpleGrid,
   Stack,
   Text,
-  TextInput,
 } from "@mantine/core";
-import { IconCalendar, IconPlus, IconX, IconReceipt } from "@tabler/icons-react";
+import { IconPlus, IconX, IconReceipt } from "@tabler/icons-react";
 import { useTitlePage } from "../../../hooks/useTitlePage";
 import { AuxService } from "../../../service/auxiliar.service";
 import { EstadoBase } from "../../../shared/enums/_generic/estado-base";
@@ -25,6 +24,11 @@ import { ModalRegistroPago } from "./components/modal-registro-pago";
 import { ModalAnularComprobante } from "./components/modal-anular-comprobante";
 import { ModalEstandar } from "../../../presentation/utils/modal-estandar";
 import { ArchivoCard } from "../../../presentation/utils/archivo/archivo-card";
+import {
+  DateRangeFilter,
+  defaultFechaInicio,
+  defaultFechaFin,
+} from "../../../presentation/utils/filtro-rango-fechas";
 import { RefreshButton } from "../../../presentation/utils/refresh-button";
 import type { IArchivo } from "../../../shared/interfaces/archivo";
 import { ContabilidadCompraService } from "../service/contabilidad-compra.service";
@@ -179,43 +183,27 @@ export default function ContabilidadCompraPage() {
   const hasActiveFilters =
     idProveedorFiltro !== null ||
     estadoFiltro !== "Todos" ||
-    !!fechaInicio ||
-    !!fechaFin;
+    fechaInicio !== defaultFechaInicio() ||
+    fechaFin !== defaultFechaFin();
 
   const clearFilters = () => {
     setIdProveedorFiltro(null);
     setEstadoFiltro("Todos");
-    setFechaInicio(null);
-    setFechaFin(null);
+    setFechaInicio(defaultFechaInicio());
+    setFechaFin(defaultFechaFin());
   };
 
   return (
     <Stack gap="md" className="animate-fadeIn">
       <Group justify="space-between" align="flex-end" wrap="wrap" gap="md">
         <Group align="flex-end" gap="md" wrap="wrap">
-          <TextInput
-            type="date"
-            label="Fecha Inicio"
-            radius="lg"
-            size="xs"
-            leftSection={<IconCalendar size={16} className={fechaInicio ? "text-indigo-400" : "text-zinc-500"} />}
-            value={fechaInicio ?? ""}
-            onChange={(e) => setFechaInicio(e.currentTarget.value || null)}
+          <DateRangeFilter
+            fechaInicio={fechaInicio}
+            fechaFin={fechaFin}
+            onFechaInicioChange={setFechaInicio}
+            onFechaFinChange={setFechaFin}
             classNames={fieldClasses}
-            style={{ colorScheme: "dark" }}
-            w={160}
-          />
-          <TextInput
-            type="date"
-            label="Fecha Fin"
-            radius="lg"
-            size="xs"
-            leftSection={<IconCalendar size={16} className={fechaFin ? "text-indigo-400" : "text-zinc-500"} />}
-            value={fechaFin ?? ""}
-            onChange={(e) => setFechaFin(e.currentTarget.value || null)}
-            classNames={fieldClasses}
-            style={{ colorScheme: "dark" }}
-            w={160}
+            showClearButton={false}
           />
           <Select
             label="Proveedor"

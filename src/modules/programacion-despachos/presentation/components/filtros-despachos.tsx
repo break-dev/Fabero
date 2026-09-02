@@ -1,14 +1,10 @@
 import { Grid, Select, Loader, ActionIcon } from "@mantine/core";
 import { IconBuildingFactory, IconX } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
-import { CustomDatePicker } from "../../../../presentation/utils/date-picker-input";
+import { DateRangeFilter } from "../../../../presentation/utils/filtro-rango-fechas";
 import { AuxService } from "../../../../service/auxiliar.service";
 import { useNotify } from "../../../../hooks/useNotify";
 import type { DespachoFiltros } from "../../service/programacion-despachos.requests";
-import {
-  formatLocalDate,
-  parseLocalDate,
-} from "../../../../presentation/utils/local-date";
 
 interface Props {
   filtros: DespachoFiltros;
@@ -27,8 +23,6 @@ interface PlantaItem {
   razon_social: string;
   ruc: string;
 }
-
-const hoyLocal = (): string => formatLocalDate(new Date());
 
 export const FiltrosDespachos = ({ filtros, setFiltros, onLimpiar }: Props) => {
   const { notifyError } = useNotify();
@@ -80,41 +74,14 @@ export const FiltrosDespachos = ({ filtros, setFiltros, onLimpiar }: Props) => {
         />
       </Grid.Col>
 
-      <Grid.Col span={{ base: 6, md: 3 }}>
-        <CustomDatePicker
-          label="Fecha Inicio"
-          placeholder="Fecha inicio"
-          value={filtros.fecha_inicio ? parseLocalDate(filtros.fecha_inicio) : parseLocalDate(hoyLocal())}
-          onChange={(val: unknown) => {
-            if (!val) {
-              setFiltros({ ...filtros, fecha_inicio: "" });
-              return;
-            }
-            const d = typeof val === "string" ? new Date(val) : (val as Date);
-            setFiltros({ ...filtros, fecha_inicio: formatLocalDate(d) });
-          }}
-          radius="lg"
-          size="sm"
-          clearable
-        />
-      </Grid.Col>
-
-      <Grid.Col span={{ base: 6, md: 3 }}>
-        <CustomDatePicker
-          label="Fecha Fin"
-          placeholder="Fecha fin"
-          value={filtros.fecha_fin ? parseLocalDate(filtros.fecha_fin) : parseLocalDate(hoyLocal())}
-          onChange={(val: unknown) => {
-            if (!val) {
-              setFiltros({ ...filtros, fecha_fin: "" });
-              return;
-            }
-            const d = typeof val === "string" ? new Date(val) : (val as Date);
-            setFiltros({ ...filtros, fecha_fin: formatLocalDate(d) });
-          }}
-          radius="lg"
-          size="sm"
-          clearable
+      <Grid.Col span={{ base: 12, md: 6 }}>
+        <DateRangeFilter
+          fechaInicio={filtros.fecha_inicio ?? null}
+          fechaFin={filtros.fecha_fin ?? null}
+          onFechaInicioChange={(v) => setFiltros({ ...filtros, fecha_inicio: v })}
+          onFechaFinChange={(v) => setFiltros({ ...filtros, fecha_fin: v })}
+          classNames={fieldClasses}
+          showClearButton={false}
         />
       </Grid.Col>
 
@@ -127,7 +94,7 @@ export const FiltrosDespachos = ({ filtros, setFiltros, onLimpiar }: Props) => {
             radius="xl"
             size="lg"
             onClick={onLimpiar}
-            title="Limpiar filtros y volver a la fecha de hoy"
+            title="Limpiar todos los filtros"
             className="bg-zinc-800! hover:bg-zinc-700! text-zinc-300! border-zinc-700!"
           >
             <IconX size={16} />

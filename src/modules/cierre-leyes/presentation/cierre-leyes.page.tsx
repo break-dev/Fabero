@@ -1,11 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { Button, TextInput, Loader, Center, Text, Select } from "@mantine/core";
-import { DateInput } from "@mantine/dates";
 import {
   MagnifyingGlassIcon,
   PlusIcon,
   XMarkIcon,
-  CalendarDaysIcon,
 } from "@heroicons/react/24/outline";
 
 import { useTitlePage } from "../../../hooks/useTitlePage";
@@ -15,6 +13,11 @@ import { ModalIniciarAnalisis } from "./components/modal-iniciar-analisis";
 import type { FiltrosLotesSugeridos } from "../service/cierre-leyes.service";
 import { EstadoLeyes } from "../../../shared/enums/_generic/estado-leyes";
 import { RefreshButton } from "../../../presentation/utils/refresh-button";
+import {
+  DateRangeFilter,
+  defaultFechaInicio,
+  defaultFechaFin,
+} from "../../../presentation/utils/filtro-rango-fechas";
 
 const ESTADOS_LEYES_OPCIONES = [
   { value: EstadoLeyes.Pendiente, label: "Pendiente" },
@@ -29,38 +32,6 @@ const fieldInputClass =
 
 const fieldLabelClass = "text-zinc-300 mb-1 font-medium text-xs";
 
-const parseDateValue = (val: unknown): Date | null => {
-  if (!val) return null;
-  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
-  if (typeof val === "string") {
-    const trimmed = val.trim();
-    if (!trimmed) return null;
-    const ymdMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(trimmed);
-    if (ymdMatch) {
-      const [, y, m, d] = ymdMatch;
-      return new Date(Number(y), Number(m) - 1, Number(d));
-    }
-    const dmyMatch = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(trimmed);
-    if (dmyMatch) {
-      const [, d, m, y] = dmyMatch;
-      return new Date(Number(y), Number(m) - 1, Number(d));
-    }
-    const parsed = new Date(trimmed);
-    return isNaN(parsed.getTime()) ? null : parsed;
-  }
-  return null;
-};
-
-const formatDate = (date: unknown): string | null => {
-  if (!date) return null;
-  const parsed = parseDateValue(date);
-  if (!parsed) return null;
-  const y = parsed.getFullYear();
-  const m = String(parsed.getMonth() + 1).padStart(2, "0");
-  const d = String(parsed.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-};
-
 export const CierreLeyesPage = () => {
   useTitlePage("Cierre de Leyes");
 
@@ -68,17 +39,17 @@ export const CierreLeyesPage = () => {
 
   const [modalIniciarAbierto, setModalIniciarAbierto] = useState(false);
 
-  // Filtros de la TABLA de análisis (no del modal). Default = fecha actual/todos.
+  // Filtros de la TABLA de análisis (no del modal). Default: 7 días atrás → hoy.
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoLeyes | "Todos">("Todos");
-  const [fechaInicio, setFechaInicio] = useState<Date | null>(new Date());
-  const [fechaFin, setFechaFin] = useState<Date | null>(new Date());
+  const [fechaInicio, setFechaInicio] = useState<string | null>(defaultFechaInicio());
+  const [fechaFin, setFechaFin] = useState<string | null>(defaultFechaFin());
   const [busqueda, setBusqueda] = useState("");
 
   const filtrosActuales: FiltrosLotesSugeridos = useMemo(
     () => ({
       estado: estadoFiltro,
-      fechaInicio: formatDate(fechaInicio),
-      fechaFin: formatDate(fechaFin),
+      fechaInicio,
+      fechaFin,
     }),
     [estadoFiltro, fechaInicio, fechaFin],
   );
@@ -92,8 +63,8 @@ export const CierreLeyesPage = () => {
 
   const handleLimpiarFiltros = () => {
     setEstadoFiltro("Todos");
-    setFechaInicio(new Date());
-    setFechaFin(new Date());
+    setFechaInicio(defaultFechaInicio());
+    setFechaFin(defaultFechaFin());
     setBusqueda("");
   };
 
@@ -110,52 +81,20 @@ export const CierreLeyesPage = () => {
   return (
     <div className="animate-fade-in space-y-6 pb-12">
       {/* Filtros (sin Card wrapper — sueltos en la página) */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-        {/* Fecha Inicio */}
-        <div className="md:col-span-2">
-          <DateInput
-            label="Fecha Inicio"
-            size="xs"
-            radius="lg"
-            value={fechaInicio}
-            onChange={(val: unknown) => setFechaInicio(parseDateValue(val))}
-            placeholder="dd/mm/aaaa"
-            valueFormat="DD/MM/YYYY"
-            locale="es"
-            clearable
-            leftSection={<CalendarDaysIcon className="w-4 h-4 text-zinc-500" />}
-            popoverProps={{ withinPortal: true }}
-            classNames={{
-              input: fieldInputClass,
-              label: fieldLabelClass,
-            }}
-          />
-        </div>
-
-        {/* Fecha Fin */}
-        <div className="md:col-span-2">
-          <DateInput
-            label="Fecha Fin"
-            size="xs"
-            radius="lg"
-            value={fechaFin}
-            onChange={(val: unknown) => setFechaFin(parseDateValue(val))}
-            placeholder="dd/mm/aaaa"
-            valueFormat="DD/MM/YYYY"
-            locale="es"
-            clearable
-            minDate={fechaInicio && fechaInicio instanceof Date && !isNaN(fechaInicio.getTime()) ? fechaInicio : undefined}
-            leftSection={<CalendarDaysIcon className="w-4 h-4 text-zinc-500" />}
-            popoverProps={{ withinPortal: true }}
-            classNames={{
-              input: fieldInputClass,
-              label: fieldLabelClass,
-            }}
+      <div className="flex flex-col md:flex-row gap-3 items-end flex-wrap">
+        <div className="md:basis-2/12 min-w-[280px]">
+          <DateRangeFilter
+            fechaInicio={fechaInicio}
+            fechaFin={fechaFin}
+            onFechaInicioChange={setFechaInicio}
+            onFechaFinChange={setFechaFin}
+            classNames={{ input: fieldInputClass, label: fieldLabelClass }}
+            showClearButton={false}
           />
         </div>
 
         {/* Estado leyes */}
-        <div className="md:col-span-2">
+        <div className="md:basis-2/12 min-w-[180px]">
           <Select
             label="Estado Leyes"
             size="xs"
@@ -185,7 +124,7 @@ export const CierreLeyesPage = () => {
         </div>
 
         {/* Buscador por correlativo */}
-        <div className="md:col-span-3">
+        <div className="md:basis-3/12 min-w-[200px]">
           <TextInput
             label="Buscar"
             placeholder="Buscar por código de lote (ej: FB-001)..."
@@ -202,7 +141,7 @@ export const CierreLeyesPage = () => {
         </div>
 
         {/* Botones: Limpiar + Recargar + Agregar registro */}
-        <div className="md:col-span-3 flex items-end justify-end gap-2">
+        <div className="md:basis-5/12 min-w-[280px] flex items-end justify-end gap-2 flex-wrap">
           <Button
             variant="subtle"
             size="xs"

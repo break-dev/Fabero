@@ -5,14 +5,10 @@ import type { RES_ResumenBalanzaItem, RES_ResumenBalanzaFiltrosMetadata } from "
 import type { RES_EmpresaTransporte } from "../../../service/responses/empresa-transporte";
 import { useUIStore } from "../../../stores/ui.store";
 import { useNotify } from "../../../hooks/useNotify";
-
-const getTodayString = () => {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
+import {
+  defaultFechaInicio,
+  defaultFechaFin,
+} from "../../../presentation/utils/filtro-rango-fechas";
 
 export const useResumenBalanza = () => {
   const sucursal = useUIStore((state) => state.sucursal_elegida);
@@ -20,8 +16,8 @@ export const useResumenBalanza = () => {
   const { notifyError } = useNotify();
 
   // Estados de los filtros
-  const [fechaInicio, setFechaInicio] = useState<string>(getTodayString());
-  const [fechaFin, setFechaFin] = useState<string>(getTodayString());
+  const [fechaInicio, setFechaInicio] = useState<string>(defaultFechaInicio());
+  const [fechaFin, setFechaFin] = useState<string>(defaultFechaFin());
   const [tipoIngreso, setTipoIngreso] = useState<string | null>(null);
   const [placa, setPlaca] = useState<string | null>(null);
   const [idLoteMineral, setIdLoteMineral] = useState<string | null>(null);
@@ -86,9 +82,8 @@ export const useResumenBalanza = () => {
   };
 
   const resetFilters = () => {
-    const today = getTodayString();
-    setFechaInicio(today);
-    setFechaFin(today);
+    setFechaInicio(defaultFechaInicio());
+    setFechaFin(defaultFechaFin());
     setTipoIngreso(null);
     setPlaca(null);
     setIdLoteMineral(null);

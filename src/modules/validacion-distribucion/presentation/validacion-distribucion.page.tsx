@@ -19,14 +19,13 @@ import {
   IconShieldCheck,
   IconX,
 } from "@tabler/icons-react";
-import dayjs from "dayjs";
 import { useTitlePage } from "../../../hooks/useTitlePage";
 import { useNotify } from "../../../hooks/useNotify";
 import { usePrint } from "../../../hooks/usePrint";
 import { DataTableEstandar } from "../../../presentation/utils/datatable-estandar";
-import { CustomDatePicker } from "../../../presentation/utils/date-picker-input";
+import { DateRangeFilter } from "../../../presentation/utils/filtro-rango-fechas";
 import { ModalValidacion } from "../../../presentation/utils/modal-validacion";
-import { useLotesPendientes, getTodayString } from "../hooks/useLotesPendientes";
+import { useLotesPendientes } from "../hooks/useLotesPendientes";
 import { normalizeParticion } from "../hooks/useParticionesLote";
 import { ParticionesExpandible } from "./components/ParticionesExpandible";
 import { formatTn, formatDateTime } from "./utils/format-units";
@@ -35,7 +34,7 @@ import { useParticionesLoteStore } from "../../../stores/particiones-lote.store"
 import type { RES_LotePendiente } from "../service/validacion-distribucion.responses";
 import { ValidacionDistribucionService } from "../service/validacion-distribucion.service";
 import type { DTO_CrearParticion } from "../service/validacion-distribucion.requests";
-import { TicketBalanzaPdf } from "../../recepcion-mineral/presentation/components/ticket-balanza-pdf";
+import { TicketBalanzaPdf } from "../../../presentation/utils/ticket-balanza-pdf";
 import { useUIStore } from "../../../stores/ui.store";
 import { RefreshButton } from "../../../presentation/utils/refresh-button";
 
@@ -154,10 +153,9 @@ export const ValidacionDistribucionPage = () => {
     });
   }, [records, placa, soloExcedente, estadoParticion]);
 
-  const todayStr = getTodayString();
   const hasActiveFilters =
-    fechaInicio !== todayStr ||
-    fechaFin !== todayStr ||
+    !!fechaInicio ||
+    !!fechaFin ||
     !!placa ||
     soloExcedente ||
     estadoParticion !== "TODOS";
@@ -415,27 +413,12 @@ export const ValidacionDistribucionPage = () => {
         {/* Cabecera de Filtros */}
         <div className="flex flex-col xl:flex-row gap-4 items-end justify-between w-full">
           <div className="flex flex-wrap items-end gap-3 animate-fadeIn">
-            <Box className="w-44">
-              <CustomDatePicker
-                label="Fecha Inicio"
-                placeholder="Seleccionar"
-                value={fechaInicio || null}
-                onChange={(val) =>
-                  setFechaInicio(val ? dayjs(val).format("YYYY-MM-DD") : "")
-                }
-              />
-            </Box>
-
-            <Box className="w-44">
-              <CustomDatePicker
-                label="Fecha Fin"
-                placeholder="Seleccionar"
-                value={fechaFin || null}
-                onChange={(val) =>
-                  setFechaFin(val ? dayjs(val).format("YYYY-MM-DD") : "")
-                }
-              />
-            </Box>
+            <DateRangeFilter
+              fechaInicio={fechaInicio || null}
+              fechaFin={fechaFin || null}
+              onFechaInicioChange={(v) => setFechaInicio(v || "")}
+              onFechaFinChange={(v) => setFechaFin(v || "")}
+            />
 
             <Box className="w-44">
               <TextInput

@@ -11,7 +11,6 @@ import {
   Box,
   Loader,
   Tooltip,
-  TextInput,
 } from "@mantine/core";
 import {
   IconPlus,
@@ -21,13 +20,17 @@ import {
   IconFileText,
   IconHistory,
   IconX,
-  IconCalendar,
   IconFiles,
 } from "@tabler/icons-react";
 import { useTitlePage } from "../../../hooks/useTitlePage";
 import { DataTableEstandar } from "../../../presentation/utils/datatable-estandar";
 import { AuxService } from "../../../service/auxiliar.service";
 import { useValorizacionesCompra } from "../hooks/useValorizacionesCompra";
+import {
+  DateRangeFilter,
+  defaultFechaInicio,
+  defaultFechaFin,
+} from "../../../presentation/utils/filtro-rango-fechas";
 import { ModalFormValorizacionCompra } from "./components/modal-form-valorizacion-compra";
 import { ModalAnularValorizacion } from "./components/modal-anular-valorizacion";
 import { CambiosLogViewer } from "../../../presentation/utils/cambios-log-viewer";
@@ -80,25 +83,15 @@ const fieldClasses = {
   label: "text-zinc-400 mb-1 font-medium text-xs ml-1 flex items-center gap-1.5",
 };
 
-const getTodayString = () => {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
-
 export const ValorizacionCompraPage = () => {
   useTitlePage("Valorizaciones de Compra", true);
-
-  const todayStr = getTodayString();
 
   const [loadingProveedores, setLoadingProveedores] = useState(false);
   const [proveedores, setProveedores] = useState<RES_Proveedor[]>([]);
 
-  // Filtros adicionales UI con fecha actual por defecto
-  const [fechaInicio, setFechaInicio] = useState<string>(todayStr);
-  const [fechaFin, setFechaFin] = useState<string>(todayStr);
+  // Filtros adicionales UI con default 7-días-atrás → hoy
+  const [fechaInicio, setFechaInicio] = useState<string>(defaultFechaInicio());
+  const [fechaFin, setFechaFin] = useState<string>(defaultFechaFin());
   const [filtroEstado, setFiltroEstado] = useState<string>("Todos");
 
   const [modalHistorialOpened, setModalHistorialOpened] = useState(false);
@@ -215,14 +208,14 @@ export const ValorizacionCompraPage = () => {
 
   const hasActiveFilters =
     !!idProveedorFiltro ||
-    fechaInicio !== todayStr ||
-    fechaFin !== todayStr ||
+    fechaInicio !== defaultFechaInicio() ||
+    fechaFin !== defaultFechaFin() ||
     (filtroEstado && filtroEstado !== "Todos");
 
   const clearFilters = () => {
     setIdProveedorFiltro(null);
-    setFechaInicio(todayStr);
-    setFechaFin(todayStr);
+    setFechaInicio(defaultFechaInicio());
+    setFechaFin(defaultFechaFin());
     setFiltroEstado("Todos");
   };
 
@@ -589,33 +582,14 @@ export const ValorizacionCompraPage = () => {
       {/* Bar Superior de Filtros y Acción */}
       <div className="flex flex-col xl:flex-row gap-4 items-end justify-between w-full">
         <div className="flex flex-wrap items-end gap-3 flex-1 w-full">
-          {/* Fecha Inicio */}
-          <div className="w-full sm:w-44">
-            <TextInput
-              type="date"
-              label="Fecha Inicio"
-              radius="lg"
-              leftSection={<IconCalendar size={16} className={fechaInicio ? "text-indigo-400" : "text-zinc-500"} />}
-              value={fechaInicio}
-              onChange={(e) => setFechaInicio(e.target.value)}
-              classNames={fieldClasses}
-              style={{ colorScheme: "dark" }}
-            />
-          </div>
-
-          {/* Fecha Fin */}
-          <div className="w-full sm:w-44">
-            <TextInput
-              type="date"
-              label="Fecha Fin"
-              radius="lg"
-              leftSection={<IconCalendar size={16} className={fechaFin ? "text-indigo-400" : "text-zinc-500"} />}
-              value={fechaFin}
-              onChange={(e) => setFechaFin(e.target.value)}
-              classNames={fieldClasses}
-              style={{ colorScheme: "dark" }}
-            />
-          </div>
+          <DateRangeFilter
+            fechaInicio={fechaInicio}
+            fechaFin={fechaFin}
+            onFechaInicioChange={setFechaInicio}
+            onFechaFinChange={setFechaFin}
+            classNames={fieldClasses}
+            showClearButton={false}
+          />
 
           {/* Proveedor */}
           <div className="w-full sm:w-60">

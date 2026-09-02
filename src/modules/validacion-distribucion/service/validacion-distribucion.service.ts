@@ -16,7 +16,7 @@ import type {
   RES_ResultadoValidarLote,
   RES_ResultadoValidarLotes,
 } from "./validacion-distribucion.responses";
-import type { RES_TicketBalanzaData } from "../../recepcion-mineral/service/recepcion-mineral.responses";
+import type { RES_TicketBalanzaData } from "../../../service/responses/ticket-balanza";
 
 const PATH = "/validacion-distribucion";
 const AUX_PATH = "/aux";

@@ -5,14 +5,10 @@ import type { RecepcionUnidadResponse } from "../service/recepcion-unidades.resp
 import { AuxService } from "../../../service/auxiliar.service";
 import type { RES_EmpresaTransporte } from "../../../service/responses/empresa-transporte";
 import { useNotify } from "../../../hooks/useNotify";
-
-const getTodayString = () => {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
+import {
+  defaultFechaInicio,
+  defaultFechaFin,
+} from "../../../presentation/utils/filtro-rango-fechas";
 
 export const useRecepciones = () => {
   const [recepciones, setRecepciones] = useState<RecepcionUnidadResponse[]>([]);
@@ -22,8 +18,8 @@ export const useRecepciones = () => {
 
   // Estado de filtros del listado
   const [filters, setFilters] = useState<RecepcionFilters>({
-    fecha_inicio: getTodayString(),
-    fecha_fin: getTodayString(),
+    fecha_inicio: defaultFechaInicio(),
+    fecha_fin: defaultFechaFin(),
     placa: "",
     id_empresa_transporte: undefined,
   });
@@ -103,8 +99,8 @@ export const useRecepciones = () => {
 
   const clearFilters = () => {
     const cleared: RecepcionFilters = {
-      fecha_inicio: getTodayString(),
-      fecha_fin: getTodayString(),
+      fecha_inicio: defaultFechaInicio(),
+      fecha_fin: defaultFechaFin(),
       placa: "",
       id_empresa_transporte: undefined,
     };

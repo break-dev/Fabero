@@ -9,14 +9,12 @@ import {
   prefetchParticiones,
 } from "./useParticionesLote";
 import { useParticionesLoteStore } from "../../../stores/particiones-lote.store";
+import {
+  defaultFechaInicio,
+  defaultFechaFin,
+} from "../../../presentation/utils/filtro-rango-fechas";
 
-export const getTodayString = () => {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
+export const getTodayString = defaultFechaFin;
 
 interface ValidarLoteResult {
   ok: boolean;
@@ -29,8 +27,8 @@ export const useLotesPendientes = () => {
   const sucursal = useUIStore((s) => s.sucursal_elegida);
   const idSucursal = sucursal?.id_sucursal ?? null;
 
-  const [fechaInicio, setFechaInicio] = useState<string>(getTodayString());
-  const [fechaFin, setFechaFin] = useState<string>(getTodayString());
+  const [fechaInicio, setFechaInicio] = useState<string>(defaultFechaInicio());
+  const [fechaFin, setFechaFin] = useState<string>(defaultFechaFin());
 
   const [records, setRecords] = useState<RES_LotePendiente[]>([]);
   const [loading, setLoading] = useState(false);
@@ -86,8 +84,8 @@ export const useLotesPendientes = () => {
   );
 
   const resetFilters = () => {
-    setFechaInicio(getTodayString());
-    setFechaFin(getTodayString());
+    setFechaInicio(defaultFechaInicio());
+    setFechaFin(defaultFechaFin());
   };
 
   // Marca multiples lotes como validados en el estado local (optimistic).

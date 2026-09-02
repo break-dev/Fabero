@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Grid, Text, Button, Select, Badge, ActionIcon, Tooltip, Stack, TextInput, Group, Loader } from "@mantine/core";
-import { IconNote, IconPaperclip, IconX, IconCalendar, IconPencil, IconBarcode, IconScale, IconHistory } from "@tabler/icons-react";
+import { Grid, Text, Button, Select, Badge, ActionIcon, Tooltip, Stack, Group, Loader } from "@mantine/core";
+import { IconNote, IconPaperclip, IconX, IconPencil, IconBarcode, IconScale, IconHistory } from "@tabler/icons-react";
 import { useTitlePage } from "../../../hooks/useTitlePage";
 import { useResumenBalanza } from "../hooks/useResumenBalanza";
 import { useUIStore } from "../../../stores/ui.store";
@@ -14,6 +14,11 @@ import { ModalEditarResumenLote } from "./components/modal-editar-resumen-lote";
 import { useTicketLote } from "../../recepcion-mineral/hooks/useTicketLote";
 import { useTicketBalanza } from "../../recepcion-mineral/hooks/useTicketBalanza";
 import { CambiosLogViewer } from "../../../presentation/utils/cambios-log-viewer";
+import {
+  DateRangeFilter,
+  defaultFechaInicio,
+  defaultFechaFin,
+} from "../../../presentation/utils/filtro-rango-fechas";
 import { RefreshButton } from "../../../presentation/utils/refresh-button";
 
 export const ResumenBalanzaPage = () => {
@@ -127,8 +132,8 @@ export const ResumenBalanzaPage = () => {
   };
 
   const hasActiveFilters =
-    !!fechaInicio ||
-    !!fechaFin ||
+    fechaInicio !== defaultFechaInicio() ||
+    fechaFin !== defaultFechaFin() ||
     !!idLoteMineral ||
     !!placa ||
     !!tipoIngreso ||
@@ -140,31 +145,14 @@ export const ResumenBalanzaPage = () => {
       <div className="flex flex-col xl:flex-row gap-4 items-end justify-between w-full">
         <div className="flex-1 w-full animate-fadeIn">
           <Grid gutter="md">
-            {/* Fecha Inicio */}
-            <Grid.Col span={{ base: 12, sm: 4, md: 2 }}>
-              <TextInput
-                type="date"
-                label="Fecha Inicio"
-                radius="lg"
-                leftSection={<IconCalendar size={16} className={fechaInicio ? "text-indigo-400" : "text-zinc-500"} />}
-                value={fechaInicio || ""}
-                onChange={(e) => setFechaInicio(e.target.value)}
+            <Grid.Col span={{ base: 12, md: 4 }}>
+              <DateRangeFilter
+                fechaInicio={fechaInicio}
+                fechaFin={fechaFin}
+                onFechaInicioChange={setFechaInicio}
+                onFechaFinChange={setFechaFin}
                 classNames={fieldClasses}
-                style={{ colorScheme: "dark" }}
-              />
-            </Grid.Col>
-
-            {/* Fecha Fin */}
-            <Grid.Col span={{ base: 12, sm: 4, md: 2 }}>
-              <TextInput
-                type="date"
-                label="Fecha Fin"
-                radius="lg"
-                leftSection={<IconCalendar size={16} className={fechaFin ? "text-indigo-400" : "text-zinc-500"} />}
-                value={fechaFin || ""}
-                onChange={(e) => setFechaFin(e.target.value)}
-                classNames={fieldClasses}
-                style={{ colorScheme: "dark" }}
+                showClearButton={false}
               />
             </Grid.Col>
 

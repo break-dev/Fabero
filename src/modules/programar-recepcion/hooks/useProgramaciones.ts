@@ -2,11 +2,12 @@ import { useState, useEffect, useMemo } from "react";
 import { ProgramarRecepcionService } from "../service/programar-recepcion.service";
 import type { ProgramacionListItem } from "../service/programar-recepcion.responses";
 import { useNotify } from "../../../hooks/useNotify";
+import {
+  defaultFechaInicio,
+  defaultFechaFin,
+} from "../../../presentation/utils/filtro-rango-fechas";
 
-const getTodayString = (): string => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
+const getTodayString = defaultFechaFin;
 
 export { getTodayString };
 
@@ -15,8 +16,8 @@ export const useProgramaciones = () => {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [estadoConfirmacion, setEstadoConfirmacion] = useState<"todos" | "pendientes" | "confirmadas">("todos");
-  const [fechaInicio, setFechaInicio] = useState<string>(getTodayString());
-  const [fechaFin, setFechaFin] = useState<string>(getTodayString());
+  const [fechaInicio, setFechaInicio] = useState<string>(defaultFechaInicio());
+  const [fechaFin, setFechaFin] = useState<string>(defaultFechaFin());
   const { notifyError } = useNotify();
 
   const fetchProgramaciones = async () => {

@@ -1,7 +1,8 @@
-import { IconSearch, IconCalendar, IconTruck, IconX } from "@tabler/icons-react";
-import { TextInput, Select, Grid, ActionIcon } from "@mantine/core";
+import { IconSearch, IconTruck, IconX } from "@tabler/icons-react";
+import { Grid, TextInput, Select, ActionIcon } from "@mantine/core";
 import type { RecepcionFilters } from "../../service/recepcion-unidades.requests";
 import type { RES_EmpresaTransporte } from "../../../../service/responses/empresa-transporte";
+import { DateRangeFilter } from "../../../../presentation/utils/filtro-rango-fechas";
 
 interface Props {
   filters: RecepcionFilters;
@@ -34,31 +35,13 @@ export const Filtros = ({
   return (
     <div className="animate-fadeIn w-full">
       <Grid gutter="md">
-        {/* Fecha Inicio */}
-        <Grid.Col span={{ base: 12, sm: 4, md: 2 }}>
-          <TextInput
-            type="date"
-            label="Fecha Inicio"
-            radius="lg"
-            leftSection={<IconCalendar size={16} className={filters.fecha_inicio ? "text-indigo-400" : "text-zinc-500"} />}
-            value={filters.fecha_inicio || ""}
-            onChange={(e) => handleFilterChange("fecha_inicio", e.target.value)}
+        <Grid.Col span={{ base: 12, md: 4 }}>
+          <DateRangeFilter
+            fechaInicio={filters.fecha_inicio ?? null}
+            fechaFin={filters.fecha_fin ?? null}
+            onFechaInicioChange={(v) => handleFilterChange("fecha_inicio", v || undefined)}
+            onFechaFinChange={(v) => handleFilterChange("fecha_fin", v || undefined)}
             classNames={fieldClasses}
-            style={{ colorScheme: "dark" }}
-          />
-        </Grid.Col>
-
-        {/* Fecha Fin */}
-        <Grid.Col span={{ base: 12, sm: 4, md: 2 }}>
-          <TextInput
-            type="date"
-            label="Fecha Fin"
-            radius="lg"
-            leftSection={<IconCalendar size={16} className={filters.fecha_fin ? "text-indigo-400" : "text-zinc-500"} />}
-            value={filters.fecha_fin || ""}
-            onChange={(e) => handleFilterChange("fecha_fin", e.target.value)}
-            classNames={fieldClasses}
-            style={{ colorScheme: "dark" }}
           />
         </Grid.Col>
 
@@ -121,7 +104,6 @@ export const Filtros = ({
             }}
           />
         </Grid.Col>
-
         </Grid>
     </div>
   );

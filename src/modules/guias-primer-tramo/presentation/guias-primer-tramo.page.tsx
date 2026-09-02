@@ -3,13 +3,11 @@ import {
   Text,
   Button,
   Stack,
-  TextInput,
   Badge,
   Tooltip,
   ActionIcon,
 } from "@mantine/core";
 import {
-  IconCalendar,
   IconHistory,
   IconPlus,
   IconX,
@@ -23,6 +21,11 @@ import { useGuiasPrimerTramo } from "../hooks/useGuiasPrimerTramo";
 import { ModalGuiaPrimerTramo } from "./components/modal-guia-primer-tramo";
 import { HistorialModal } from "./components/historial-modal";
 import { DataTableEstandar } from "../../../presentation/utils/datatable-estandar";
+import {
+  DateRangeFilter,
+  defaultFechaInicio,
+  defaultFechaFin,
+} from "../../../presentation/utils/filtro-rango-fechas";
 import { RefreshButton } from "../../../presentation/utils/refresh-button";
 import type { DTO_CrearGuiaPrimerTramo, DTO_ActualizarGuiaPrimerTramo } from "../service/guias-primer-tramo.requests";
 import type { RES_GuiaPrimerTramo } from "../service/guias-primer-tramo.responses";
@@ -47,16 +50,8 @@ export const GuiasPrimerTramoPage = () => {
     fetchFiltrosMetadata,
   } = useGuiasPrimerTramo();
 
-  const todayIso = () => {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  };
-
-  const [fechaInicio, setFechaInicio] = useState<string>(todayIso());
-  const [fechaFin, setFechaFin] = useState<string>(todayIso());
+  const [fechaInicio, setFechaInicio] = useState<string>(defaultFechaInicio());
+  const [fechaFin, setFechaFin] = useState<string>(defaultFechaFin());
 
   const [openModal, setOpenModal] = useState(false);
   const [editingGuia, setEditingGuia] = useState<RES_GuiaPrimerTramo | null>(null);
@@ -77,11 +72,12 @@ export const GuiasPrimerTramoPage = () => {
   }, [idSucursal, fechaInicio, fechaFin]);
 
   const handleLimpiar = () => {
-    const today = todayIso();
-    setFechaInicio(today);
-    setFechaFin(today);
+    const inicio = defaultFechaInicio();
+    const fin = defaultFechaFin();
+    setFechaInicio(inicio);
+    setFechaFin(fin);
     if (idSucursal) {
-      fetchGuias({ id_sucursal: idSucursal, fecha_inicio: today, fecha_fin: today });
+      fetchGuias({ id_sucursal: idSucursal, fecha_inicio: inicio, fecha_fin: fin });
     }
   };
 
@@ -155,35 +151,17 @@ export const GuiasPrimerTramoPage = () => {
     <div className="space-y-6 animate-fadeIn">
       <div className="flex flex-wrap items-end gap-3 justify-between">
         <div className="flex flex-wrap gap-3 items-end">
-          <TextInput
-            type="date"
-            label="Fecha Inicio"
-            value={fechaInicio}
-            onChange={(e) => setFechaInicio(e.currentTarget.value)}
-            leftSection={<IconCalendar size={14} className="text-zinc-500" />}
-            radius="lg"
-            size="xs"
-            w={200}
+          <DateRangeFilter
+            fechaInicio={fechaInicio}
+            fechaFin={fechaFin}
+            onFechaInicioChange={setFechaInicio}
+            onFechaFinChange={setFechaFin}
             classNames={{
               label: "text-zinc-400 text-xs font-semibold mb-1 ml-1",
               input:
                 "bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-zinc-300 transition-all",
             }}
-          />
-          <TextInput
-            type="date"
-            label="Fecha Fin"
-            value={fechaFin}
-            onChange={(e) => setFechaFin(e.currentTarget.value)}
-            leftSection={<IconCalendar size={14} className="text-zinc-500" />}
-            radius="lg"
-            size="xs"
-            w={200}
-            classNames={{
-              label: "text-zinc-400 text-xs font-semibold mb-1 ml-1",
-              input:
-                "bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-zinc-300 transition-all",
-            }}
+            showClearButton={false}
           />
         </div>
         <div className="flex gap-2 shrink-0">

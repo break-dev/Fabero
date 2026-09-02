@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useState } from "react";
 import { pdf } from "@react-pdf/renderer";
-import { TicketBalanzaPdf } from "../presentation/components/ticket-balanza-pdf";
+import { TicketBalanzaPdf } from "../../../presentation/utils/ticket-balanza-pdf";
 import { RecepcionMineralService } from "../service/recepcion-mineral.service";
 import { useNotify } from "../../../hooks/useNotify";
-import type { RES_TicketBalanzaData } from "../service/recepcion-mineral.responses";
+import type { RES_TicketBalanzaData } from "../../../service/responses/ticket-balanza";
 
 export type LoteBalanzaInput = number | { id?: number; id_lote?: number; correlativo?: string };
 

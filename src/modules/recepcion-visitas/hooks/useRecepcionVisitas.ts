@@ -3,14 +3,10 @@ import { RecepcionVisitasService } from "../service/recepcion-visitas.service";
 import type { RecepcionVisitaFilters } from "../service/recepcion-visitas.requests";
 import type { RecepcionVisitaResponse } from "../service/recepcion-visitas.responses";
 import { useNotify } from "../../../hooks/useNotify";
-
-const getTodayString = () => {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
+import {
+  defaultFechaInicio,
+  defaultFechaFin,
+} from "../../../presentation/utils/filtro-rango-fechas";
 
 export const useRecepcionVisitas = () => {
   const [recepciones, setRecepciones] = useState<RecepcionVisitaResponse[]>([]);
@@ -18,8 +14,8 @@ export const useRecepcionVisitas = () => {
   const { notifyError, notifySuccess } = useNotify();
 
   const [filters, setFilters] = useState<RecepcionVisitaFilters>({
-    fecha_inicio: getTodayString(),
-    fecha_fin: getTodayString(),
+    fecha_inicio: defaultFechaInicio(),
+    fecha_fin: defaultFechaFin(),
   });
 
   const fetchRecepciones = async () => {
@@ -59,8 +55,8 @@ export const useRecepcionVisitas = () => {
 
   const clearFilters = () => {
     const cleared: RecepcionVisitaFilters = {
-      fecha_inicio: getTodayString(),
-      fecha_fin: getTodayString(),
+      fecha_inicio: defaultFechaInicio(),
+      fecha_fin: defaultFechaFin(),
     };
     setFilters(cleared);
   };

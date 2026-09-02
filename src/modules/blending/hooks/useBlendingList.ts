@@ -1,15 +1,17 @@
 import { useState, useCallback, useEffect } from "react";
-import dayjs from "dayjs";
 import { BlendingService } from "../service/blending.service";
 import type { BlendingResponse } from "../service/blending.responses";
 import { useNotify } from "../../../hooks/useNotify";
+import {
+  defaultFechaInicio,
+  defaultFechaFin,
+} from "../../../presentation/utils/filtro-rango-fechas";
 
 export const useBlendingList = () => {
-  const today = dayjs().format("YYYY-MM-DD");
   const [blendings, setBlendings] = useState<BlendingResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const [fechaInicio, setFechaInicio] = useState<string>(today);
-  const [fechaFin, setFechaFin] = useState<string>(today);
+  const [fechaInicio, setFechaInicio] = useState<string>(defaultFechaInicio());
+  const [fechaFin, setFechaFin] = useState<string>(defaultFechaFin());
   const { notifyError } = useNotify();
 
   const fetchBlendings = useCallback(async () => {

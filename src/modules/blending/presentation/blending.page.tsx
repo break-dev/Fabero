@@ -1,5 +1,4 @@
 import { useState } from "react";
-import dayjs from "dayjs";
 import {
   Group,
   Button,
@@ -30,7 +29,10 @@ import type { BlendingResponse } from "../service/blending.responses";
 import { ModalCrearBlending } from "./components/modal-crear-blending";
 import { ModalEditarBlending } from "./components/modal-editar-blending";
 import { ModalHistorialBlending } from "./components/modal-historial-blending";
-import { CustomDatePicker } from "../../../presentation/utils/date-picker-input";
+import {
+  DateRangeFilter,
+  defaultFechaFin,
+} from "../../../presentation/utils/filtro-rango-fechas";
 import { formatNumber } from "../../../shared/functions/formatNumber";
 import { RefreshButton } from "../../../presentation/utils/refresh-button";
 
@@ -59,12 +61,12 @@ export const BlendingPage = () => {
     );
   };
 
-  const today = dayjs().format("YYYY-MM-DD");
+  const today = defaultFechaFin();
   const hasActiveFilters = fechaInicio !== today || fechaFin !== today;
 
   const clearFilters = () => {
-    setFechaInicio(today);
-    setFechaFin(today);
+    setFechaInicio("");
+    setFechaFin("");
   };
 
   const columns = [
@@ -228,32 +230,13 @@ export const BlendingPage = () => {
       {/* Top Controls Bar */}
       <div className="flex flex-col xl:flex-row gap-4 items-end justify-between w-full">
         <div className="flex flex-wrap items-end gap-3 flex-1 w-full">
-          <Box className="w-44">
-            <CustomDatePicker
-              label="Fecha Inicio"
-              placeholder="Seleccionar"
-              valueFormat="DD/MM/YYYY"
-              value={fechaInicio ? dayjs(fechaInicio).toDate() : null}
-              onChange={(val: unknown) => {
-                if (!val) setFechaInicio("");
-                else if (val instanceof Date) setFechaInicio(dayjs(val).format("YYYY-MM-DD"));
-                else setFechaInicio(dayjs(String(val)).format("YYYY-MM-DD"));
-              }}
-            />
-          </Box>
-          <Box className="w-44">
-            <CustomDatePicker
-              label="Fecha Fin"
-              placeholder="Seleccionar"
-              valueFormat="DD/MM/YYYY"
-              value={fechaFin ? dayjs(fechaFin).toDate() : null}
-              onChange={(val: unknown) => {
-                if (!val) setFechaFin("");
-                else if (val instanceof Date) setFechaFin(dayjs(val).format("YYYY-MM-DD"));
-                else setFechaFin(dayjs(String(val)).format("YYYY-MM-DD"));
-              }}
-            />
-          </Box>
+          <DateRangeFilter
+            fechaInicio={fechaInicio || null}
+            fechaFin={fechaFin || null}
+            onFechaInicioChange={setFechaInicio}
+            onFechaFinChange={setFechaFin}
+            showClearButton={false}
+          />
         </div>
 
         <div className="flex items-center gap-2 shrink-0 pb-0.5">

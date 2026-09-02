@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
-import type { RES_TicketBalanzaData } from "../../service/recepcion-mineral.responses";
+import type { RES_TicketBalanzaData } from "../../service/responses/ticket-balanza";
 
 // Dimensiones exactas de Ticket Balanza Vertical (67 mm x 247 mm en pt)
 // 1 mm = 2.834645669 pt
@@ -228,7 +228,7 @@ export const TicketBalanzaPdf = ({ data }: TicketBalanzaPdfProps) => {
           </Text>
           <View style={styles.ticketNumberBox}>
             <Text style={styles.ticketNumberText}>
-              N° {data.ticket_numero ?? data.id_lote}
+              N° {data.ticket_correlativo ?? data.ticket_numero ?? "—"}
             </Text>
             {data.despacho_correlativo && (
               <Text style={styles.dateText}>DESPACHO: {data.despacho_correlativo}</Text>

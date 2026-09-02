@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import dayjs from "dayjs";
 import { ContabilidadCompraService } from "../service/contabilidad-compra.service";
 import type { TipoAprobacionComprobante } from "../../../shared/enums/contabilidad-compra/tipo-aprobacion-comprobante";
 import type {
@@ -10,16 +9,18 @@ import type {
 } from "../service/contabilidad-compra.requests";
 import type { RES_ComprobanteCompra } from "../service/contabilidad-compra.responses";
 import { useNotify } from "../../../hooks/useNotify";
-
-const todayStr = (): string => dayjs().format("YYYY-MM-DD");
+import {
+  defaultFechaInicio,
+  defaultFechaFin,
+} from "../../../presentation/utils/filtro-rango-fechas";
 
 export const useComprobantesCompra = () => {
   const { notifySuccess, notifyError } = useNotify();
 
   const [idProveedorFiltro, setIdProveedorFiltro] = useState<number | null>(null);
   const [estadoFiltro, setEstadoFiltro] = useState<string>("Todos");
-  const [fechaInicio, setFechaInicio] = useState<string | null>(todayStr());
-  const [fechaFin, setFechaFin] = useState<string | null>(todayStr());
+  const [fechaInicio, setFechaInicio] = useState<string | null>(defaultFechaInicio());
+  const [fechaFin, setFechaFin] = useState<string | null>(defaultFechaFin());
 
   const [comprobantes, setComprobantes] = useState<RES_ComprobanteCompra[]>([]);
   const [loading, setLoading] = useState(false);

@@ -30,7 +30,7 @@ import { EdicionParticionModal } from "./EdicionParticionModal";
 import { FechaHoraModal } from "./FechaHoraModal";
 import { usePrint } from "../../../../hooks/usePrint";
 import { useNotify } from "../../../../hooks/useNotify";
-import { TicketBalanzaPdf } from "../../../recepcion-mineral/presentation/components/ticket-balanza-pdf";
+import { TicketBalanzaPdf } from "../../../../presentation/utils/ticket-balanza-pdf";
 import { ValidacionDistribucionService } from "../../service/validacion-distribucion.service";
 import {
   etiquetaCampoFaltante,

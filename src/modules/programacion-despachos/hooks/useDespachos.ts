@@ -3,14 +3,15 @@ import { ProgramacionDespachosService } from "../service/programacion-despachos.
 import type { DespachoFiltros } from "../service/programacion-despachos.requests";
 import type { DespachoListItem } from "../service/programacion-despachos.responses";
 import { useNotify } from "../../../hooks/useNotify";
-import { formatLocalDate } from "../../../presentation/utils/local-date";
-
-const hoyLocal = (): string => formatLocalDate(new Date());
+import {
+  defaultFechaInicio,
+  defaultFechaFin,
+} from "../../../presentation/utils/filtro-rango-fechas";
 
 const filtrosIniciales = (): DespachoFiltros => ({
   id_planta_destino: undefined,
-  fecha_inicio: hoyLocal(),
-  fecha_fin: hoyLocal(),
+  fecha_inicio: defaultFechaInicio(),
+  fecha_fin: defaultFechaFin(),
 });
 
 export const useDespachos = () => {
