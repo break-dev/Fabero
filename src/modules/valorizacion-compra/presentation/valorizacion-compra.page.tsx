@@ -272,8 +272,9 @@ export const ValorizacionCompraPage = () => {
     {
       accessor: "correlativo",
       title: "Correlativo",
+      textAlign: "center" as const,
       render: (r: RES_ValorizacionCompra) => (
-        <Text fw={500} c="cyan.4">
+        <Text fw={500} fz="xs" c="cyan.4" className="font-mono">
           {r.correlativo || (r.numero_correlativo ? `VAL-${r.numero_correlativo}` : "-")}
         </Text>
       ),
@@ -281,8 +282,9 @@ export const ValorizacionCompraPage = () => {
     {
       accessor: "proveedor_nombre",
       title: "Proveedor",
+      textAlign: "center" as const,
       render: (r: RES_ValorizacionCompra) => (
-        <Stack gap={2}>
+        <Stack gap={2} align="center">
           <Text fw={600} fz="xs">
             {r.proveedor_nombre}
           </Text>
@@ -295,6 +297,7 @@ export const ValorizacionCompraPage = () => {
     {
       accessor: "concesion_nombre",
       title: "Concesión",
+      textAlign: "center" as const,
       render: (r: RES_ValorizacionCompra) => (
         <Text fz="xs">{r.concesion_nombre || "-"}</Text>
       ),
@@ -302,6 +305,7 @@ export const ValorizacionCompraPage = () => {
     {
       accessor: "tipo_pago",
       title: "Tipo Pago",
+      textAlign: "center" as const,
       render: (r: RES_ValorizacionCompra) => (
         <Badge variant="outline" color="blue" size="xs">
           {(r.tipo_pago || "").toUpperCase()}
@@ -311,7 +315,7 @@ export const ValorizacionCompraPage = () => {
     {
       accessor: "total_subtotal",
       title: "Total Valorización",
-      textAlign: "right" as const,
+      textAlign: "center" as const,
       render: (r: RES_ValorizacionCompra) => (
         <Text fw={700} c="emerald.4" fz="xs">
           $ {r.total_subtotal.toFixed(2)}
@@ -321,6 +325,7 @@ export const ValorizacionCompraPage = () => {
     {
       accessor: "created_at",
       title: "Fecha Registro",
+      textAlign: "center" as const,
       render: (r: RES_ValorizacionCompra) => (
         <Text fz="xs">{r.created_at ? r.created_at.split(" ")[0] : "-"}</Text>
       ),
@@ -587,7 +592,6 @@ export const ValorizacionCompraPage = () => {
             fechaFin={fechaFin}
             onFechaInicioChange={setFechaInicio}
             onFechaFinChange={setFechaFin}
-            classNames={fieldClasses}
             showClearButton={false}
           />
 

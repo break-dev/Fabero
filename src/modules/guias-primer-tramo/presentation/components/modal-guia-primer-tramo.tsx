@@ -14,19 +14,20 @@ import {
   Text,
   Loader,
   Badge,
-  FileButton,
-  Group as MGroup,
+  NumberInput,
 } from "@mantine/core";
 import {
   IconCalendar,
   IconPlus,
   IconTrash,
   IconFileText,
-  IconX,
-  IconFile,
   IconSearch,
+  IconAlertTriangle,
 } from "@tabler/icons-react";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
+import { MultiFilePicker } from "../../../../presentation/utils/archivo/multifile-picker";
+import type { IArchivo } from "../../../../shared/interfaces/archivo";
+import { ArchivoService } from "../../../../service/archivo.service";
 import { ModalRegistroProveedor } from "../../../../presentation/utils/modal-registro-proveedor";
 import { ModalConcesionesProveedor } from "../../../../presentation/utils/modal-concesiones-proveedor";
 import { RegistroVehiculoSimple } from "../../../../presentation/utils/registro-vehiculo-simple";
@@ -37,10 +38,11 @@ import { AuxService } from "../../../../service/auxiliar.service";
 import { useNotify } from "../../../../hooks/useNotify";
 import {
   ConcesionesPorProveedorService,
+  GuiasPrimerTramoService,
   ItemsMineralService,
 } from "../../service/guias-primer-tramo.service";
 import type { RES_ConcesionPorProveedor } from "../../service/guias-primer-tramo.responses";
-import type { RES_ItemMineralDisponible } from "../../service/guias-primer-tramo.responses";
+import type { RES_ArchivosGuiasRecepcion, RES_ItemMineralDisponible } from "../../service/guias-primer-tramo.responses";
 import type { RES_Proveedor } from "../../../../service/responses/proveedor";
 import type { ProveedorResponse } from "../../../proveedores-mineros/service/proveedores.responses";
 import type { RES_Vehiculo } from "../../../../service/responses/vehiculo";
@@ -52,8 +54,10 @@ import type {
   DTO_CrearGuiaPrimerTramo,
   DTO_ActualizarGuiaPrimerTramo,
   DTO_ItemGuiaInput,
+  DTO_PesosOficialesLote,
 } from "../../service/guias-primer-tramo.requests";
 import type { RES_GuiaPrimerTramo } from "../../service/guias-primer-tramo.responses";
+import { useValidarDuplicadoGuiaEnVivo } from "../../hooks/useValidarDuplicadoGuiaEnVivo";
 
 interface Props {
   opened: boolean;
@@ -109,7 +113,7 @@ const todayIso = (): string => {
 };
 
 export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubmit, onUpdate }: Props) => {
-  const { notifyError } = useNotify();
+  const { notifyError, notifyInfo } = useNotify();
 
   const [proveedores, setProveedores] = useState<RES_Proveedor[]>([]);
   const [vehiculos, setVehiculos] = useState<RES_Vehiculo[]>([]);
@@ -147,14 +151,115 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
   const [documentoGuiaRemitente, setDocumentoGuiaRemitente] = useState<File | null>(null);
   const [documentoGuiaTransportista, setDocumentoGuiaTransportista] = useState<File | null>(null);
 
+  // Confirmacion pendiente de reemplazo de documento. Mientras no sea null,
+  // el modal de confirmacion esta visible. El file NO se asigna al state del
+  // documento hasta que el usuario confirma.
+  const [pendingReplacement, setPendingReplacement] = useState<
+    { field: "remitente" | "transportista"; file: File } | null
+  >(null);
+
   const [items, setItems] = useState<ItemFormItem[]>([]);
   const [openItemModal, setOpenItemModal] = useState(false);
   const [itemsDisponibles, setItemsDisponibles] = useState<RES_ItemMineralDisponible[]>([]);
   const [loadingItems, setLoadingItems] = useState(false);
   const [itemsFechaInicio, setItemsFechaInicio] = useState<string>(todayIso());
   const [itemsFechaFin, setItemsFechaFin] = useState<string>(todayIso());
+  // Mapa itemKey -> id_recepcion_unidad para agrupar items por recepción
+  // y permitir autocompletar las guias cuando todos comparten una sola.
+  const [recepcionesPorItem, setRecepcionesPorItem] = useState<Map<string, number>>(new Map());
+  // Pesos oficiales editados para LOTEs sin particiones. Se inicializa al
+  // agregar items con valores oficiales si existen, sino con los originales
+  // del lote. Solo se envia al backend si el operador los modifico.
+  const [pesosOficialesPorLote, setPesosOficialesPorLote] = useState<Record<number, DTO_PesosOficialesLote>>({});
+
+  const round2 = (n: number): number => Math.round(n * 100) / 100;
+
+  /**
+   * Resolver el valor inicial de los pesos oficiales para un item LOTE.
+   * - esEdicion=true:  prioriza `peso_*_oficial` (los guardados en una guia
+   *                    previa). Si no existen, cae a los originales del lote.
+   * - esEdicion=false: usa SOLO `peso_*` originales del lote. No toma los
+   *                    oficiales aunque existan, porque la creacion parte
+   *                    del peso actual del lote.
+   */
+  const obtenerPesosInicialesParaLote = (
+    idLote: number,
+    esEdicion: boolean,
+  ): DTO_PesosOficialesLote | null => {
+    const original = itemsDisponibles.find(
+      (i) => i.id_lote_mineral === idLote,
+    );
+    if (!original) {
+      return null;
+    }
+
+    const inicial = esEdicion
+      ? (original.peso_inicial_oficial ?? original.peso_inicial ?? null)
+      : (original.peso_inicial ?? null);
+    const finalPeso = esEdicion
+      ? (original.peso_final_oficial ?? original.peso_final ?? null)
+      : (original.peso_final ?? null);
+    const neto = esEdicion
+      ? (original.peso_neto_oficial ?? original.peso_neto ?? null)
+      : (original.peso_neto ?? null);
+
+    if (inicial === null || finalPeso === null || neto === null) {
+      return null;
+    }
+    return {
+      id_lote_mineral: idLote,
+      peso_inicial_oficial: round2(inicial),
+      peso_final_oficial: round2(finalPeso),
+      peso_neto_oficial: round2(neto),
+    };
+  };
+
+  /**
+   * Aplica la regla invariante a los pesos oficiales del lote:
+   * - Editar peso_inicial_oficial -> peso_final_oficial = peso_inicial_oficial - peso_neto_oficial
+   * - Editar peso_final_oficial -> peso_inicial_oficial = peso_final_oficial + peso_neto_oficial
+   * - Editar peso_neto_oficial -> peso_final_oficial = peso_inicial_oficial - peso_neto_oficial
+   */
+  const aplicarReglaPesoOficial = (
+    current: DTO_PesosOficialesLote,
+    field: "peso_inicial_oficial" | "peso_final_oficial" | "peso_neto_oficial",
+    value: number,
+  ): DTO_PesosOficialesLote => {
+    const updates: Partial<DTO_PesosOficialesLote> = { [field]: round2(value) };
+    if (field === "peso_inicial_oficial") {
+      updates.peso_final_oficial = round2(value - current.peso_neto_oficial);
+    } else if (field === "peso_final_oficial") {
+      updates.peso_inicial_oficial = round2(value + current.peso_neto_oficial);
+    } else if (field === "peso_neto_oficial") {
+      updates.peso_final_oficial = round2(current.peso_inicial_oficial - value);
+    }
+    return { ...current, ...updates };
+  };
 
   const [submitting, setSubmitting] = useState(false);
+  const [validatingDuplicado, setValidatingDuplicado] = useState(false);
+
+  // Validación en vivo de duplicados (debounce 400ms + AbortController).
+  // Devuelve tres flags independientes (combinacion, remitente, transportista)
+  // para resaltar cada input en error y bloquear el submit si hay cualquier
+  // conflicto. `enabled: opened` evita validar con modal cerrado.
+  const {
+    validating: validatingEnVivo,
+    existe_combinacion: existeCombinacionEnVivo,
+    existe_remitente: existeRemitenteEnVivo,
+    existe_transportista: existeTransportistaEnVivo,
+    messages: mensajesDuplicado,
+  } = useValidarDuplicadoGuiaEnVivo({
+    id_sucursal: idSucursal,
+    guia_remitente: guiaRemitente,
+    guia_transportista: guiaTransportista,
+    sin_guia_transportista: sinGuiaTransportista,
+    id_excluir: guia?.id ?? null,
+    enabled: opened,
+  });
+
+  const hayDuplicadoEnVivo =
+    existeCombinacionEnVivo || existeRemitenteEnVivo || existeTransportistaEnVivo;
 
   const [openedModalProveedor, setOpenedModalProveedor] = useState(false);
   const [openedModalConcesion, setOpenedModalConcesion] = useState(false);
@@ -301,6 +406,35 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
           tipo_mineral: l.tipo_mineral,
         }));
         setItems(mappedItems);
+
+        // Inicializar pesos oficiales para LOTEs desde la guia en edicion.
+        // En edicion, los pesos del response (peso_inicial/final/neto) ya son
+        // los oficiales via COALESCE en backend (GuiasPrimerTramoData).
+        setPesosOficialesPorLote((prev) => {
+          const next = { ...prev };
+          for (const l of guia.lotes ?? []) {
+            if (l.tipo_item !== "LOTE" || l.id_lote_mineral === null) continue;
+            const idLote = l.id_lote_mineral;
+            if (next[idLote]) continue;
+            if (
+              l.peso_inicial === null ||
+              l.peso_inicial === undefined ||
+              l.peso_final === null ||
+              l.peso_final === undefined ||
+              l.peso_neto === null ||
+              l.peso_neto === undefined
+            ) {
+              continue;
+            }
+            next[idLote] = {
+              id_lote_mineral: idLote,
+              peso_inicial_oficial: round2(Number(l.peso_inicial)),
+              peso_final_oficial: round2(Number(l.peso_final)),
+              peso_neto_oficial: round2(Number(l.peso_neto)),
+            };
+          }
+          return next;
+        });
       } else {
         resetForm();
       }
@@ -478,12 +612,368 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
       tipo_producto: i.tipo_producto,
       tipo_mineral: i.tipo_mineral,
     }));
-    setItems((prev) => [...prev, ...nuevos]);
+    const merged: ItemFormItem[] = [...items, ...nuevos];
+    setItems(merged);
+    // Construir el Map temporal de recepciones SINCRONAMENTE para pasarselo
+    // al helper de sincronizacion. Esto evita el bug de timing del setState
+    // de recepcionesPorItem (React batchea, el state nuevo no esta disponible
+    // todavia cuando se llama al helper).
+    const tempRecepciones = new Map(recepcionesPorItem);
+    for (const i of seleccionados) {
+      // Para PARTICIONES, la recepcion ficticia no tiene guias; usar la
+      // del lote padre (recepcion_unidad_padre) que es donde se capturo la
+      // guia_remitente, guia_transportista y documentos_programacion.
+      const idRecep = i.id_recepcion_unidad_padre ?? i.id_recepcion_unidad;
+      if (idRecep) tempRecepciones.set(itemKey(i), idRecep);
+    }
+    setRecepcionesPorItem(tempRecepciones);
+    // Inicializar pesos oficiales para LOTEs sin particiones.
+    setPesosOficialesPorLote((prev) => {
+      const next = { ...prev };
+      for (const i of seleccionados) {
+        if (i.tipo_item !== "LOTE" || i.id_lote_mineral === null) continue;
+        const idLote = i.id_lote_mineral;
+        if (next[idLote]) continue; // ya existe
+        // Creacion: priorizar peso_* originales del lote, no los oficiales.
+        const iniciales = obtenerPesosInicialesParaLote(idLote, false);
+        if (iniciales) next[idLote] = iniciales;
+      }
+      return next;
+    });
     setOpenItemModal(false);
+
+    // Sincronizar los inputs de guias (autocompletar o limpiar) segun
+    // si los items resultantes siguen perteneciendo a una sola recepcion.
+    void sincronizarGuiasPorRecepciones(merged, tempRecepciones);
   };
 
   const handleEliminarItem = (tempId: string) => {
+    const itemEliminado = items.find((i) => i.tempId === tempId);
+    const itemsRestantes = items.filter((i) => i.tempId !== tempId);
     setItems((prev) => prev.filter((i) => i.tempId !== tempId));
+    // Si el item eliminado era un LOTE y NO quedan mas LOTEs del mismo id,
+    // limpiar el state de pesos oficiales para no acumular.
+    if (itemEliminado?.tipo_item === "LOTE" && itemEliminado.id_lote_mineral !== null) {
+      const idLote = itemEliminado.id_lote_mineral;
+      setPesosOficialesPorLote((prev) => {
+        if (!prev[idLote]) return prev;
+        const quedan = items.some(
+          (i) => i.tipo_item === "LOTE" && i.id_lote_mineral === idLote && i.tempId !== tempId,
+        );
+        if (quedan) return prev;
+        const { [idLote]: _omit, ...rest } = prev;
+        return rest;
+      });
+    }
+    // Sincronizar los inputs de guias (autocompletar o limpiar) segun
+    // si los items resultantes siguen perteneciendo a una sola recepcion.
+    void sincronizarGuiasPorRecepciones(itemsRestantes);
+  };
+
+  /**
+   * Sincroniza los inputs de guias (textos + archivos) con la lista actual
+   * de items:
+   * - size === 1: si los inputs estan vacios, autocompletar desde la
+   *   recepcion unica. Si ya estan poblados, no tocar.
+   * - size !== 1 (mezcla de recepciones o 0 items): limpiar los 4 inputs.
+   *
+   * Centraliza la logica para que se aplique consistente desde
+   * handleAgregarItems y handleEliminarItem.
+   */
+  const sincronizarGuiasPorRecepciones = async (
+    itemsActuales: ItemFormItem[],
+    recepcionesOverride?: Map<string, number>,
+  ): Promise<void> => {
+    const mapaRecepciones = recepcionesOverride ?? recepcionesPorItem;
+    const recepciones = new Set<number>();
+    for (const it of itemsActuales) {
+      const id = mapaRecepciones.get(itemKey(it));
+      if (id) recepciones.add(id);
+    }
+    // console.log("[autocompletar] sincronizarGuiasPorRecepciones - set de recepciones:", {
+    //   items: itemsActuales.length,
+    //   recepciones: Array.from(recepciones),
+    //   size: recepciones.size,
+    //   usoOverride: !!recepcionesOverride,
+    // });
+
+    if (recepciones.size !== 1) {
+      // 0 items, o mezcla de recepciones. Limpiar inputs.
+      // const motivo = itemsActuales.length === 0
+      //   ? "no hay items"
+      //   : `mezcla de ${recepciones.size} recepciones`;
+      // console.log("[autocompletar] action: limpiar -", motivo);
+      setGuiaRemitente("");
+      setGuiaTransportista("");
+      setDocumentoGuiaRemitente(null);
+      setDocumentoGuiaTransportista(null);
+      if (itemsActuales.length > 0) {
+        notifyInfo(
+          "Los items seleccionados pertenecen a múltiples recepciones. Las guías se han limpiado.",
+        );
+      }
+      return;
+    }
+
+    // size === 1. Decidir si autocompletar o mantener.
+    const unicaRecepcion = recepciones.values().next().value as number;
+
+    const inputsVacios =
+      guiaRemitente.trim() === "" &&
+      guiaTransportista.trim() === "" &&
+      documentoGuiaRemitente === null &&
+      documentoGuiaTransportista === null;
+
+    if (!inputsVacios) {
+      // console.log("[autocompletar] action: mantener - inputs ya poblados", {
+      //   guiaRemitente,
+      //   guiaTransportista,
+      //   tieneRemitente: !!documentoGuiaRemitente,
+      //   tieneTransportista: !!documentoGuiaTransportista,
+      // });
+      return;
+    }
+
+    // console.log("[autocompletar] action: autocompletar desde recepcion", { unicaRecepcion });
+
+    // Fetch explicito al endpoint: trae los textos (guia_remitente,
+    // guia_transportista) y los archivos (documentos_programacion)
+    // directamente desde recepcion_unidad de la BD. Esto elimina la
+    // dependencia de itemsDisponibles, que solo contiene items
+    // visibles en el sub-modal y puede NO tener filas para algunas
+    // recepciones si el operador selecciono items por separado.
+    let dataRecepcion: RES_ArchivosGuiasRecepcion;
+    try {
+      dataRecepcion = await ItemsMineralService.get_archivos_guias_by_recepcion(
+        unicaRecepcion,
+      );
+      // console.log("[autocompletar] respuesta del endpoint:", dataRecepcion);
+    } catch (err) {
+      // console.error("[autocompletar] ERROR en fetch:", err);
+      return;
+    }
+
+    if (
+      dataRecepcion.guia_remitente !== null &&
+      dataRecepcion.guia_remitente !== undefined
+    ) {
+      // console.log("[autocompletar] SET guiaRemitente =", dataRecepcion.guia_remitente);
+      setGuiaRemitente(dataRecepcion.guia_remitente);
+    }
+    if (
+      !sinGuiaTransportista &&
+      dataRecepcion.guia_transportista !== null &&
+      dataRecepcion.guia_transportista !== undefined
+    ) {
+      // console.log("[autocompletar] SET guiaTransportista =", dataRecepcion.guia_transportista);
+      setGuiaTransportista(dataRecepcion.guia_transportista);
+    }
+
+    const docs = dataRecepcion.documentos;
+    if (!docs) return;
+
+    if (docs.guia_remitente?.url) {
+      // console.log("[autocompletar] descargar archivo remitente", docs.guia_remitente);
+      const file = await descargarArchivoADocumento(docs.guia_remitente);
+      // console.log("[autocompletar] archivo remitente descargado?", !!file);
+      if (file) setDocumentoGuiaRemitente(file);
+    }
+    if (
+      !sinGuiaTransportista &&
+      docs.guia_transportista?.url &&
+      !documentoGuiaTransportista
+    ) {
+      // console.log("[autocompletar] descargar archivo transportista", docs.guia_transportista);
+      const file = await descargarArchivoADocumento(docs.guia_transportista);
+      // console.log("[autocompletar] archivo transportista descargado?", !!file);
+      if (file) setDocumentoGuiaTransportista(file);
+    }
+  };
+
+  /**
+   * Mapea una extension de archivo a un MIME type. Usado como fallback
+   * cuando el blob del backend llega con `application/octet-stream` y
+   * no podemos inferir el tipo real desde el blob.
+   */
+  const mimeFromExtension = (ext: string): string => {
+    const map: Record<string, string> = {
+      pdf: "application/pdf",
+      doc: "application/msword",
+      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      xls: "application/vnd.ms-excel",
+      xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      png: "image/png",
+      gif: "image/gif",
+      webp: "image/webp",
+    };
+    return map[ext.toLowerCase()] || "application/octet-stream";
+  };
+
+  /**
+   * Lee los primeros bytes de un Blob para detectar el tipo real del
+   * archivo via magic bytes. Usado como ultimo fallback cuando tanto
+   * blob.type como mimeFromExtension fallan (archivos viejos guardados
+   * como .bin en storage que el backend no sabe tipar).
+   *
+   * Devuelve {mime, ext} o null si no reconoce los magic bytes.
+   */
+  const detectFromMagicBytes = async (
+    b: Blob,
+  ): Promise<{ mime: string; ext: string } | null> => {
+    try {
+      const buf = await b.slice(0, 12).arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      // PDF: 25 50 44 46 (%PDF)
+      if (
+        bytes[0] === 0x25 &&
+        bytes[1] === 0x50 &&
+        bytes[2] === 0x44 &&
+        bytes[3] === 0x46
+      ) {
+        return { mime: "application/pdf", ext: "pdf" };
+      }
+      // ZIP / DOCX / XLSX: 50 4B 03 04 (PK..)
+      if (
+        bytes[0] === 0x50 &&
+        bytes[1] === 0x4b &&
+        bytes[2] === 0x03 &&
+        bytes[3] === 0x04
+      ) {
+        // DOCX vs XLSX: DOCX tiene "word/" en offsets 38+, XLSX "xl/".
+        // Por simplicidad y dado el dominio (documentos administrativos),
+        // asumimos DOCX si no podemos leer mas profundo.
+        const headerTail = Array.from(bytes.slice(4, 12))
+          .map((b) => String.fromCharCode(b))
+          .join("");
+        if (headerTail.includes("xl")) {
+          return {
+            mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ext: "xlsx",
+          };
+        }
+        return {
+          mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          ext: "docx",
+        };
+      }
+      // PNG: 89 50 4E 47 (.PNG)
+      if (
+        bytes[0] === 0x89 &&
+        bytes[1] === 0x50 &&
+        bytes[2] === 0x4e &&
+        bytes[3] === 0x47
+      ) {
+        return { mime: "image/png", ext: "png" };
+      }
+      // JPEG: FF D8 FF
+      if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+        return { mime: "image/jpeg", ext: "jpg" };
+      }
+      // GIF: 47 49 46 38 (GIF8)
+      if (
+        bytes[0] === 0x47 &&
+        bytes[1] === 0x49 &&
+        bytes[2] === 0x46 &&
+        bytes[3] === 0x38
+      ) {
+        return { mime: "image/gif", ext: "gif" };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  /**
+   * Descarga un archivo de guias desde el backend (endpoint autenticado
+   * via JWT) y lo convierte a un objeto File para el MultiFilePicker.
+   * Devuelve null si falla la peticion o el tipo MIME no se puede inferir.
+   */
+  const descargarArchivoADocumento = async (
+    archivo: IArchivo,
+  ): Promise<File | null> => {
+    if (!archivo.path_relativo) {
+      return null;
+    }
+    const base = archivo.nombre_original || "archivo";
+    let ext =
+      archivo.extension && archivo.extension !== "bin"
+        ? archivo.extension
+        : "";
+    let nombreCompleto =
+      ext && !base.toLowerCase().endsWith(`.${ext.toLowerCase()}`)
+        ? `${base}.${ext}`
+        : base;
+    try {
+      const blob = await ArchivoService.descargarArchivo(
+        archivo.path_relativo,
+        nombreCompleto,
+      );
+      let tipo =
+        blob.type && blob.type !== "application/octet-stream"
+          ? blob.type
+          : mimeFromExtension(ext);
+
+      // Ultimo fallback: detectar tipo real por magic bytes del blob.
+      // Cubre archivos viejos guardados como .bin donde el backend no
+      // puede inferir nada y la extension reportada tampoco sirve.
+      if (!tipo || tipo === "application/octet-stream") {
+        const detected = await detectFromMagicBytes(blob);
+        if (detected) {
+          tipo = detected.mime;
+          if (!ext) {
+            ext = detected.ext;
+            const baseName = nombreCompleto.includes(".")
+              ? nombreCompleto.split(".").slice(0, -1).join(".")
+              : nombreCompleto;
+            nombreCompleto = `${baseName}.${ext}`;
+          }
+        }
+      }
+
+      return new File([blob], nombreCompleto, { type: tipo });
+    } catch (err) {
+      return null;
+    }
+  };
+
+  /**
+   * Handler unificado para los inputs de archivos de los documentos de la
+   * guia. Si ya existe un archivo guardado para ese campo (modo edicion),
+   * abre un modal controlado que pide confirmacion antes de sobrescribirlo.
+   */
+  const handleFilesChange = (
+    field: "remitente" | "transportista",
+    files: File[],
+  ) => {
+    if (files.length === 0) return;
+    const file = files[0];
+    const existing =
+      field === "remitente"
+        ? guia?.documentos?.guia_remitente
+        : guia?.documentos?.guia_transportista;
+    if (existing) {
+      setPendingReplacement({ field, file });
+    } else {
+      if (field === "remitente") setDocumentoGuiaRemitente(file);
+      else setDocumentoGuiaTransportista(file);
+    }
+  };
+
+  const handleConfirmReplacement = () => {
+    if (!pendingReplacement) return;
+    if (pendingReplacement.field === "remitente") {
+      setDocumentoGuiaRemitente(pendingReplacement.file);
+    } else {
+      setDocumentoGuiaTransportista(pendingReplacement.file);
+    }
+    setPendingReplacement(null);
+  };
+
+  const handleCancelReplacement = () => {
+    setPendingReplacement(null);
   };
 
   const resetForm = () => {
@@ -506,6 +996,8 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
     setDocumentoGuiaRemitente(null);
     setDocumentoGuiaTransportista(null);
     setItems([]);
+    setRecepcionesPorItem(new Map());
+    setPesosOficialesPorLote({});
   };
 
   const handleClose = () => {
@@ -531,6 +1023,37 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
       ? null
       : guiaTransportista.trim() || null;
 
+    // Chequeo pre-submit: si ya existe una guía activa con la misma
+    // combinación (guia_remitente + transportista / sin_guia_transportista),
+    // advertimos con notifyError y NO enviamos el POST. El modal permanece
+    // abierto para que el operador cambie los valores. En edición pasamos
+    // `id_excluir` con el id de la guía actual para no chocar consigo misma.
+    try {
+      setValidatingDuplicado(true);
+      const resultadoValidacion = await GuiasPrimerTramoService.validar_duplicado({
+        id_sucursal: idSucursal,
+        guia_remitente: guiaRemitenteTrim,
+        guia_transportista: numeroGuiaTransportista,
+        sin_guia_transportista: sinGuiaTransportista,
+        id_excluir: guia?.id ?? null,
+      });
+
+      if (resultadoValidacion.existe) {
+        const msgs = resultadoValidacion.messages ?? {};
+        const msgPrincipal =
+          msgs.combinacion ?? msgs.remitente ?? msgs.transportista
+          ?? "Ya existe una guía activa con esos datos.";
+        notifyError(msgPrincipal);
+        return;
+      }
+    } catch (e) {
+      console.error("Error al validar duplicado de guía", e);
+      notifyError("No se pudo validar la guía. Intente nuevamente.");
+      return;
+    } finally {
+      setValidatingDuplicado(false);
+    }
+
     const getFinalDateTime = (
       currentVal: string | null,
       originalVal: string | null | undefined,
@@ -550,6 +1073,30 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
       id_lote_mineral: i.id_lote_mineral,
       id_particion_lote_mineral: i.id_particion_lote_mineral,
     }));
+
+    // Armar payload de pesos oficiales para LOTEs sin particiones. Solo se
+    // envian si el operador modifico los valores (no coinciden con los
+    // originales del lote).
+    const pesosOficialesLotes: DTO_PesosOficialesLote[] = [];
+    for (const it of items) {
+      if (it.tipo_item !== "LOTE" || it.id_lote_mineral === null) continue;
+      const editados = pesosOficialesPorLote[it.id_lote_mineral];
+      if (!editados) continue;
+      const origInicial = Number(it.peso_inicial ?? 0);
+      const origFinal = Number(it.peso_final ?? 0);
+      const origNeto = Number(it.peso_neto ?? 0);
+      const cambio =
+        Math.abs(editados.peso_inicial_oficial - origInicial) > 0.01 ||
+        Math.abs(editados.peso_final_oficial - origFinal) > 0.01 ||
+        Math.abs(editados.peso_neto_oficial - origNeto) > 0.01;
+      if (!cambio) continue;
+      pesosOficialesLotes.push({
+        id_lote_mineral: it.id_lote_mineral,
+        peso_inicial_oficial: round2(editados.peso_inicial_oficial),
+        peso_final_oficial: round2(editados.peso_final_oficial),
+        peso_neto_oficial: round2(editados.peso_neto_oficial),
+      });
+    }
 
     setSubmitting(true);
     try {
@@ -578,6 +1125,7 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
           documento_guia_remitente: documentoGuiaRemitente,
           documento_guia_transportista: sinGuiaTransportista ? null : documentoGuiaTransportista,
           motivo: null,
+          pesos_oficiales_lotes: pesosOficialesLotes.length > 0 ? pesosOficialesLotes : null,
         };
         await onUpdate(guia.id, dto);
       } else {
@@ -603,6 +1151,7 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
           lotes: itemsDto,
           documento_guia_remitente: documentoGuiaRemitente,
           documento_guia_transportista: sinGuiaTransportista ? null : documentoGuiaTransportista,
+          pesos_oficiales_lotes: pesosOficialesLotes.length > 0 ? pesosOficialesLotes : null,
         };
         await onSubmit(dto);
       }
@@ -619,23 +1168,13 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
     [loadingConcesiones],
   );
 
-  const fileRemitenteLabel = documentoGuiaRemitente
-    ? documentoGuiaRemitente.name
-    : guia?.documentos?.guia_remitente?.nombre_original ?? null;
-
-  const fileTransportistaLabel = sinGuiaTransportista
-    ? null
-    : documentoGuiaTransportista
-    ? documentoGuiaTransportista.name
-    : guia?.documentos?.guia_transportista?.nombre_original ?? null;
-
   return (
     <>
       <ModalEstandar
         opened={opened}
         close={handleClose}
         title={guia ? "Editar Guía de Primer Tramo" : "Registrar Guía de Primer Tramo"}
-        size="xl"
+        size="85%"
       >
         <Stack gap="md" className="max-h-[85vh] overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
           {/* ========== 1. Fechas ========== */}
@@ -768,6 +1307,11 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
                 size="xs"
                 maxLength={20}
                 required
+                error={
+                  existeRemitenteEnVivo
+                    ? mensajesDuplicado.remitente ?? "Ya existe otra guía activa con este número de guía remitente."
+                    : undefined
+                }
               />
             </Grid.Col>
             <Grid.Col span={{ base: 12, sm: 5 }}>
@@ -781,6 +1325,11 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
                 size="xs"
                 maxLength={20}
                 disabled={sinGuiaTransportista}
+                error={
+                  existeTransportistaEnVivo
+                    ? mensajesDuplicado.transportista ?? "Ya existe otra guía activa con este número de guía transportista."
+                    : undefined
+                }
               />
             </Grid.Col>
             <Grid.Col span={{ base: 12, sm: 2 }}>
@@ -799,6 +1348,16 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
               </div>
             </Grid.Col>
           </Grid>
+
+          {/* Indicador de validación */}
+          {validatingEnVivo && (
+            <Group gap="xs" align="center" pl="xs">
+              <Loader size={12} color="yellow" />
+              <Text size="xs" c="dimmed">
+                Validando duplicados…
+              </Text>
+            </Group>
+          )}
 
           {/* ========== 4. Vehículos y Empresas ========== */}
           <Grid gutter="sm">
@@ -1002,92 +1561,54 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
           {/* ========== 6. Documentos de las Guías (subidos por separado) ========== */}
           <Grid gutter="sm">
             <Grid.Col span={{ base: 12, sm: 6 }}>
-              <div className="flex flex-col gap-1">
-                <span className="text-zinc-400 font-medium text-xs mb-1">Documento Guía Remitente:</span>
-                <MGroup gap="xs" wrap="nowrap">
-                  <FileButton
-                    onChange={(file) => setDocumentoGuiaRemitente(file)}
-                    accept="application/pdf,image/*"
-                  >
-                    {(props) => (
-                      <Button
-                        {...props}
-                        variant="light"
-                        color="indigo"
-                        radius="md"
-                        size="xs"
-                        leftSection={<IconFile size={14} />}
-                      >
-                        {documentoGuiaRemitente ? "Reemplazar" : "Subir PDF / Imagen"}
-                      </Button>
-                    )}
-                  </FileButton>
-                  {fileRemitenteLabel && (
-                    <div className="flex items-center gap-1 text-xs text-zinc-300 truncate">
-                      <IconFileText size={14} className="text-zinc-500" />
-                      <span className="truncate max-w-50" title={fileRemitenteLabel}>
-                        {fileRemitenteLabel}
-                      </span>
-                      {documentoGuiaRemitente && (
-                        <ActionIcon
-                          size="xs"
-                          variant="subtle"
-                          color="gray"
-                          onClick={() => setDocumentoGuiaRemitente(null)}
-                          title="Quitar"
-                        >
-                          <IconX size={12} />
-                        </ActionIcon>
-                      )}
-                    </div>
-                  )}
-                </MGroup>
-              </div>
+              <MultiFilePicker
+                label="Documento Guía Remitente:"
+                description="PDF o imagen de la guía del remitente"
+                files={documentoGuiaRemitente ? [documentoGuiaRemitente] : []}
+                onFilesChange={(files) => handleFilesChange("remitente", files)}
+                existingFiles={
+                  documentoGuiaRemitente
+                    ? []
+                    : guia?.documentos?.guia_remitente
+                      ? [guia.documentos.guia_remitente]
+                      : []
+                }
+                onRemoveExisting={() =>
+                  notifyInfo(
+                    "El archivo existente solo se puede reemplazar. Suba uno nuevo encima para sobrescribirlo.",
+                  )
+                }
+                accept="application/pdf,image/*"
+                multiple={false}
+                maxFiles={1}
+              />
             </Grid.Col>
             <Grid.Col span={{ base: 12, sm: 6 }}>
-              <div className="flex flex-col gap-1">
-                <span className="text-zinc-400 font-medium text-xs mb-1">Documento Guía Transportista:</span>
-                <MGroup gap="xs" wrap="nowrap">
-                  <FileButton
-                    onChange={(file) => setDocumentoGuiaTransportista(file)}
-                    accept="application/pdf,image/*"
-                    disabled={sinGuiaTransportista}
-                  >
-                    {(props) => (
-                      <Button
-                        {...props}
-                        variant="light"
-                        color="indigo"
-                        radius="md"
-                        size="xs"
-                        leftSection={<IconFile size={14} />}
-                        disabled={sinGuiaTransportista}
-                      >
-                        {documentoGuiaTransportista ? "Reemplazar" : "Subir PDF / Imagen"}
-                      </Button>
-                    )}
-                  </FileButton>
-                  {fileTransportistaLabel && (
-                    <div className="flex items-center gap-1 text-xs text-zinc-300 truncate">
-                      <IconFileText size={14} className="text-zinc-500" />
-                      <span className="truncate max-w-50" title={fileTransportistaLabel}>
-                        {fileTransportistaLabel}
-                      </span>
-                      {documentoGuiaTransportista && (
-                        <ActionIcon
-                          size="xs"
-                          variant="subtle"
-                          color="gray"
-                          onClick={() => setDocumentoGuiaTransportista(null)}
-                          title="Quitar"
-                        >
-                          <IconX size={12} />
-                        </ActionIcon>
-                      )}
-                    </div>
-                  )}
-                </MGroup>
-              </div>
+              <MultiFilePicker
+                label="Documento Guía Transportista:"
+                description="PDF o imagen de la guía del transportista"
+                files={
+                  !sinGuiaTransportista && documentoGuiaTransportista
+                    ? [documentoGuiaTransportista]
+                    : []
+                }
+                onFilesChange={(files) => handleFilesChange("transportista", files)}
+                existingFiles={
+                  !sinGuiaTransportista &&
+                  !documentoGuiaTransportista &&
+                  guia?.documentos?.guia_transportista
+                    ? [guia.documentos.guia_transportista]
+                    : []
+                }
+                onRemoveExisting={() =>
+                  notifyInfo(
+                    "El archivo existente solo se puede reemplazar. Suba uno nuevo encima para sobrescribirlo.",
+                  )
+                }
+                accept="application/pdf,image/*"
+                multiple={false}
+                maxFiles={1}
+              />
             </Grid.Col>
           </Grid>
 
@@ -1113,8 +1634,6 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
                 <tr className="border-b border-zinc-800/80 bg-zinc-900/40 text-zinc-300 text-xs font-semibold">
                   <th className="text-center py-3">Tipo</th>
                   <th className="text-center py-3">Correlativo</th>
-                  <th className="text-center py-3">Producto</th>
-                  <th className="text-center py-3">Mineral</th>
                   <th className="text-center py-3">P. Bruto</th>
                   <th className="text-center py-3">Tara</th>
                   <th className="text-center py-3">P. Neto</th>
@@ -1124,7 +1643,7 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
               <tbody>
                 {items.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="text-center py-6 text-zinc-500 text-xs">
+                    <td colSpan={6} className="text-center py-6 text-zinc-500 text-xs">
                       No hay items agregados. Haga clic en "+ Agregar Item" para seleccionar.
                     </td>
                   </tr>
@@ -1145,8 +1664,8 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
                           {it.tipo_item}
                         </Badge>
                       </td>
-                      <td className="py-2.5">
-                        <div className="flex items-center justify-center gap-2">
+                      <td className="py-2.5 text-center">
+                        <div className="flex items-center justify-center gap-2 w-full">
                           <div className="p-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                             <IconFileText size={14} />
                           </div>
@@ -1155,17 +1674,125 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
                           </Text>
                         </div>
                       </td>
-                      <td className="py-2.5 text-center text-xs text-zinc-300">{it.tipo_producto ?? "—"}</td>
-                      <td className="py-2.5 text-center text-xs text-zinc-300">{it.tipo_mineral ?? "—"}</td>
-                      <td className="py-2.5 text-center font-mono text-zinc-200 text-xs">
-                        {it.peso_inicial?.toFixed(2) ?? "—"}
-                      </td>
-                      <td className="py-2.5 text-center font-mono text-zinc-200 text-xs">
-                        {it.peso_final?.toFixed(2) ?? "—"}
-                      </td>
-                      <td className="py-2.5 text-center font-mono text-emerald-400 text-xs fw-semibold">
-                        {it.peso_neto?.toFixed(2) ?? "—"}
-                      </td>
+                      
+                      {it.tipo_item === "LOTE" && it.id_lote_mineral !== null ? (
+                        <>
+                          <td className="py-2 text-center align-middle w-1/4">
+                            <PesosOficialesInput
+                              idLote={it.id_lote_mineral}
+                              field="peso_inicial_oficial"
+                              value={
+                                pesosOficialesPorLote[it.id_lote_mineral]?.peso_inicial_oficial
+                                  ?? it.peso_inicial
+                                  ?? 0
+                              }
+                              onChange={(v) => {
+                                setPesosOficialesPorLote((prev) => {
+                                  const current =
+                                    prev[it.id_lote_mineral!] ?? {
+                                      id_lote_mineral: it.id_lote_mineral!,
+                                      peso_inicial_oficial: round2(
+                                        it.peso_inicial ?? 0,
+                                      ),
+                                      peso_final_oficial: round2(
+                                        it.peso_final ?? 0,
+                                      ),
+                                      peso_neto_oficial: round2(it.peso_neto ?? 0),
+                                    };
+                                  return {
+                                    ...prev,
+                                    [it.id_lote_mineral!]: aplicarReglaPesoOficial(
+                                      current,
+                                      "peso_inicial_oficial",
+                                      v,
+                                    ),
+                                  };
+                                });
+                              }}
+                            />
+                          </td>
+                          <td className="py-2 text-center align-middle w-1/4">
+                            <PesosOficialesInput
+                              idLote={it.id_lote_mineral}
+                              field="peso_final_oficial"
+                              value={
+                                pesosOficialesPorLote[it.id_lote_mineral]?.peso_final_oficial
+                                  ?? it.peso_final
+                                  ?? 0
+                              }
+                              onChange={(v) => {
+                                setPesosOficialesPorLote((prev) => {
+                                  const current =
+                                    prev[it.id_lote_mineral!] ?? {
+                                      id_lote_mineral: it.id_lote_mineral!,
+                                      peso_inicial_oficial: round2(
+                                        it.peso_inicial ?? 0,
+                                      ),
+                                      peso_final_oficial: round2(
+                                        it.peso_final ?? 0,
+                                      ),
+                                      peso_neto_oficial: round2(it.peso_neto ?? 0),
+                                    };
+                                  return {
+                                    ...prev,
+                                    [it.id_lote_mineral!]: aplicarReglaPesoOficial(
+                                      current,
+                                      "peso_final_oficial",
+                                      v,
+                                    ),
+                                  };
+                                });
+                              }}
+                            />
+                          </td>
+                          <td className="py-2 text-center align-middle w-1/4">
+                            <PesosOficialesInput
+                              idLote={it.id_lote_mineral}
+                              field="peso_neto_oficial"
+                              value={
+                                pesosOficialesPorLote[it.id_lote_mineral]?.peso_neto_oficial
+                                  ?? it.peso_neto
+                                  ?? 0
+                              }
+                              onChange={(v) => {
+                                setPesosOficialesPorLote((prev) => {
+                                  const current =
+                                    prev[it.id_lote_mineral!] ?? {
+                                      id_lote_mineral: it.id_lote_mineral!,
+                                      peso_inicial_oficial: round2(
+                                        it.peso_inicial ?? 0,
+                                      ),
+                                      peso_final_oficial: round2(
+                                        it.peso_final ?? 0,
+                                      ),
+                                      peso_neto_oficial: round2(it.peso_neto ?? 0),
+                                    };
+                                  return {
+                                    ...prev,
+                                    [it.id_lote_mineral!]: aplicarReglaPesoOficial(
+                                      current,
+                                      "peso_neto_oficial",
+                                      v,
+                                    ),
+                                  };
+                                });
+                              }}
+                            />
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="py-2.5 text-center font-mono text-zinc-200 text-xs">
+                            {it.peso_inicial?.toFixed(2) ?? "—"}
+                          </td>
+                          <td className="py-2.5 text-center font-mono text-zinc-200 text-xs">
+                            {it.peso_final?.toFixed(2) ?? "—"}
+                          </td>
+                          <td className="py-2.5 text-center font-mono text-emerald-400 text-xs fw-semibold">
+                            {it.peso_neto?.toFixed(2) ?? "—"}
+                          </td>
+                        </>
+                      )}
                       <td className="py-2.5 text-center">
                         <Tooltip label="Eliminar" withArrow position="top">
                           <ActionIcon
@@ -1190,19 +1817,71 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
 
           {/* Acciones */}
           <div className="flex justify-end gap-2">
-            <Button variant="subtle" color="gray" radius="lg" size="sm" onClick={handleClose} disabled={submitting}>
+            <Button
+              variant="subtle"
+              color="gray"
+              radius="lg"
+              size="sm"
+              onClick={handleClose}
+              disabled={submitting || validatingDuplicado}
+            >
               Cancelar
             </Button>
             <Button
               radius="lg"
               size="sm"
-              loading={submitting}
+              loading={submitting || validatingDuplicado}
               onClick={handleConfirmar}
+              disabled={submitting || validatingDuplicado || hayDuplicadoEnVivo}
               className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-900/20 px-6"
             >
               {guia ? "Editar Guía" : "Registrar Guía"}
             </Button>
           </div>
+        </Stack>
+      </ModalEstandar>
+
+      {/* Modal controlado de confirmación para reemplazo de documento */}
+      <ModalEstandar
+        opened={pendingReplacement !== null}
+        close={handleCancelReplacement}
+        title="Reemplazar documento existente"
+      >
+        <Stack gap="md">
+          <div className="flex gap-4 items-start">
+            <div className="p-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 shrink-0">
+              <IconAlertTriangle size={24} />
+            </div>
+            <Text size="sm" c="zinc.3" className="flex-1 leading-relaxed">
+              El documento actual de{" "}
+              <strong className="text-zinc-100">
+                {pendingReplacement?.field === "remitente"
+                  ? "la guia del remitente"
+                  : "la guia del transportista"}
+              </strong>{" "}
+              sera reemplazado por el archivo seleccionado. Esta accion no se
+              puede deshacer.
+            </Text>
+          </div>
+          <Group justify="end" gap="sm">
+            <Button
+              variant="subtle"
+              color="gray"
+              radius="xl"
+              size="sm"
+              onClick={handleCancelReplacement}
+            >
+              Cancelar
+            </Button>
+            <Button
+              radius="xl"
+              size="sm"
+              onClick={handleConfirmReplacement}
+              className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-900/30 font-semibold"
+            >
+              Reemplazar
+            </Button>
+          </Group>
         </Stack>
       </ModalEstandar>
 
@@ -1318,6 +1997,43 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
         }}
       />
     </>
+  );
+};
+
+// ============================================================
+// Input editable para pesos oficiales del LOTE
+// ============================================================
+
+interface PesosOficialesInputProps {
+  idLote: number;
+  field: "peso_inicial_oficial" | "peso_final_oficial" | "peso_neto_oficial";
+  value: number;
+  onChange: (value: number) => void;
+}
+
+const PesosOficialesInput = ({ idLote, field, value, onChange }: PesosOficialesInputProps) => {
+  return (
+    <NumberInput
+      value={value}
+      onChange={(v) => {
+        const parsed = typeof v === "number" ? v : parseFloat(String(v));
+        if (!Number.isFinite(parsed)) return;
+        onChange(parsed);
+      }}
+      min={0}
+      decimalScale={2}
+      fixedDecimalScale
+      hideControls
+      radius="lg"
+      size="xs"
+      aria-label={`${field} lote ${idLote}`}
+      classNames={{
+        input:
+          "text-[11px] h-7 px-2 font-mono text-center bg-zinc-900/60 border-zinc-800 focus:border-indigo-500",
+      }}
+      className="mx-auto"
+      style={{ width: 100 }}
+    />
   );
 };
 

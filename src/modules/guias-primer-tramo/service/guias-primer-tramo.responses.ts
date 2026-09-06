@@ -90,6 +90,12 @@ export interface RES_ItemMineralDisponible {
   id_lote_mineral: number | null;
   id_particion_lote_mineral: number | null;
   id_recepcion_unidad: number;
+  // Para LOTE: misma recepcion que `id_recepcion_unidad`.
+  // Para PARTICION: la recepcion_unidad del LOTE PADRE (la original con
+  // guia_remitente/transportista/documentos_programacion). Usar este campo
+  // para el autocompletado de inputs de guias; la recepcion ficticia de la
+  // particion no tiene esos datos.
+  id_recepcion_unidad_padre?: number | null;
   id_proveedor_minero: number | null;
   tipo_item: TipoItem;
   correlativo: string;
@@ -99,12 +105,61 @@ export interface RES_ItemMineralDisponible {
   peso_inicial: number | null;
   peso_final: number | null;
   peso_neto: number | null;
+  // Pesos oficiales del lote (definidos al registrar/editar una guia).
+  // Solo aplican a LOTE sin particiones. Si existen, el modal los usa como
+  // valor inicial de los inputs editables.
+  peso_inicial_oficial?: number | null;
+  peso_final_oficial?: number | null;
+  peso_neto_oficial?: number | null;
   created_at: string;
   proveedor_nombre: string | null;
   vehiculo_placa?: string | null;
   en_guia: boolean;
+  // Datos de la recepcion que el modal de guia-primer-tramo usa para
+  // autocompletar inputs de guias (texto + archivos) cuando los items
+  // seleccionados pertenecen a una sola recepcion.
+  guia_remitente_recepcion?: string | null;
+  guia_transportista_recepcion?: string | null;
+  documentos_programacion_recepcion?: RES_GuiaDocumentos | null;
+}
+
+export interface RES_ArchivosGuiasRecepcion {
+  guia_remitente: string | null;
+  guia_transportista: string | null;
+  documentos: RES_GuiaDocumentos | null;
 }
 
 export interface RES_FiltrosMetadataGuia {
   proveedores: Array<{ id: number; razon_social: string }>;
+}
+
+/**
+ * Respuesta del endpoint `POST /api/guias-primer-tramo/validar-duplicado`.
+ *
+ * Tres flags independientes para que el frontend pueda resaltar inputs y
+ * bloquear el submit segun el caso:
+ *   - `existe_combinacion`:    la combinacion exacta (remitente + transportista
+ *                              / sin_transportista) ya esta usada por otra guia.
+ *   - `existe_remitente`:      otra guia activa tiene el mismo `guia_remitente`
+ *                              (cualquier transportista).
+ *   - `existe_transportista`:  otra guia activa tiene el mismo
+ *                              `guia_transportista` (cualquier remitente). No
+ *                              aplica si `sin_guia_transportista=true`.
+ *
+ * `messages` mapea cada flag con su mensaje legible del backend.
+ */
+export interface RES_ValidarDuplicadoGuia {
+  existe: boolean;
+  existe_combinacion: boolean;
+  existe_remitente: boolean;
+  existe_transportista: boolean;
+  id_guia_combinacion: number | null;
+  id_guia_remitente: number | null;
+  id_guia_transportista: number | null;
+  messages: {
+    combinacion?: string;
+    remitente?: string;
+    transportista?: string;
+  };
+  guia?: RES_GuiaPrimerTramo;
 }

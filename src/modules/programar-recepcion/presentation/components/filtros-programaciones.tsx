@@ -55,7 +55,6 @@ export const FiltrosProgramaciones = ({
         fechaFin={fechaFin || null}
         onFechaInicioChange={setFechaInicio}
         onFechaFinChange={setFechaFin}
-        classNames={fieldClasses}
         showClearButton={false}
       />
 

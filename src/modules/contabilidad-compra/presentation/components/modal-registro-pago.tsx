@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert,
   Button,
   Group,
   Loader,
@@ -14,7 +13,7 @@ import {
   Textarea,
 } from "@mantine/core";
 import { DateTimePicker } from "@mantine/dates";
-import { IconAlertCircle, IconArrowRight } from "@tabler/icons-react";
+import { IconArrowRight } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
 import { MultiFilePicker } from "../../../../presentation/utils/archivo/multifile-picker";
@@ -28,7 +27,7 @@ interface ModalRegistroPagoProps {
   opened: boolean;
   onClose: () => void;
   comprobante: RES_ComprobanteCompra;
-  onSubmit: (payload: REQ_RegistrarPago) => Promise<boolean>;
+  onSubmit: (payload: REQ_RegistrarPago) => Promise<RES_ComprobanteCompra | null>;
   submitting: boolean;
 }
 
@@ -39,6 +38,7 @@ interface CuentaOption {
   id_banco: number;
   numero_cuenta: string;
   moneda: string;
+  es_para_detraccion?: boolean;
 }
 
 const isMonedaSoles = (moneda: string): boolean => {
@@ -62,7 +62,15 @@ export const ModalRegistroPago = ({
 }: ModalRegistroPagoProps) => {
   const { notifyError } = useNotify();
 
-  const [esParaDetraccion, setEsParaDetraccion] = useState(false);
+  const [esParaDetraccion, setEsParaDetraccion] = useState(() => {
+    const netoSaldadoInit =
+      (comprobante.monto_neto - comprobante.avance_pago_neto) <= 0.01;
+    const detraccionSaldadaInit =
+      (comprobante.monto_detraccion_soles - comprobante.avance_pago_detraccion) <= 0.01;
+    if (netoSaldadoInit && !detraccionSaldadaInit) return true;
+    if (detraccionSaldadaInit && !netoSaldadoInit) return false;
+    return false;
+  });
   const [fechaPago, setFechaPago] = useState<Date | null>(new Date());
   const [medioPago, setMedioPago] = useState<MedioPagoComprobante>(MedioPagoComprobante.Transferencia);
   const [monto, setMonto] = useState<number | string>("");
@@ -103,24 +111,43 @@ export const ModalRegistroPago = ({
     return d.format("YYYY-MM-DD HH:mm:ss");
   };
 
+  const wasOpenedRef = useRef(false);
+
   useEffect(() => {
-    if (!opened) return;
-    queueMicrotask(() => {
-      setEsParaDetraccion(false);
-      setFechaPago(new Date());
-      setMedioPago(MedioPagoComprobante.Transferencia);
-      setMonto(calcPorPagar(false));
-      setNumeroOperacion("");
-      setObservacion("");
-      setEvidencias([]);
-      setIdBancoEmpresa(null);
-      setIdCuentaEmpresa(null);
-      setIdBancoProveedor(null);
-      setIdCuentaProveedor(null);
-      setCuentasEmpresa([]);
-      setCuentasProveedor([]);
-    });
-  }, [opened, calcPorPagar]);
+    if (!opened) {
+      wasOpenedRef.current = false;
+      return;
+    }
+    if (!wasOpenedRef.current) {
+      wasOpenedRef.current = true;
+      queueMicrotask(() => {
+        const netoSaldadoInit =
+          (comprobante.monto_neto - comprobante.avance_pago_neto) <= 0.01;
+        const detraccionSaldadaInit =
+          (comprobante.monto_detraccion_soles - comprobante.avance_pago_detraccion) <= 0.01;
+        const initDetraccion = netoSaldadoInit && !detraccionSaldadaInit;
+
+        setEsParaDetraccion(initDetraccion);
+        setFechaPago(new Date());
+        setMedioPago(MedioPagoComprobante.Transferencia);
+        setMonto(calcPorPagar(initDetraccion));
+        setNumeroOperacion("");
+        setObservacion("");
+        setEvidencias([]);
+        setIdBancoEmpresa(null);
+        setIdCuentaEmpresa(null);
+        setIdBancoProveedor(null);
+        setIdCuentaProveedor(null);
+      });
+    }
+  }, [
+    opened,
+    calcPorPagar,
+    comprobante.monto_neto,
+    comprobante.avance_pago_neto,
+    comprobante.monto_detraccion_soles,
+    comprobante.avance_pago_detraccion,
+  ]);
 
   useEffect(() => {
     if (!opened) return;
@@ -137,39 +164,54 @@ export const ModalRegistroPago = ({
   useEffect(() => {
     if (!opened) return;
     const moneda = esParaDetraccion ? "Soles" : "Dólares";
-    queueMicrotask(() => setLoadingCuentasEmpresa(true));
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setLoadingCuentasEmpresa(true);
+    });
     AuxService.get_cuentas_bancarias_empresa_por_moneda(moneda, esParaDetraccion)
       .then((res) => {
-        if (res.success && res.data) {
-          setCuentasEmpresa(res.data);
-        } else {
-          setCuentasEmpresa([]);
-        }
+        if (cancelled) return;
+        setCuentasEmpresa(Array.isArray(res) ? res : []);
       })
-      .catch((e) => console.error("Error cuentas empresa:", e))
-      .finally(() => setLoadingCuentasEmpresa(false));
+      .catch((e: unknown) => console.error("Error cuentas empresa:", e))
+      .finally(() => {
+        if (!cancelled) setLoadingCuentasEmpresa(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [esParaDetraccion, opened]);
 
   // Cargar cuentas proveedor del proveedor del comprobante
   useEffect(() => {
     if (!opened || !comprobante?.id_proveedor) return;
-    queueMicrotask(() => setLoadingCuentasProveedor(true));
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setLoadingCuentasProveedor(true);
+    });
     AuxService.get_cuentas_bancarias_proveedor(comprobante.id_proveedor)
       .then((res) => {
+        if (cancelled) return;
         const lista = Array.isArray(res) ? res : [];
         setCuentasProveedor(
           lista.map((c) => ({
             id_cuenta_bancaria: c.id,
             banco: c.banco_nombre ?? "",
             banco_abv: "",
-            id_banco: c.id_banco,
+            id_banco: Number(c.id_banco),
             numero_cuenta: c.numero_cuenta,
             moneda: c.moneda,
+            es_para_detraccion: Boolean(c.es_para_detraccion),
           })),
         );
       })
-      .catch((e) => console.error("Error cuentas proveedor:", e))
-      .finally(() => setLoadingCuentasProveedor(false));
+      .catch((e: unknown) => console.error("Error cuentas proveedor:", e))
+      .finally(() => {
+        if (!cancelled) setLoadingCuentasProveedor(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [opened, comprobante?.id_proveedor]);
 
   const cuentasEmpresaMoneda = useMemo(() => {
@@ -181,16 +223,17 @@ export const ModalRegistroPago = ({
 
   const cuentasProveedorMoneda = useMemo(() => {
     if (!esParaDetraccion) {
-      return cuentasProveedor.filter((c) => isMonedaDolares(c.moneda));
+      return cuentasProveedor.filter((c) => isMonedaDolares(c.moneda) && !c.es_para_detraccion);
     }
-    return cuentasProveedor.filter((c) => isMonedaSoles(c.moneda));
+    return cuentasProveedor.filter((c) => isMonedaSoles(c.moneda) || c.es_para_detraccion);
   }, [cuentasProveedor, esParaDetraccion]);
 
   const bancosEmpresa = useMemo(() => {
     const map = new Map<number, { id: number; nombre: string }>();
     cuentasEmpresaMoneda.forEach((c) => {
-      if (!map.has(c.id_banco)) {
-        map.set(c.id_banco, { id: c.id_banco, nombre: c.banco });
+      const idBancoNum = Number(c.id_banco);
+      if (!map.has(idBancoNum)) {
+        map.set(idBancoNum, { id: idBancoNum, nombre: c.banco });
       }
     });
     return Array.from(map.values());
@@ -199,20 +242,21 @@ export const ModalRegistroPago = ({
   const bancosProveedor = useMemo(() => {
     const map = new Map<number, { id: number; nombre: string }>();
     cuentasProveedorMoneda.forEach((c) => {
-      if (!map.has(c.id_banco)) {
-        map.set(c.id_banco, { id: c.id_banco, nombre: c.banco });
+      const idBancoNum = Number(c.id_banco);
+      if (!map.has(idBancoNum)) {
+        map.set(idBancoNum, { id: idBancoNum, nombre: c.banco || "Banco" });
       }
     });
     return Array.from(map.values());
   }, [cuentasProveedorMoneda]);
 
   const cuentasEmpresaFiltradas = useMemo(
-    () => cuentasEmpresaMoneda.filter((c) => !idBancoEmpresa || c.id_banco === Number(idBancoEmpresa)),
+    () => cuentasEmpresaMoneda.filter((c) => !idBancoEmpresa || Number(c.id_banco) === Number(idBancoEmpresa)),
     [cuentasEmpresaMoneda, idBancoEmpresa],
   );
 
   const cuentasProveedorFiltradas = useMemo(
-    () => cuentasProveedorMoneda.filter((c) => !idBancoProveedor || c.id_banco === Number(idBancoProveedor)),
+    () => cuentasProveedorMoneda.filter((c) => !idBancoProveedor || Number(c.id_banco) === Number(idBancoProveedor)),
     [cuentasProveedorMoneda, idBancoProveedor],
   );
 
@@ -223,6 +267,32 @@ export const ModalRegistroPago = ({
   const equivSoles = esParaDetraccion
     ? (comprobante.monto_detraccion_soles - comprobante.avance_pago_detraccion)
     : (comprobante.monto_neto - comprobante.avance_pago_neto) * comprobante.tipo_cambio_venta;
+
+  const netoSaldado =
+    (comprobante.monto_neto - comprobante.avance_pago_neto) <= 0.01;
+  const detraccionSaldada =
+    (comprobante.monto_detraccion_soles - comprobante.avance_pago_detraccion) <= 0.01;
+  const switchForzado = netoSaldado || detraccionSaldada;
+
+  useEffect(() => {
+    if (!opened) return;
+    if (netoSaldado && detraccionSaldada) return;
+    queueMicrotask(() => {
+      if (netoSaldado && !detraccionSaldada) {
+        setEsParaDetraccion(true);
+        setIdBancoEmpresa(null);
+        setIdCuentaEmpresa(null);
+        setIdBancoProveedor(null);
+        setIdCuentaProveedor(null);
+      } else if (detraccionSaldada && !netoSaldado) {
+        setEsParaDetraccion(false);
+        setIdBancoEmpresa(null);
+        setIdCuentaEmpresa(null);
+        setIdBancoProveedor(null);
+        setIdCuentaProveedor(null);
+      }
+    });
+  }, [opened, netoSaldado, detraccionSaldada]);
 
   const handleSubmit = async () => {
     if (submitting) return;
@@ -242,7 +312,7 @@ export const ModalRegistroPago = ({
 
     const fechaHora = toDateTimeString(fechaPago);
 
-    const ok = await onSubmit({
+    const actualizado = await onSubmit({
       id_cuenta_bancaria_empresa: idCuentaEmpresa ? Number(idCuentaEmpresa) : null,
       id_cuenta_bancaria_proveedor: idCuentaProveedor ? Number(idCuentaProveedor) : null,
       es_para_detraccion: esParaDetraccion,
@@ -254,7 +324,22 @@ export const ModalRegistroPago = ({
       evidencias: evidencias.length > 0 ? evidencias : undefined,
     });
 
-    if (ok) onClose();
+    if (actualizado) {
+      const todoSaldado =
+        (actualizado.monto_neto - actualizado.avance_pago_neto) <= 0.01 &&
+        (actualizado.monto_detraccion_soles - actualizado.avance_pago_detraccion) <= 0.01;
+      if (todoSaldado) {
+        onClose();
+      } else {
+        setNumeroOperacion("");
+        setObservacion("");
+        setEvidencias([]);
+        setIdBancoEmpresa(null);
+        setIdCuentaEmpresa(null);
+        setIdBancoProveedor(null);
+        setIdCuentaProveedor(null);
+      }
+    }
   };
 
   return (
@@ -264,8 +349,9 @@ export const ModalRegistroPago = ({
       title={`Nuevo Pago — ${comprobante.codigo_completo}`}
       rightSection={
         <Switch
-          label="Pago de Detracción"
+          label={esParaDetraccion ? "Pago de Detracción" : "Pago de Neto"}
           checked={esParaDetraccion}
+          disabled={switchForzado}
           onChange={(e) => setEsParaDetraccion(e.currentTarget.checked)}
           color="yellow"
           size="xs"
@@ -417,7 +503,7 @@ export const ModalRegistroPago = ({
                 label="Nro. Operación"
                 placeholder={medioPago === MedioPagoComprobante.Efectivo ? "Opcional" : "Ej: 123456"}
                 value={numeroOperacion}
-                onChange={(e) => setNumeroOperacion(e.currentTarget.value)}
+                onChange={(e) => setNumeroOperacion(e.currentTarget.value.replace(/\D/g, ""))}
                 size="xs"
                 radius="md"
               />
@@ -455,12 +541,6 @@ export const ModalRegistroPago = ({
           size="xs"
           radius="md"
         />
-
-        {!esParaDetraccion && monto && porPagar === 0 && (
-          <Alert color="teal" variant="light" icon={<IconAlertCircle size={16} />}>
-            Este pago cerrará el saldo neto. Si además la detracción está saldada, el comprobante pasará a Pagado.
-          </Alert>
-        )}
 
         <Group justify="flex-end" gap="sm">
           <Button variant="default" onClick={onClose} radius="lg" size="xs" disabled={submitting}>

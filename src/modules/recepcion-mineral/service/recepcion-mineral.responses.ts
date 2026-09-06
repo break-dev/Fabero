@@ -1,5 +1,6 @@
 import type { RES_CambiosLog } from "../../../service/responses/_generic/cambios-log";
 import type { EstadoBase } from "../../../shared/enums/_generic/estado-base";
+import type { IDocumentoProgramacion } from "../../../shared/interfaces/documentos-programacion";
 import type { DistribucionDetalleItem } from "../../programacion-despachos/service/programacion-despachos.responses";
 
 export interface RES_LoteMineral {
@@ -82,5 +83,6 @@ export interface RecepcionMineralResponse {
   id_sucursal: number | null;
   lotes: RES_LoteMineral[];
   distribucion_detalles: DistribucionDetalleItem[];
+  documentos_programacion: IDocumentoProgramacion | null;
   log_cambios?: RES_CambiosLog[] | null;
 }

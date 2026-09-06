@@ -54,7 +54,8 @@ export const FechaHoraModal = ({
           label={label}
           value={local}
           onChange={(v) => setLocal(v ? new Date(v) : null)}
-          valueFormat="DD/MM/YYYY HH:mm"
+          valueFormat="DD/MM/YYYY HH:mm:ss"
+          withSeconds
           radius="lg"
           size="sm"
           style={{ flex: 1 }}

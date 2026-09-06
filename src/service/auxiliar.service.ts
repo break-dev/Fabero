@@ -410,10 +410,28 @@ export const AuxService = {
     es_para_detraccion: boolean;
     banco_nombre: string;
   }>> => {
-    const { data } = await api.get(`${path}/cuentas-bancarias-proveedor`, {
-      params: { id_proveedor: idProveedor },
-    });
-    return data;
+    type TCuentasProveedor = Array<{
+      id: number;
+      id_banco: number;
+      moneda: string;
+      numero_cuenta: string;
+      cci: string;
+      es_para_detraccion: boolean;
+      banco_nombre: string;
+    }>;
+    const { data } = await api.get<TCuentasProveedor | IRespuesta<TCuentasProveedor>>(
+      `${path}/cuentas-bancarias-proveedor`,
+      {
+        params: { id_proveedor: idProveedor },
+      },
+    );
+    if (Array.isArray(data)) {
+      return data;
+    }
+    if (data && typeof data === "object" && "data" in data && Array.isArray(data.data)) {
+      return data.data;
+    }
+    return [];
   },
 
   get_anticipos_proveedor: async (idProveedor: number): Promise<Array<{
@@ -550,7 +568,7 @@ export const AuxService = {
   get_cuentas_bancarias_empresa_por_moneda: async (
     moneda: string,
     esParaDetraccion = false,
-  ): Promise<IRespuesta<Array<{
+  ): Promise<Array<{
     id_cuenta_bancaria: number;
     banco: string;
     banco_abv: string;
@@ -562,7 +580,7 @@ export const AuxService = {
     estado: string;
     empresa_nombre?: string;
     id_empresa?: number;
-  }>>> => {
+  }>> => {
     const { data } = await api.get<IRespuesta<Array<{
       id_cuenta_bancaria: number;
       banco: string;
@@ -578,6 +596,6 @@ export const AuxService = {
     }>>>(`${path}/cuentas-bancarias-empresa-moneda`, {
       params: { moneda, es_para_detraccion: esParaDetraccion ? 1 : 0 },
     });
-    return data;
+    return data.data;
   },
 };

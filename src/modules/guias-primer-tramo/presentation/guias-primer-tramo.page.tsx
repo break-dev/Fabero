@@ -156,11 +156,6 @@ export const GuiasPrimerTramoPage = () => {
             fechaFin={fechaFin}
             onFechaInicioChange={setFechaInicio}
             onFechaFinChange={setFechaFin}
-            classNames={{
-              label: "text-zinc-400 text-xs font-semibold mb-1 ml-1",
-              input:
-                "bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-zinc-300 transition-all",
-            }}
             showClearButton={false}
           />
         </div>
@@ -483,13 +478,11 @@ export const GuiasPrimerTramoPage = () => {
                     <thead>
                       <tr className="text-zinc-400 text-[10px] uppercase tracking-wider">
                         <th style={{ width: 50 }} className="text-center py-2 pl-4">#</th>
-                        <th className="text-left py-2">Tipo</th>
-                        <th className="text-left py-2">Correlativo</th>
-                        <th className="text-left py-2">Producto</th>
-                        <th className="text-left py-2">Mineral</th>
-                        <th className="text-right py-2">P. Bruto</th>
-                        <th className="text-right py-2">Tara</th>
-                        <th className="text-right py-2 pr-4">P. Neto</th>
+                        <th className="text-center py-2">Tipo</th>
+                        <th className="text-center py-2">Correlativo</th>
+                        <th className="text-center py-2">P. Bruto</th>
+                        <th className="text-center py-2">Tara</th>
+                        <th className="text-center py-2 pr-4">P. Neto</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -501,7 +494,7 @@ export const GuiasPrimerTramoPage = () => {
                           <td className="text-zinc-400 font-mono text-xs text-center py-2 pl-4">
                             {idx + 1}
                           </td>
-                          <td className="py-2 text-xs">
+                          <td className="py-2 text-xs text-center">
                             <Badge
                               variant="light"
                               color={l.tipo_item === "PARTICION" ? "violet" : "teal"}
@@ -512,22 +505,20 @@ export const GuiasPrimerTramoPage = () => {
                               {l.tipo_item}
                             </Badge>
                           </td>
-                          <td className="font-mono text-zinc-100 text-xs py-2 fw-semibold">
-                            {l.correlativo ?? "—"}
+                          <td className="py-2 text-center">
+                            <div className="flex items-center justify-center gap-2 w-full">
+                              <Text size="xs" fw={600} className="text-zinc-100 font-mono">
+                                {l.correlativo ?? "—"}
+                              </Text>
+                            </div>
                           </td>
-                          <td className="text-zinc-300 text-xs py-2">
-                            {l.tipo_producto ?? "—"}
-                          </td>
-                          <td className="text-zinc-300 text-xs py-2">
-                            {l.tipo_mineral ?? "—"}
-                          </td>
-                          <td className="text-right font-mono text-zinc-200 text-xs py-2">
+                          <td className="text-center font-mono text-zinc-200 text-xs py-2">
                             {l.peso_inicial?.toFixed(2) ?? "—"}
                           </td>
-                          <td className="text-right font-mono text-zinc-200 text-xs py-2">
+                          <td className="text-center font-mono text-zinc-200 text-xs py-2">
                             {l.peso_final?.toFixed(2) ?? "—"}
                           </td>
-                          <td className="text-right font-mono text-emerald-400 text-xs py-2 pr-4 fw-semibold">
+                          <td className="text-center font-mono text-emerald-400 text-xs py-2 pr-4 fw-semibold">
                             {l.peso_neto?.toFixed(2) ?? "—"}
                           </td>
                         </tr>

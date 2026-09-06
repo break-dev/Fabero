@@ -35,13 +35,12 @@ export const Filtros = ({
   return (
     <div className="animate-fadeIn w-full">
       <Grid gutter="md">
-        <Grid.Col span={{ base: 12, md: 4 }}>
+        <Grid.Col span={{ base: 12, md: 6 }}>
           <DateRangeFilter
             fechaInicio={filters.fecha_inicio ?? null}
             fechaFin={filters.fecha_fin ?? null}
             onFechaInicioChange={(v) => handleFilterChange("fecha_inicio", v || undefined)}
             onFechaFinChange={(v) => handleFilterChange("fecha_fin", v || undefined)}
-            classNames={fieldClasses}
           />
         </Grid.Col>
 

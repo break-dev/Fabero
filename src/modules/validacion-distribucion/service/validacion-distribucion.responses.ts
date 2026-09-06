@@ -101,11 +101,22 @@ export interface RES_ResultadoValidarParticion {
   esta_validado: boolean;
   id_empleado_valida: number;
   fecha_hora_validacion: string;
+  // Tras la nueva regla: si la particion era B+ sin ticket, el backend
+  // devuelve la particion hidratada con id_ticket_balanza y ticket_correlativo
+  // ya asignados para que la UI muestre el ticket sin un fetch extra.
+  id_ticket_balanza?: number | null;
+  ticket_correlativo?: string | null;
+  // Bloqueo automatico al validar: si la particion no estaba bloqueada,
+  // el backend la marca como bloqueada para preservar pesos definitivos.
+  es_bloqueado?: boolean;
 }
 
 export interface RES_ResultadoValidarLote {
   id_lote_mineral: number;
   evaluacion: RES_EvaluacionLote;
+  // Lista de particiones hidratadas con ticket_correlativo tras la
+  // asignacion automatica de tickets a las B+ que no tenian.
+  particiones?: RES_Particion[];
 }
 
 export interface RES_LoteOmitido {
@@ -117,4 +128,7 @@ export interface RES_LoteOmitido {
 export interface RES_ResultadoValidarLotes {
   validados: number[];
   omitidos: RES_LoteOmitido[];
+  // Mapa id_particion => ticket_correlativo para los tickets nuevos
+  // generados para particiones B+ dentro de los lotes validados.
+  tickets_asignados?: Record<string, string | null>;
 }

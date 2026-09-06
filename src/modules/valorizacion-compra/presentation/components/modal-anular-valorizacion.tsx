@@ -79,12 +79,12 @@ export const ModalAnularValorizacion = ({
       opened={opened}
       close={close}
       title={
-        <Group gap="xs">
-          <Text fw={700} fz="sm">
-            Anular / Eliminar Valorización:
+        <Group gap={8} align="center" wrap="nowrap">
+          <IconBan size={18} className="text-amber-400 shrink-0" />
+          <Text fw={700} fz="sm" c="white">
+            Anular / Eliminar Valorización
           </Text>
-
-          <Text fw={800} fz="sm" c="cyan.4" className="font-mono">
+          <Text fw={700} fz="xs" c="cyan.4" className="font-mono">
             {codigoCorrelativo}
           </Text>
         </Group>
@@ -97,16 +97,30 @@ export const ModalAnularValorizacion = ({
           onChange={(val) => setTipoEliminacion(val as "logica" | "fisica")}
           data={[
             {
-              label: "Anulación Lógica",
+              label: (
+                <Group gap={4} wrap="nowrap" justify="center">
+                  <IconBan size={12} />
+                  <span>Lógica</span>
+                </Group>
+              ),
               value: "logica",
             },
             {
-              label: "Eliminación Física",
+              label: (
+                <Group gap={4} wrap="nowrap" justify="center">
+                  <IconTrash size={12} />
+                  <span>Física</span>
+                </Group>
+              ),
               value: "fisica",
             },
           ]}
           color={tipoEliminacion === "fisica" ? "red" : "yellow"}
           bg="zinc.9"
+          styles={{
+            root: { minWidth: 180 },
+            label: { paddingLeft: 10, paddingRight: 10 },
+          }}
         />
       }
       size="lg"

@@ -657,6 +657,19 @@ export const useParticionesLote = (
           esta_validado: resultado.esta_validado,
           id_empleado_valida: resultado.id_empleado_valida,
           fecha_hora_validacion: resultado.fecha_hora_validacion ?? now,
+          // Si la particion era B+ sin ticket, el backend lo asigna y devuelve
+          // el id_ticket_balanza + ticket_correlativo ya en el response.
+          ...(resultado.id_ticket_balanza !== undefined && {
+            id_ticket_balanza: resultado.id_ticket_balanza,
+          }),
+          ...(resultado.ticket_correlativo !== undefined && {
+            ticket_correlativo: resultado.ticket_correlativo,
+          }),
+          // Bloqueo automatico al validar: si el backend reporta el flag,
+          // reflejamos el nuevo estado en el state local y el cache global.
+          ...(resultado.es_bloqueado !== undefined && {
+            es_bloqueado: resultado.es_bloqueado,
+          }),
         };
         // Resuelve idLote desde el estado local para sincronizar el cache global.
         const idLote = particiones.find((p) => p.id === idParticion)?.id_lote_mineral;

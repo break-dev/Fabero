@@ -363,7 +363,8 @@ export const EdicionParticionModal = ({
               <DateTimePicker
                 value={fechaHoraIngreso}
                 onChange={(v) => setFechaHoraIngreso(v ? new Date(v) : null)}
-                valueFormat="DD/MM/YYYY HH:mm"
+                valueFormat="DD/MM/YYYY HH:mm:ss"
+                withSeconds
                 radius="lg"
                 size="sm"
                 popoverProps={{ withinPortal: true }}
@@ -376,7 +377,8 @@ export const EdicionParticionModal = ({
               <DateTimePicker
                 value={fechaHoraSalida}
                 onChange={(v) => setFechaHoraSalida(v ? new Date(v) : null)}
-                valueFormat="DD/MM/YYYY HH:mm"
+                valueFormat="DD/MM/YYYY HH:mm:ss"
+                withSeconds
                 radius="lg"
                 size="sm"
                 popoverProps={{ withinPortal: true }}

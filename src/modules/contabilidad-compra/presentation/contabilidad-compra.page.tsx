@@ -127,36 +127,24 @@ export default function ContabilidadCompraPage() {
 
   const handleRegistrarPago = async (
     payload: Parameters<typeof import("../service/contabilidad-compra.service").ContabilidadCompraService.registrarPago>[1],
-  ): Promise<boolean> => {
-    if (!comprobantePago) return false;
+  ): Promise<RES_ComprobanteCompra | null> => {
+    if (!comprobantePago) return null;
     setSubmittingPago(true);
     try {
-      const ok = await new Promise<boolean>((resolve) => {
-        void (async () => {
-          try {
-            const res = await ContabilidadCompraService.registrarPago(
-              comprobantePago.id,
-              payload,
-            );
-            if (res.success) {
-              resolve(true);
-            } else {
-              resolve(false);
-            }
-          } catch {
-            resolve(false);
-          }
-        })();
-      });
-      if (ok) {
-        await cargarComprobantes(false);
-        // Refrescar también el comprobante del modal de historial con los nuevos totales/pagos.
-        if (comprobanteHistorial) {
-          const res = await ContabilidadCompraService.obtenerComprobante(comprobanteHistorial.id);
-          if (res.success && res.data) setComprobanteHistorial(res.data);
-        }
+      const res = await ContabilidadCompraService.registrarPago(comprobantePago.id, payload);
+      if (!res.success) return null;
+
+      const actualizado = await ContabilidadCompraService.obtenerComprobante(comprobantePago.id);
+      await cargarComprobantes(false);
+      if (comprobanteHistorial) {
+        const r2 = await ContabilidadCompraService.obtenerComprobante(comprobanteHistorial.id);
+        if (r2.success && r2.data) setComprobanteHistorial(r2.data);
       }
-      return ok;
+      if (actualizado.success && actualizado.data) {
+        setComprobantePago(actualizado.data);
+        return actualizado.data;
+      }
+      return null;
     } finally {
       setSubmittingPago(false);
     }
@@ -202,7 +190,6 @@ export default function ContabilidadCompraPage() {
             fechaFin={fechaFin}
             onFechaInicioChange={setFechaInicio}
             onFechaFinChange={setFechaFin}
-            classNames={fieldClasses}
             showClearButton={false}
           />
           <Select

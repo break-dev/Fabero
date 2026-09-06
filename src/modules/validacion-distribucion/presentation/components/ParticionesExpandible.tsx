@@ -246,21 +246,32 @@ export const ParticionesExpandible = ({ lote }: Props) => {
                   </Table.Td>
                   <Table.Td ta="center" style={{ padding: "4px 8px" }}>
                     <Group gap={4} wrap="nowrap" align="center" justify="center">
-                      <Text className="text-[10px] font-mono">
-                        {p.ticket_correlativo ?? "—"}
-                      </Text>
-                      {p.ticket_correlativo && (
-                        <Tooltip label="Imprimir ticket de balanza" withArrow>
-                          <ActionIcon
-                            variant="subtle"
-                            color="teal"
-                            size="xs"
-                            onClick={() => void handlePrintTicketParticion(p)}
-                            loading={printingId === p.id}
-                            disabled={eliminada}
-                          >
-                            <IconPrinter size={12} />
-                          </ActionIcon>
+                      {p.ticket_correlativo ? (
+                        <>
+                          <Text className="text-[10px] font-mono">
+                            {p.ticket_correlativo}
+                          </Text>
+                          <Tooltip label="Imprimir ticket de balanza" withArrow>
+                            <ActionIcon
+                              variant="subtle"
+                              color="teal"
+                              size="xs"
+                              onClick={() => void handlePrintTicketParticion(p)}
+                              loading={printingId === p.id}
+                              disabled={eliminada}
+                            >
+                              <IconPrinter size={12} />
+                            </ActionIcon>
+                          </Tooltip>
+                        </>
+                      ) : (
+                        <Tooltip
+                          label="Pendiente: se genera al validar la partición."
+                          withArrow
+                        >
+                          <Text className="text-[10px] font-mono text-zinc-500">
+                            —
+                          </Text>
                         </Tooltip>
                       )}
                     </Group>

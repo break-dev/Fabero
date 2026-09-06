@@ -1,10 +1,16 @@
 import { api } from "../../../service/_api";
-import type { DTO_CrearGuiaPrimerTramo, DTO_ActualizarGuiaPrimerTramo } from "./guias-primer-tramo.requests";
 import type {
+  DTO_CrearGuiaPrimerTramo,
+  DTO_ActualizarGuiaPrimerTramo,
+  DTO_ValidarDuplicadoGuia,
+} from "./guias-primer-tramo.requests";
+import type {
+  RES_ArchivosGuiasRecepcion,
   RES_ConcesionPorProveedor,
   RES_FiltrosMetadataGuia,
   RES_GuiaPrimerTramo,
   RES_ItemMineralDisponible,
+  RES_ValidarDuplicadoGuia,
 } from "./guias-primer-tramo.responses";
 
 const PATH = "/guias-primer-tramo";
@@ -88,6 +94,10 @@ export const GuiasPrimerTramoService = {
 
     formData.append("lotes", JSON.stringify(dto.lotes));
 
+    if (dto.pesos_oficiales_lotes && dto.pesos_oficiales_lotes.length > 0) {
+      formData.append("pesos_oficiales_lotes", JSON.stringify(dto.pesos_oficiales_lotes));
+    }
+
     appendDocumento(formData, "documento_guia_remitente", dto.documento_guia_remitente);
     if (!dto.sin_guia_transportista) {
       appendDocumento(formData, "documento_guia_transportista", dto.documento_guia_transportista);
@@ -132,6 +142,10 @@ export const GuiasPrimerTramoService = {
 
     formData.append("lotes", JSON.stringify(dto.lotes));
 
+    if (dto.pesos_oficiales_lotes && dto.pesos_oficiales_lotes.length > 0) {
+      formData.append("pesos_oficiales_lotes", JSON.stringify(dto.pesos_oficiales_lotes));
+    }
+
     appendDocumento(formData, "documento_guia_remitente", dto.documento_guia_remitente);
     if (!dto.sin_guia_transportista) {
       appendDocumento(formData, "documento_guia_transportista", dto.documento_guia_transportista);
@@ -148,6 +162,18 @@ export const GuiasPrimerTramoService = {
    */
   anular_guia: async (id: number): Promise<void> => {
     await api.patch(`${PATH}/${id}/anular`);
+  },
+
+  /**
+   * Chequeo previo al submit: devuelve si ya existe una guía activa con la
+   * misma combinación (guia_remitente, guia_transportista / sin_guia_transportista).
+   * En edición pasar `id_excluir` con el id de la guía actual.
+   */
+  validar_duplicado: async (
+    dto: DTO_ValidarDuplicadoGuia,
+  ): Promise<RES_ValidarDuplicadoGuia> => {
+    const { data } = await api.post(`${PATH}/validar-duplicado`, dto);
+    return data.data;
   },
 };
 
@@ -169,6 +195,21 @@ export const ItemsMineralService = {
         fecha_fin: fechaFin ?? undefined,
       },
     });
+    return data.data;
+  },
+
+  /**
+   * Obtener archivos de guias (documentos_programacion normalizado) de una
+   * recepcion. Usado para autocompletar los inputs de archivo al registrar
+   * una guia de primer tramo cuando los items seleccionados pertenecen a una
+   * sola recepcion.
+   */
+  get_archivos_guias_by_recepcion: async (
+    idRecepcion: number,
+  ): Promise<RES_ArchivosGuiasRecepcion> => {
+    const { data } = await api.get(
+      `/aux/recepcion-unidad/${idRecepcion}/archivos-guias`,
+    );
     return data.data;
   },
 };

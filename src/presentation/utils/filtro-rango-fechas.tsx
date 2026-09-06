@@ -15,6 +15,17 @@ export const defaultFechaInicio = (daysBack = 7): string =>
  */
 export const defaultFechaFin = (): string => formatLocalDate(new Date());
 
+/**
+ * Estilo por defecto del filtro de rango de fechas, alineado con
+ * `programacion-despachos/components/filtros-despachos.tsx`.
+ * Puede ser sobreescrito por el caller mediante la prop `classNames`.
+ */
+const DEFAULT_CLASSES = {
+  input:
+    "bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-zinc-300 focus:ring-1 focus:ring-zinc-300 transition-all",
+  label: "text-zinc-300 mb-1 font-medium text-xs",
+};
+
 export interface DateRangeFilterProps {
   fechaInicio: string | null;
   fechaFin: string | null;
@@ -47,8 +58,13 @@ export const DateRangeFilter = ({
   const toDate = (s: string | null | undefined): Date | null =>
     s ? dayjs(s).toDate() : null;
 
+  const mergedClasses = {
+    input: classNames?.input ?? DEFAULT_CLASSES.input,
+    label: classNames?.label ?? DEFAULT_CLASSES.label,
+  };
+
   return (
-    <Group gap="md" align="end" wrap="wrap" className="w-full">
+    <Group gap="md" align="end" wrap="wrap">
       <div className="flex-1 min-w-[180px]">
         <CustomDatePicker
           label="Fecha Inicio"
@@ -58,7 +74,7 @@ export const DateRangeFilter = ({
           radius="lg"
           size="sm"
           clearable
-          classNames={classNames}
+          classNames={mergedClasses}
         />
       </div>
       <div className="flex-1 min-w-[180px]">
@@ -70,7 +86,7 @@ export const DateRangeFilter = ({
           radius="lg"
           size="sm"
           clearable
-          classNames={classNames}
+          classNames={mergedClasses}
         />
       </div>
       {showClearButton && hasActiveFilters && (

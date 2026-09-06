@@ -82,13 +82,12 @@ export const CierreLeyesPage = () => {
     <div className="animate-fade-in space-y-6 pb-12">
       {/* Filtros (sin Card wrapper — sueltos en la página) */}
       <div className="flex flex-col md:flex-row gap-3 items-end flex-wrap">
-        <div className="md:basis-2/12 min-w-[280px]">
+        <div className="md:basis-4/12 min-w-[360px]">
           <DateRangeFilter
             fechaInicio={fechaInicio}
             fechaFin={fechaFin}
             onFechaInicioChange={setFechaInicio}
             onFechaFinChange={setFechaFin}
-            classNames={{ input: fieldInputClass, label: fieldLabelClass }}
             showClearButton={false}
           />
         </div>
@@ -124,7 +123,7 @@ export const CierreLeyesPage = () => {
         </div>
 
         {/* Buscador por correlativo */}
-        <div className="md:basis-3/12 min-w-[200px]">
+        <div className="md:basis-2/12 min-w-[200px]">
           <TextInput
             label="Buscar"
             placeholder="Buscar por código de lote (ej: FB-001)..."
@@ -141,7 +140,7 @@ export const CierreLeyesPage = () => {
         </div>
 
         {/* Botones: Limpiar + Recargar + Agregar registro */}
-        <div className="md:basis-5/12 min-w-[280px] flex items-end justify-end gap-2 flex-wrap">
+        <div className="md:flex-1 min-w-[280px] flex items-end justify-end gap-2 flex-wrap">
           <Button
             variant="subtle"
             size="xs"

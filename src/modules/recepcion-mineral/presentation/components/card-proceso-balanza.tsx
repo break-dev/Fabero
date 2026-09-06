@@ -21,9 +21,11 @@ import {
   IconTruck,
   IconBuildingFactory,
   IconCar,
+  IconFileText,
 } from "@tabler/icons-react";
 import { useNotify } from "../../../../hooks/useNotify";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
+import { ArchivoCard } from "../../../../presentation/utils/archivo/archivo-card";
 import { RegistroConductor } from "../../../../presentation/utils/registro-conductor";
 import { RegistroVehiculoSimple } from "../../../../presentation/utils/registro-vehiculo-simple";
 import { RegistroTipoVehiculoSimple } from "../../../../presentation/utils/registro-tipo-vehiculo-simple";
@@ -114,6 +116,7 @@ export const CardProcesoBalanza = ({
   const [openNewVehiculoModal, setOpenNewVehiculoModal] = useState(false);
   const [openNewTipoVehiculoModal, setOpenNewTipoVehiculoModal] = useState(false);
   const [openNewEmpresaTransporteModal, setOpenNewEmpresaTransporteModal] = useState(false);
+  const [docsModalOpen, setDocsModalOpen] = useState(false);
 
   // Listas de "recién agregados" para que aparezcan en el Select sin esperar un re-fetch del padre.
   const [conductoresAdded, setConductoresAdded] = useState<RES_Conductor[]>([]);
@@ -242,6 +245,11 @@ export const CardProcesoBalanza = ({
   const unitClosed = ru.estado_pesaje === "Pesado";
   const esProgramacion = ru.es_programacion === 1;
 
+  const tieneDocumentos =
+    Boolean(ru.documentos_programacion?.guia_remitente) ||
+    Boolean(ru.documentos_programacion?.guia_transportista);
+  const placaHeader = formatPlacaInput(ru.vehiculo_placa || "");
+
   return (
     <Paper
       key={ru.id}
@@ -265,8 +273,33 @@ export const CardProcesoBalanza = ({
                   Unidad
                 </Text>
                 <Text size="12px" fw={700} className="text-zinc-500 font-mono">
-                  {formatPlacaInput(ru.vehiculo_placa || "")}
+                  {placaHeader}
                 </Text>
+                <Tooltip
+                  label={
+                    tieneDocumentos
+                      ? "Ver documentos de programación"
+                      : "Esta recepción no tiene documentos de programación"
+                  }
+                  withArrow
+                >
+                  <ActionIcon
+                    variant="subtle"
+                    color="indigo"
+                    radius="sm"
+                    size="sm"
+                    onClick={() => setDocsModalOpen(true)}
+                    disabled={!tieneDocumentos}
+                    className={
+                      tieneDocumentos
+                        ? "text-indigo-300 hover:bg-indigo-500/10"
+                        : "text-zinc-700 opacity-30 cursor-not-allowed"
+                    }
+                    aria-label="Documentos de programación"
+                  >
+                    <IconFileText size={12} />
+                  </ActionIcon>
+                </Tooltip>
               </Group>
               <Text size="10px" c="dimmed" className="font-mono">
                 {ru.fecha_hora_ingreso}
@@ -728,6 +761,53 @@ export const CardProcesoBalanza = ({
             handleCreatedEmpresaTransporte(resEmp);
           }}
         />
+      </ModalEstandar>
+
+      {/* Modal: Documentos de programación (guías de la recepción) */}
+      <ModalEstandar
+        opened={docsModalOpen}
+        close={() => setDocsModalOpen(false)}
+        title={`Documentos de programación — ${placaHeader}`}
+        size="lg"
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="space-y-2">
+            <Text
+              size="10px"
+              fw={700}
+              className="text-zinc-500 uppercase tracking-widest"
+            >
+              Guía Remitente
+            </Text>
+            {ru.documentos_programacion?.guia_remitente ? (
+              <ArchivoCard
+                archivo={ru.documentos_programacion.guia_remitente}
+              />
+            ) : (
+              <Text size="xs" c="zinc.6" fs="italic">
+                Sin archivo adjunto.
+              </Text>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Text
+              size="10px"
+              fw={700}
+              className="text-zinc-500 uppercase tracking-widest"
+            >
+              Guía Transportista
+            </Text>
+            {ru.documentos_programacion?.guia_transportista ? (
+              <ArchivoCard
+                archivo={ru.documentos_programacion.guia_transportista}
+              />
+            ) : (
+              <Text size="xs" c="zinc.6" fs="italic">
+                Sin archivo adjunto.
+              </Text>
+            )}
+          </div>
+        </div>
       </ModalEstandar>
     </Paper>
   );
