@@ -47,11 +47,14 @@ export interface DistribucionDetalleItem {
   peso_bruto: number | null;
   fecha_hora_peso_bruto: string | null;
   peso_neto: number | null;
+  peso_tara_confirmado: boolean | null;
+  peso_bruto_confirmado: boolean | null;
   detalle_id_lote_mineral: number | null;
   detalle_id_blending: number | null;
   lote_correlativo: string | null;
   lote_ley_humedad: number | null;
   blending_correlativo: string | null;
+  blending_ley_humedad: number | null;
   proveedor_razon_social: string | null;
   despacho_correlativo: string | null;
 }

@@ -8,11 +8,13 @@ export const useDespachoDetalle = (idDespacho: number | null) => {
   const { notifyError } = useNotify();
 
   // Suscripcion al store: re-render cuando cambie cualquier parte del state.
-  // Para saber si cambio algo del id actual, comparamos el detalle cacheado.
-  const detalle =
-    idDespacho !== null
-      ? (useDespachoDetalleStore((s) => s.byId[idDespacho])?.detalle ?? null)
-      : null;
+  // Importante: el hook del store debe llamarse INCONDICIONALMENTE para
+  // respetar las Rules of Hooks. Si idDespacho es null, el selector retorna
+  // undefined y no hay cache; eso es lo esperado.
+  const cached = useDespachoDetalleStore((s) =>
+    idDespacho !== null ? s.byId[idDespacho] : undefined,
+  );
+  const detalle = cached?.detalle ?? null;
 
   const fetchDetalle = useCallback(async () => {
     if (idDespacho === null) return;

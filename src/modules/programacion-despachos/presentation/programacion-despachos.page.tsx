@@ -1,6 +1,6 @@
 import { Button, Stack } from "@mantine/core";
 import { IconTruckDelivery } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTitlePage } from "../../../hooks/useTitlePage";
 import { useNotify } from "../../../hooks/useNotify";
 import { useDespachos } from "../hooks/useDespachos";
@@ -9,28 +9,20 @@ import { ProgramacionDespachosService } from "../service/programacion-despachos.
 import type {
   CrearDistribucionResult,
   DespachoDetalle,
-  DespachoDetalleItem,
   DistribucionItem,
 } from "../service/programacion-despachos.responses";
 import { FiltrosDespachos } from "./components/filtros-despachos";
 import { RefreshButton } from "../../../presentation/utils/refresh-button";
 import { TablaDespachos } from "./components/tabla-despachos";
 import { RegistroDespachoModal } from "./components/registro-despacho-modal";
-import { RegistroDistribucionModal } from "./components/registro-distribucion-modal";
 import { LogCambiosModal } from "./components/log-cambios-modal";
-import { DespachoExpandido } from "./components/despacho-expandido";
+import { ModalDetalleDespacho } from "./components/modal-detalle-despacho";
 import { useDespachoDetalleStore } from "../stores/despacho-detalle.store";
 
 interface PlantaItem {
   id: number;
   ruc: string;
   razon_social: string;
-}
-
-interface ModalDistribucionState {
-  abierto: boolean;
-  idDespacho: number | null;
-  detalles: DespachoDetalleItem[];
 }
 
 interface LogModalState {
@@ -55,35 +47,28 @@ export const ProgramacionDespachosPage = () => {
   const [openRegistroDespacho, setOpenRegistroDespacho] = useState(false);
   const [plantas, setPlantas] = useState<PlantaItem[]>([]);
   const [loadingPlantas, setLoadingPlantas] = useState(false);
-  const [modalDistribucion, setModalDistribucion] = useState<ModalDistribucionState>({
-    abierto: false,
-    idDespacho: null,
-    detalles: [],
-  });
+  const [modalDetalleAbierto, setModalDetalleAbierto] = useState(false);
+  const [idDespachoDetalle, setIdDespachoDetalle] = useState<number | null>(null);
   const [logModal, setLogModal] = useState<LogModalState>({
     abierto: false,
     distribucion: null,
   });
   const [anulandoIds, setAnulandoIds] = useState<Record<number, boolean>>({});
 
-  useEffect(() => {
-    let cancelled = false;
+  // Carga inicial de plantas destino (no necesita ser async en este componente,
+  // se carga una sola vez).
+  const [plantasCargadas, setPlantasCargadas] = useState(false);
+  if (!plantasCargadas) {
+    setPlantasCargadas(true);
     setLoadingPlantas(true);
     AuxService.get_plantas_despachable()
-      .then((data) => {
-        if (!cancelled) setPlantas(Array.isArray(data) ? data : []);
-      })
+      .then((data) => setPlantas(Array.isArray(data) ? data : []))
       .catch((e) => {
         console.error(e);
-        if (!cancelled) notifyError("Error al cargar las plantas destino");
+        notifyError("Error al cargar las plantas destino");
       })
-      .finally(() => {
-        if (!cancelled) setLoadingPlantas(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [notifyError]);
+      .finally(() => setLoadingPlantas(false));
+  }
 
   const onDespachoCreado = (nuevo: DespachoDetalle) => {
     reemplazarDespacho(nuevo);
@@ -91,31 +76,23 @@ export const ProgramacionDespachosPage = () => {
     recargar();
   };
 
-  const abrirModalDistribucion = async (idDespacho: number) => {
-    try {
-      let detalle =
-        useDespachoDetalleStore.getState().getDetalle(idDespacho) ?? null;
-      if (!detalle) {
-        detalle = await ProgramacionDespachosService.getDespacho(idDespacho);
-        useDespachoDetalleStore.getState().setDetalle(idDespacho, detalle);
-      }
-      const detallesPendientes = detalle.detalles.filter((d) => d.peso_actual > 0);
-      if (detallesPendientes.length === 0) {
-        notifyError("Este despacho no tiene items pendientes para distribuir.");
-        return;
-      }
-      setModalDistribucion({ abierto: true, idDespacho, detalles: detallesPendientes });
-    } catch (e) {
-      console.error(e);
-      notifyError("Error al cargar el detalle del despacho");
-    }
+  const abrirModalDetalle = (idDespacho: number) => {
+    setIdDespachoDetalle(idDespacho);
+    setModalDetalleAbierto(true);
+  };
+
+  const cerrarModalDetalle = () => {
+    setModalDetalleAbierto(false);
+    setIdDespachoDetalle(null);
   };
 
   const onDistribucionCreada = (result: CrearDistribucionResult) => {
     notifySuccess("Distribución registrada correctamente");
+    useDespachoDetalleStore.getState().setDetalle(
+      result.despacho.cabecera.id,
+      result.despacho
+    );
     recargar();
-    useDespachoDetalleStore.getState().invalidar(result.despacho.cabecera.id);
-    setModalDistribucion({ abierto: false, idDespacho: null, detalles: [] });
   };
 
   const anularDespacho = (id: number) => {
@@ -172,17 +149,9 @@ export const ProgramacionDespachosPage = () => {
         <TablaDespachos
           despachos={despachos}
           loading={loading}
-          onAgregarDistribucion={abrirModalDistribucion}
+          onVerDetalle={abrirModalDetalle}
           onAnularDespacho={anularDespacho}
           togglingIds={anulandoIds}
-          renderExpandedRow={(record) => (
-            <DespachoExpandido
-              idDespacho={record.id}
-              onVerLog={(dist) =>
-                setLogModal({ abierto: true, distribucion: dist })
-              }
-            />
-          )}
         />
       </Stack>
 
@@ -194,17 +163,13 @@ export const ProgramacionDespachosPage = () => {
         onSuccess={onDespachoCreado}
       />
 
-      {modalDistribucion.abierto && modalDistribucion.idDespacho !== null && (
-        <RegistroDistribucionModal
-          opened={modalDistribucion.abierto}
-          onClose={() =>
-            setModalDistribucion({ abierto: false, idDespacho: null, detalles: [] })
-          }
-          idDespacho={modalDistribucion.idDespacho}
-          detallesDespacho={modalDistribucion.detalles}
-          onSuccess={onDistribucionCreada}
-        />
-      )}
+      <ModalDetalleDespacho
+        opened={modalDetalleAbierto}
+        idDespacho={idDespachoDetalle}
+        onClose={cerrarModalDetalle}
+        onDistribucionCreada={onDistribucionCreada}
+        onVerLog={(dist) => setLogModal({ abierto: true, distribucion: dist })}
+      />
 
       <LogCambiosModal
         opened={logModal.abierto}

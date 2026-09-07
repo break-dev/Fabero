@@ -54,7 +54,7 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
   const [pesoInicial, setPesoInicial] = useState<string>(lote.peso_inicial ? String(lote.peso_inicial) : "");
 
   // Estados Formulario - Peso Final (Derecha)
-  const [pesoFinal, setPesoFinal] = useState<string>("");
+  const [pesoFinal, setPesoFinal] = useState<string>(lote.peso_final ? String(lote.peso_final) : "");
   const [evidencias, setEvidencias] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
 

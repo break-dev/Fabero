@@ -1,6 +1,5 @@
 import { Text, Badge, Group, ActionIcon, Tooltip } from "@mantine/core";
-import type { ReactNode } from "react";
-import { IconPlus, IconBan } from "@tabler/icons-react";
+import { IconBan, IconEye } from "@tabler/icons-react";
 import { DataTableEstandar } from "../../../../presentation/utils/datatable-estandar";
 import type {
   DespachoListItem,
@@ -10,8 +9,7 @@ interface Props {
   despachos: DespachoListItem[];
   loading: boolean;
   onRowClick?: (record: DespachoListItem) => void;
-  renderExpandedRow?: (record: DespachoListItem) => ReactNode;
-  onAgregarDistribucion: (idDespacho: number) => void;
+  onVerDetalle: (idDespacho: number) => void;
   onAnularDespacho: (idDespacho: number) => void;
   togglingIds: Record<number, boolean>;
 }
@@ -32,8 +30,7 @@ export const TablaDespachos = ({
   despachos,
   loading,
   onRowClick,
-  renderExpandedRow,
-  onAgregarDistribucion,
+  onVerDetalle,
   onAnularDespacho,
   togglingIds,
 }: Props) => {
@@ -43,7 +40,6 @@ export const TablaDespachos = ({
       records={despachos}
       loading={loading}
       onRowClick={onRowClick ? ((record: DespachoListItem) => onRowClick(record)) : undefined}
-      renderExpandedRow={renderExpandedRow}
       columns={[
         {
           accessor: "correlativo",
@@ -146,7 +142,27 @@ export const TablaDespachos = ({
           textAlign: "center",
           render: (r: DespachoListItem) => (
             <Group gap={6} justify="center" wrap="nowrap">
-              <Tooltip label="Anular despacho" withArrow>
+              <Tooltip label="Ver detalle" withArrow>
+                <ActionIcon
+                  variant="light"
+                  color="indigo"
+                  radius="lg"
+                  size="md"
+                  onClick={() => onVerDetalle(r.id)}
+                >
+                  <IconEye size={16} />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip
+                label={
+                  r.es_anulado
+                    ? "El despacho está anulado"
+                    : (r.total_distribuciones ?? 0) === 0
+                    ? "No se puede anular sin distribuciones"
+                    : "Anular despacho"
+                }
+                withArrow
+              >
                 <ActionIcon
                   variant="light"
                   color="red"
@@ -157,18 +173,6 @@ export const TablaDespachos = ({
                   onClick={() => onAnularDespacho(r.id)}
                 >
                   <IconBan size={16} />
-                </ActionIcon>
-              </Tooltip>
-              <Tooltip label="Agregar distribución" withArrow>
-                <ActionIcon
-                  variant="light"
-                  color="indigo"
-                  radius="lg"
-                  size="md"
-                  disabled={r.es_anulado || (r.peso_total_pendiente ?? 0) <= 0}
-                  onClick={() => onAgregarDistribucion(r.id)}
-                >
-                  <IconPlus size={16} />
                 </ActionIcon>
               </Tooltip>
             </Group>

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Alert,
   Button,
+  Grid,
   Group,
   Loader,
   NumberInput,
@@ -241,7 +242,7 @@ export const ModalRegistroComprobante = ({
         opened={opened}
         close={handleClose}
         title="Generar Comprobante"
-        size="lg"
+        size="xl"
         validateClose
       >
         <Stack gap="md">
@@ -276,51 +277,56 @@ export const ModalRegistroComprobante = ({
             />
           </Group>
 
-          <Select
-            label="Proveedor"
-            placeholder={loadingProveedores ? "Cargando..." : "Elija una opción..."}
-            data={proveedores.map((p) => ({
-              value: String(p.id_proveedor),
-              label: p.razon_social,
-            }))}
-            value={idProveedor}
-            onChange={setIdProveedor}
-            disabled={loadingProveedores}
-            rightSection={loadingProveedores ? <Loader size={16} /> : undefined}
-            searchable
-            clearable
-            size="xs"
-            radius="lg"
-            comboboxProps={{ withinPortal: true }}
-            required
-          />
+          <Grid gutter="sm">
+            <Grid.Col span={{ base: 12, sm: 6 }}>
+              <Select
+                label="Proveedor"
+                placeholder={loadingProveedores ? "Cargando..." : "Elija una opción..."}
+                data={proveedores.map((p) => ({
+                  value: String(p.id_proveedor),
+                  label: p.razon_social,
+                }))}
+                value={idProveedor}
+                onChange={setIdProveedor}
+                disabled={loadingProveedores}
+                rightSection={loadingProveedores ? <Loader size={16} /> : undefined}
+                searchable
+                clearable
+                size="xs"
+                radius="lg"
+                comboboxProps={{ withinPortal: true }}
+                required
+              />
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, sm: 6 }}>
+              <Select
+                label="Valorización"
+                placeholder={
+                  !idProveedor
+                    ? "Seleccione un proveedor primero"
+                    : loadingValorizaciones
+                      ? "Cargando..."
+                      : "Elija opciones..."
+                }
+                data={valorizaciones.map((v) => ({
+                  value: String(v.id),
+                  label: `${v.numero_correlativo} — Total $${v.total_dolares.toFixed(2)}`,
+                }))}
+                value={idValorizacion}
+                onChange={setIdValorizacion}
+                disabled={!idProveedor || loadingValorizaciones}
+                rightSection={loadingValorizaciones ? <Loader size={16} /> : undefined}
+                searchable
+                clearable
+                size="xs"
+                radius="lg"
+                comboboxProps={{ withinPortal: true }}
+                required
+              />
+            </Grid.Col>
+          </Grid>
 
-          <Select
-            label="Valorización"
-            placeholder={
-              !idProveedor
-                ? "Seleccione un proveedor primero"
-                : loadingValorizaciones
-                  ? "Cargando..."
-                  : "Elija opciones..."
-            }
-            data={valorizaciones.map((v) => ({
-              value: String(v.id),
-              label: `${v.numero_correlativo} — Total $${v.total_dolares.toFixed(2)}`,
-            }))}
-            value={idValorizacion}
-            onChange={setIdValorizacion}
-            disabled={!idProveedor || loadingValorizaciones}
-            rightSection={loadingValorizaciones ? <Loader size={16} /> : undefined}
-            searchable
-            clearable
-            size="xs"
-            radius="lg"
-            comboboxProps={{ withinPortal: true }}
-            required
-          />
-
-          <Group grow align="end">
+          <Group grow align="end" wrap="nowrap">
             <NumberInput
               label="% IGV"
               suffix=" %"
@@ -343,38 +349,37 @@ export const ModalRegistroComprobante = ({
               size="xs"
               radius="lg"
             />
-          </Group>
-
-          <Group align="end">
-            <NumberInput
-              label="Tipo de Cambio (Venta)"
-              value={tipoCambio ? tipoCambio.valor_venta : ""}
-              readOnly
-              decimalScale={3}
-              fixedDecimalScale
-              size="xs"
-              radius="lg"
-              className="flex-1"
-              rightSection={loadingTipoCambio ? <Loader size={16} /> : undefined}
-              placeholder={loadingTipoCambio ? "Buscando..." : "No registra"}
-            />
-            <Tooltip
-              label={
-                tipoCambio
-                  ? `Tipo de cambio del ${fechaEmisionStr}`
-                  : "Registrar tipo de cambio"
-              }
-            >
-              <ActionIcon
-                size="lg"
-                variant="light"
-                color={tipoCambio ? "teal" : "yellow"}
-                onClick={() => setModalTipoCambioOpened(true)}
-                disabled={!fechaEmisionStr}
+            <Group align="end" wrap="nowrap" className="flex-1 min-w-0">
+              <NumberInput
+                label="Tipo de Cambio (Venta)"
+                value={tipoCambio ? tipoCambio.valor_venta : ""}
+                readOnly
+                decimalScale={3}
+                fixedDecimalScale
+                size="xs"
+                radius="lg"
+                className="flex-1"
+                rightSection={loadingTipoCambio ? <Loader size={16} /> : undefined}
+                placeholder={loadingTipoCambio ? "Buscando..." : "No registra"}
+              />
+              <Tooltip
+                label={
+                  tipoCambio
+                    ? `Tipo de cambio del ${fechaEmisionStr}`
+                    : "Registrar tipo de cambio"
+                }
               >
-                <IconCoin size={20} />
-              </ActionIcon>
-            </Tooltip>
+                <ActionIcon
+                  size="lg"
+                  variant="light"
+                  color={tipoCambio ? "teal" : "yellow"}
+                  onClick={() => setModalTipoCambioOpened(true)}
+                  disabled={!fechaEmisionStr}
+                >
+                  <IconCoin size={20} />
+                </ActionIcon>
+              </Tooltip>
+            </Group>
           </Group>
 
           {!tipoCambio && fechaEmisionStr && (

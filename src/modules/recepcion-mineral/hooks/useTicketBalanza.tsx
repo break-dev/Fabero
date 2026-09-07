@@ -1,90 +1,114 @@
 import { useCallback, useMemo, useState } from "react";
-import { pdf } from "@react-pdf/renderer";
 import { TicketBalanzaPdf } from "../../../presentation/utils/ticket-balanza-pdf";
 import { RecepcionMineralService } from "../service/recepcion-mineral.service";
 import { useNotify } from "../../../hooks/useNotify";
+import { usePrint } from "../../../hooks/usePrint";
 import type { RES_TicketBalanzaData } from "../../../service/responses/ticket-balanza";
 
 export type LoteBalanzaInput = number | { id?: number; id_lote?: number; correlativo?: string };
 
 /**
- * Hook exclusivo para imprimir el ticket de balanza vertical (67 x 247 mm).
+ * Imprime el ticket de balanza partiendo de un id_lote (Bloque A del Resumen).
+ */
+async function fetchTicketByLote(loteId: number): Promise<RES_TicketBalanzaData> {
+  return RecepcionMineralService.obtener_ticket_balanza(loteId);
+}
+
+/**
+ * Imprime el ticket de balanza partiendo de un id_distribucion_detalle (Bloque B).
+ * Soporta orígenes LOTE y BLENDING.
+ */
+async function fetchTicketByDistribucionDetalle(
+  idDistribucionDetalle: number
+): Promise<RES_TicketBalanzaData> {
+  return RecepcionMineralService.obtener_ticket_balanza_por_distribucion_detalle(
+    idDistribucionDetalle
+  );
+}
+
+/**
+ * Hook para imprimir el ticket de balanza vertical (67 x 247 mm).
  *
- * Genera el PDF con @react-pdf/renderer directamente en este hook (sin pasar
- * por PrinterStore ni portal global) para tener control total sobre los errores
- * y ofrecer un fallback cuando el navegador bloquea el popup.
+ * Usa el sistema global de impresión (`usePrint` + `GlobalPrinterPortal`):
+ * 1. `prepare(target)` abre una ventana con pantalla de carga premium.
+ * 2. `print(<Document />, { target })` encola el job en el store global.
+ * 3. El portal global (`GlobalPrinterPortal`) consume la cola, renderiza el PDF
+ *    con `@react-pdf/renderer` y lo muestra en la ventana target.
+ * 4. Reutilizar el mismo `target` (basado en el id) entre llamadas refresca el
+ *    ticket en la misma ventana en vez de abrir una nueva.
  */
 export const useTicketBalanza = () => {
+  const { print, prepare } = usePrint();
   const { notifyError, notifySuccess } = useNotify();
   const [loadingTicket, setLoadingTicket] = useState(false);
 
-  const printTicketBalanza = useCallback(
-    async (loteInput: LoteBalanzaInput) => {
-      const loteId =
-        typeof loteInput === "number" ? loteInput : loteInput.id || loteInput.id_lote;
-      if (!loteId) return;
-
+  /**
+   * Lógica común: pre-abre la ventana target, obtiene los datos del ticket y
+   * encola el documento PDF en el portal global.
+   */
+  const printInternal = useCallback(
+    async (
+      idKey: string,
+      fetchData: () => Promise<RES_TicketBalanzaData>,
+    ): Promise<void> => {
       setLoadingTicket(true);
       try {
-        console.log("[Ticket] Iniciando print para loteId=", loteId);
-        const ticketData: RES_TicketBalanzaData =
-          await RecepcionMineralService.obtener_ticket_balanza(loteId);
-        console.log(
-          "[Ticket] Datos recibidos:",
-          ticketData.correlativo,
-          "tara=",
-          ticketData.peso_tara,
-          "bruto=",
-          ticketData.peso_bruto,
-        );
-
-        const blob = await pdf(
-          <TicketBalanzaPdf data={ticketData} />,
-        ).toBlob();
-        console.log("[Ticket] PDF blob generado:", blob.size, "bytes");
-
-        const url = URL.createObjectURL(blob);
-        console.log("[Ticket] Blob URL:", url);
-
-        // Usamos "_blank" para forzar siempre una nueva pestaña y evitar
-        // que el navegador reutilice una ventana con el mismo target name,
-        // que era el origen de la pantalla en negro.
-        const win = window.open(url, "_blank");
-        console.log("[Ticket] window.open result:", win);
-
-        if (!win) {
-          // Popup bloqueado: fallback a descarga directa.
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `ticket-balanza-${ticketData.correlativo || loteId}.pdf`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          notifyError(
-            "El navegador bloque\u00f3 la ventana del ticket. Se descarg\u00f3 como PDF; \u00e1brelo manualmente.",
-          );
-        } else {
-          notifySuccess("Ticket generado. Revisa la nueva ventana del navegador.");
-        }
-
-        // Libera el blob URL despu\u00e9s de 30s para dar tiempo al navegador a cargarlo.
-        setTimeout(() => URL.revokeObjectURL(url), 30_000);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Error desconocido";
+        const target = `ticket-balanza-${idKey}`;
+        // 1. Abrir ventana con pantalla de carga (debe ser síncrono al click).
+        prepare(target);
+        // 2. Obtener datos del backend.
+        const ticketData = await fetchData();
+        // 3. Encolar PDF. El portal global lo renderiza en la ventana target.
+        print(<TicketBalanzaPdf data={ticketData} />, {
+          documentTitle: `Ticket ${ticketData.correlativo}`,
+          target,
+        });
+        notifySuccess("Ticket generado. Revisa la nueva ventana del navegador.");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Error desconocido";
         notifyError(`Error al imprimir el ticket: ${message}`);
-        console.error("[Ticket] Error:", error);
+        console.error("[Ticket] Error:", err);
       } finally {
         setLoadingTicket(false);
       }
     },
-    [notifyError, notifySuccess],
+    [print, prepare, notifyError, notifySuccess],
+  );
+
+  /**
+   * Imprime ticket desde id_lote (filas LOTE_RECEPCION del Resumen).
+   */
+  const printTicketBalanza = useCallback(
+    (loteInput: LoteBalanzaInput) => {
+      const loteId =
+        typeof loteInput === "number" ? loteInput : loteInput.id || loteInput.id_lote;
+      if (!loteId) return;
+      void printInternal(String(loteId), () => fetchTicketByLote(loteId));
+    },
+    [printInternal],
+  );
+
+  /**
+   * Imprime ticket desde id_distribucion_detalle (filas DISTRIBUCION_DETALLE).
+   * Soporta orígenes LOTE y BLENDING.
+   */
+  const printTicketBalanzaByDistribucionDetalle = useCallback(
+    (idDistribucionDetalle: number) => {
+      if (!idDistribucionDetalle) return;
+      void printInternal(
+        `distdet-${idDistribucionDetalle}`,
+        () => fetchTicketByDistribucionDetalle(idDistribucionDetalle),
+      );
+    },
+    [printInternal],
   );
 
   return useMemo(
     () => ({
       printTicketBalanza,
+      printTicketBalanzaByDistribucionDetalle,
       loadingTicket,
     }),
-    [printTicketBalanza, loadingTicket],
+    [printTicketBalanza, printTicketBalanzaByDistribucionDetalle, loadingTicket],
   );
 };

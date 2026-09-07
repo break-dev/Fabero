@@ -1,7 +1,7 @@
 import type { IArchivo } from "../../../shared/interfaces/archivo";
 
 export interface ItemTomadoPayload {
-  id_lote_guia?: number | null;
+  id_lote_mineral?: number | null;
   id_reblending?: number | null;
   peso_tomado: number;
 }
@@ -15,7 +15,7 @@ export interface CrearBlendingPayload {
 
 export interface AdicionPesoPayload {
   id_detalle?: number | null;
-  id_lote_guia?: number | null;
+  id_lote_mineral?: number | null;
   id_reblending?: number | null;
   peso_adicional: number;
 }

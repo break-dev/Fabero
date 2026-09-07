@@ -102,23 +102,23 @@ export const ModalEditarBlending: React.FC<ModalEditarBlendingProps> = ({
 
   // Helper: encontrar info del item disponible a partir de un pendiente
   const obtenerInfoDisponible = (p: {
-    id_lote_guia?: number | null;
+    id_lote_mineral?: number | null;
     id_reblending?: number | null;
   }): ItemDisponibleResponse | undefined =>
     disponibles.find(
       (d) =>
-        (p.id_lote_guia != null && d.id_lote_guia === p.id_lote_guia) ||
+        (p.id_lote_mineral != null && d.id_lote_mineral === p.id_lote_mineral) ||
         (p.id_reblending != null && d.id_reblending === p.id_reblending)
     );
 
   // Helper: encontrar info del item disponible a partir de un detalle existente
   const obtenerInfoDisponibleDeDetalle = (
-    idLoteGuia: number | null,
+    idLoteMineral: number | null,
     idReblending: number | null
   ): ItemDisponibleResponse | undefined =>
     disponibles.find(
       (d) =>
-        (idLoteGuia != null && d.id_lote_guia === idLoteGuia) ||
+        (idLoteMineral != null && d.id_lote_mineral === idLoteMineral) ||
         (idReblending != null && d.id_reblending === idReblending)
     );
 
@@ -150,7 +150,7 @@ export const ModalEditarBlending: React.FC<ModalEditarBlendingProps> = ({
             </Box>
             <Select
               placeholder={loadingEmpresas ? "Cargando..." : "Seleccionar Empresa"}
-              disabled={loadingEmpresas}
+              disabled={loadingEmpresas || nuevosPendientes.length > 0}
               rightSection={loadingEmpresas ? <Loader size={14} /> : undefined}
               allowDeselect={false}
               searchable
@@ -165,6 +165,11 @@ export const ModalEditarBlending: React.FC<ModalEditarBlendingProps> = ({
               radius="lg"
               w={200}
               classNames={fieldClasses}
+              description={
+                nuevosPendientes.length > 0
+                  ? "Fija mientras haya lotes pendientes. Vacíe la lista para cambiar."
+                  : undefined
+              }
             />
             <Select
               placeholder={loadingProveedores ? "Cargando..." : "Filtrar por Proveedor (Opcional)"}
@@ -250,7 +255,7 @@ export const ModalEditarBlending: React.FC<ModalEditarBlendingProps> = ({
                     disponiblesParaAgregar.map((item, idx) => {
                       const yaEnPendientes = nuevosPendientes.some(
                         (p) =>
-                          (item.tipo_origen === "lote" && p.id_lote_guia === item.id_lote_guia) ||
+                          (item.tipo_origen === "lote" && p.id_lote_mineral === item.id_lote_mineral) ||
                           (item.tipo_origen === "blending" && p.id_reblending === item.id_reblending)
                       );
 
@@ -336,7 +341,7 @@ export const ModalEditarBlending: React.FC<ModalEditarBlendingProps> = ({
                     <>
                       {/* Filas de detalles EXISTENTES (pre-poblados) */}
                       {blending.detalles.map((d) => {
-                        const info = obtenerInfoDisponibleDeDetalle(d.id_lote_guia, d.id_reblending);
+                        const info = obtenerInfoDisponibleDeDetalle(d.id_lote_mineral, d.id_reblending);
                         const tmhDisponible = info?.tmh_disponible ?? 0;
                         const humedad = info?.ley_humedad ?? d.ley_humedad;
                         const tms = info?.tms_disponible ?? d.tms_tomado;
@@ -657,12 +662,15 @@ export const ModalEditarBlending: React.FC<ModalEditarBlendingProps> = ({
       <ModalMejorCombinacion
         opened={modalOptimizacionAbierto}
         close={() => setModalOptimizacionAbierto(false)}
-        onAplicar={(leyMinOro, leyMinPlata, pesoMax) =>
+        onAplicar={(leyMinOro, leyMinPlata, pesoMax, capMaxPorLote, precioOro, precioPlata) =>
           aplicarMejorCombinacion(
             disponibles,
             leyMinOro,
             leyMinPlata,
-            pesoMax
+            pesoMax,
+            capMaxPorLote,
+            precioOro,
+            precioPlata,
           )
         }
       />

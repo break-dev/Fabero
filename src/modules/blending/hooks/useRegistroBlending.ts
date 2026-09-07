@@ -28,7 +28,7 @@ export const useRegistroBlending = (onSuccess?: () => void) => {
       // Verificar si ya fue agregado
       const existe = prev.some((s) =>
         item.tipo_origen === "lote"
-          ? s.item.id_lote_guia === item.id_lote_guia
+          ? s.item.id_lote_mineral === item.id_lote_mineral
           : s.item.id_reblending === item.id_reblending
       );
       if (existe) return prev;
@@ -48,7 +48,7 @@ export const useRegistroBlending = (onSuccess?: () => void) => {
     setSeleccionados((prev) =>
       prev.filter((s) =>
         item.tipo_origen === "lote"
-          ? s.item.id_lote_guia !== item.id_lote_guia
+          ? s.item.id_lote_mineral !== item.id_lote_mineral
           : s.item.id_reblending !== item.id_reblending
       )
     );
@@ -60,7 +60,7 @@ export const useRegistroBlending = (onSuccess?: () => void) => {
       prev.map((s) => {
         const esMismo =
           item.tipo_origen === "lote"
-            ? s.item.id_lote_guia === item.id_lote_guia
+            ? s.item.id_lote_mineral === item.id_lote_mineral
             : s.item.id_reblending === item.id_reblending;
 
         if (!esMismo) return s;
@@ -119,9 +119,21 @@ export const useRegistroBlending = (onSuccess?: () => void) => {
     };
   }, [seleccionados, precioOro, precioPlata]);
 
-  // Algoritmo de optimización para la "Mejor Combinación" entre los Lotes Seleccionados
+  // Algoritmo de optimización para la "Mejor Combinación" entre los Lotes Seleccionados.
+  // Estrategia: greedy por densidad ($/kg TMH), cap por lote configurable, leyes
+  // mínimas como restricción dura. El cap (default 80%) fuerza la mezcla: ningun
+  // lote puede aportar más de cap% del peso total, garantizando que la
+  // selección resultante tenga ≥ ceil(100/cap) lotes cuando hay stock.
   const aplicarMejorCombinacion = useCallback(
-    (lotesObjetivo: ItemDisponibleResponse[], leyMinOro: number, leyMinPlata: number, pesoMaxResultante: number) => {
+    (
+      lotesObjetivo: ItemDisponibleResponse[],
+      leyMinOro: number,
+      leyMinPlata: number,
+      pesoMaxResultante: number,
+      capMaxPorLotePct: number,
+      precioOroOpt?: number,
+      precioPlataOpt?: number,
+    ) => {
       if (lotesObjetivo.length === 0) {
         notifyError("Agregue al menos 1 lote a 'Lotes Seleccionados' antes de usar la Mejor Combinación.");
         return;
@@ -133,91 +145,84 @@ export const useRegistroBlending = (onSuccess?: () => void) => {
 
       // 1. Filtrar lotes disponibles con stock > 0
       const conStock = lotesObjetivo.filter((i) => i.tmh_disponible > 0);
-      if (conStock.length === 0) return;
+      if (conStock.length === 0) {
+        notifyError("No hay lotes con stock disponible para mezclar.");
+        return;
+      }
 
-      // 2. Si se solicitan leyes mínimas, filtrar o priorizar lotes que cumplan/aporten a la ley
-      let candidatos = conStock.filter(
+      // 2. RESTRICCIÓN DURA de leyes mínimas (no se rellena al 70%).
+      const candidatos = conStock.filter(
         (i) =>
-          (leyMinOro > 0 ? i.ley_oro >= leyMinOro * 0.7 : true) &&
-          (leyMinPlata > 0 ? i.ley_plata >= leyMinPlata * 0.7 : true)
+          (leyMinOro <= 0 || i.ley_oro >= leyMinOro) &&
+          (leyMinPlata <= 0 || i.ley_plata >= leyMinPlata),
       );
 
       if (candidatos.length === 0) {
-        candidatos = [...conStock];
+        notifyError(
+          `Ningún lote cumple las leyes mínimas exigidas (Au≥${leyMinOro}, Ag≥${leyMinPlata}). Relájelas para incluir más candidatos.`,
+        );
+        return;
       }
 
-      // Ordenar por puntaje de ley combinado (Au prioridad mayor + Ag)
-      candidatos.sort((a, b) => {
-        const scoreA = a.ley_oro * 2 + a.ley_plata;
-        const scoreB = b.ley_oro * 2 + b.ley_plata;
-        return scoreB - scoreA;
-      });
+      // 3. Densidad de rentabilidad por candidato ($/kg TMH).
+      //    Misma fórmula que el módulo de valorización comercial estimada:
+      //      densidad_i = (1 - humedad_i / 100) / 1000 × (leyOro × precioOro + leyPlata × precioPlata)
+      //    Si no hay precios, fallback al score de leyes ponderadas:
+      //      densidad_i = (1 - humedad_i / 100) × (leyOro × 2 + leyPlata)
+      const usaPrecios =
+        (precioOroOpt !== undefined && precioOroOpt > 0) ||
+        (precioPlataOpt !== undefined && precioPlataOpt > 0);
+      const densidad = (i: ItemDisponibleResponse): number => {
+        const humedad = 1 - i.ley_humedad / 100;
+        const leyScore = usaPrecios
+          ? i.ley_oro * (precioOroOpt ?? 0) + i.ley_plata * (precioPlataOpt ?? 0)
+          : i.ley_oro * 2 + i.ley_plata;
+        return humedad * leyScore / 1000;
+      };
 
-      // 3. Tomar los mejores lotes candidatos (hasta 6 lotes para mezclar)
-      const seleccionadosParaMezcla = candidatos.slice(0, Math.min(candidatos.length, 6));
+      // 4. Ordenar por densidad descendente (mayor $/kg TMH primero).
+      const ordenados = [...candidatos].sort((a, b) => densidad(b) - densidad(a));
 
-      // 4. Repartir el pesoMaxResultante equilibradamente entre los lotes seleccionados
-      const seleccionOptima: ItemSeleccionado[] = [];
-      const count = seleccionadosParaMezcla.length;
+      // 5. Greedy fill respetando cap por lote.
+      //    cap absoluto = (capMaxPorLotePct / 100) × pesoMaxResultante.
+      //    Ningún lote puede aportar más de ese cap; garantiza mezcla cuando hay
+      //    más de ceil(100/cap) candidatos disponibles.
+      const capAbsoluto = (Math.min(100, Math.max(1, capMaxPorLotePct)) / 100) * pesoMaxResultante;
+      let restante = pesoMaxResultante;
+      const pesosAsignados = new Map<string, number>();
 
-      if (count === 1) {
-        // Solo hay 1 lote disponible
-        const item = seleccionadosParaMezcla[0];
-        const pesoATomar = Math.min(item.tmh_disponible, pesoMaxResultante);
-        seleccionOptima.push({ item, peso_tomado: Number(pesoATomar.toFixed(2)) });
-      } else {
-        // Hay 2 o más lotes: forzar mezcla impidiendo que un solo lote tome el 100%
-        const capMaxPorLote = pesoMaxResultante * 0.65;
-        const pesosAsignados = new Map<string, number>();
-
-        // Asignación inicial proporcional al stock de cada lote
-        const sumaDisponible = seleccionadosParaMezcla.reduce((acc, curr) => acc + curr.tmh_disponible, 0);
-
-        for (const item of seleccionadosParaMezcla) {
-          const key = `${item.tipo_origen}-${item.codigo}`;
-          const proporcion = item.tmh_disponible / (sumaDisponible || 1);
-          const pesoIdeal = pesoMaxResultante * proporcion;
-
-          // Limitar por stock disponible y cap por lote para forzar combinación
-          const pesoFinal = Math.min(pesoIdeal, item.tmh_disponible, capMaxPorLote);
-          pesosAsignados.set(key, pesoFinal);
-        }
-
-        // Si falta peso por cubrir para alcanzar pesoMaxResultante, distribuir remanente
-        const sumaAsignada = Array.from(pesosAsignados.values()).reduce((a, b) => a + b, 0);
-
-        if (sumaAsignada < pesoMaxResultante) {
-          let remanente = pesoMaxResultante - sumaAsignada;
-          for (const item of seleccionadosParaMezcla) {
-            if (remanente <= 0.001) break;
-            const key = `${item.tipo_origen}-${item.codigo}`;
-            const actual = pesosAsignados.get(key) || 0;
-            const margenStock = item.tmh_disponible - actual;
-            if (margenStock > 0) {
-              const sumar = Math.min(margenStock, remanente);
-              pesosAsignados.set(key, actual + sumar);
-              remanente -= sumar;
-            }
-          }
-        }
-
-        // Construir resultado final
-        for (const item of seleccionadosParaMezcla) {
-          const key = `${item.tipo_origen}-${item.codigo}`;
-          const peso = pesosAsignados.get(key) || 0;
-          if (peso > 0.01) {
-            seleccionOptima.push({
-              item,
-              peso_tomado: Number(peso.toFixed(2)),
-            });
-          }
+      for (const item of ordenados) {
+        if (restante <= 0.001) break;
+        const key = `${item.tipo_origen}-${item.codigo}`;
+        const pesoAsignable = Math.min(item.tmh_disponible, restante, capAbsoluto);
+        if (pesoAsignable > 0.01) {
+          pesosAsignados.set(key, pesoAsignable);
+          restante -= pesoAsignable;
         }
       }
+
+      if (pesosAsignados.size === 0) {
+        notifyError("No se pudo asignar peso a ningún candidato con los parámetros dados.");
+        return;
+      }
+
+      // 6. Construir seleccionOptima preservando el orden de densidad.
+      const seleccionOptima: ItemSeleccionado[] = ordenados
+        .map((item) => {
+          const key = `${item.tipo_origen}-${item.codigo}`;
+          const peso = pesosAsignados.get(key);
+          if (peso === undefined || peso <= 0.01) return null;
+          return { item, peso_tomado: Number(peso.toFixed(2)) };
+        })
+        .filter((x): x is ItemSeleccionado => x !== null);
 
       setSeleccionados(seleccionOptima);
-      notifySuccess(`Mejor combinación calculada (${seleccionOptima.length} lotes mezclados).`);
+      notifySuccess(
+        `Mejor combinación calculada: ${seleccionOptima.length} lote(s) mezclado(s), `
+        + `${(pesoMaxResultante - restante).toFixed(2)}/${pesoMaxResultante.toFixed(2)} kg TMH.`,
+      );
     },
-    [notifySuccess, notifyError]
+    [notifySuccess, notifyError],
   );
 
   // Enviar submit a la API
@@ -234,7 +239,7 @@ export const useRegistroBlending = (onSuccess?: () => void) => {
       observacion,
       evidencias: evidenciasFiles,
       detalles: seleccionados.map((s) => ({
-        id_lote_guia: s.item.tipo_origen === "lote" ? s.item.id_lote_guia : null,
+        id_lote_mineral: s.item.tipo_origen === "lote" ? s.item.id_lote_mineral : null,
         id_reblending: s.item.tipo_origen === "blending" ? s.item.id_reblending : null,
         peso_tomado: s.peso_tomado,
       })),

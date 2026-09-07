@@ -661,8 +661,9 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
           (i) => i.tipo_item === "LOTE" && i.id_lote_mineral === idLote && i.tempId !== tempId,
         );
         if (quedan) return prev;
-        const { [idLote]: _omit, ...rest } = prev;
-        return rest;
+        const next = { ...prev };
+        delete next[idLote];
+        return next;
       });
     }
     // Sincronizar los inputs de guias (autocompletar o limpiar) segun
@@ -748,8 +749,7 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
         unicaRecepcion,
       );
       // console.log("[autocompletar] respuesta del endpoint:", dataRecepcion);
-    } catch (err) {
-      // console.error("[autocompletar] ERROR en fetch:", err);
+    } catch {
       return;
     }
 
@@ -934,7 +934,7 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
       }
 
       return new File([blob], nombreCompleto, { type: tipo });
-    } catch (err) {
+    } catch {
       return null;
     }
   };
@@ -1074,22 +1074,15 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
       id_particion_lote_mineral: i.id_particion_lote_mineral,
     }));
 
-    // Armar payload de pesos oficiales para LOTEs sin particiones. Solo se
-    // envian si el operador modifico los valores (no coinciden con los
-    // originales del lote).
+    // Armar payload de pesos oficiales para TODOS los LOTEs sin particiones.
+    // Al registrar la guia, los pesos del lote pasan a ser los oficiales —
+    // los cambie el operador o no. Los *_oficial solo aplican al LOTE
+    // (las particiones mantienen sus propios pesos originales).
     const pesosOficialesLotes: DTO_PesosOficialesLote[] = [];
     for (const it of items) {
       if (it.tipo_item !== "LOTE" || it.id_lote_mineral === null) continue;
       const editados = pesosOficialesPorLote[it.id_lote_mineral];
       if (!editados) continue;
-      const origInicial = Number(it.peso_inicial ?? 0);
-      const origFinal = Number(it.peso_final ?? 0);
-      const origNeto = Number(it.peso_neto ?? 0);
-      const cambio =
-        Math.abs(editados.peso_inicial_oficial - origInicial) > 0.01 ||
-        Math.abs(editados.peso_final_oficial - origFinal) > 0.01 ||
-        Math.abs(editados.peso_neto_oficial - origNeto) > 0.01;
-      if (!cambio) continue;
       pesosOficialesLotes.push({
         id_lote_mineral: it.id_lote_mineral,
         peso_inicial_oficial: round2(editados.peso_inicial_oficial),
@@ -1562,7 +1555,7 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
           <Grid gutter="sm">
             <Grid.Col span={{ base: 12, sm: 6 }}>
               <MultiFilePicker
-                label="Documento Guía Remitente:"
+                label="Guía Remitente:"
                 description="PDF o imagen de la guía del remitente"
                 files={documentoGuiaRemitente ? [documentoGuiaRemitente] : []}
                 onFilesChange={(files) => handleFilesChange("remitente", files)}
@@ -1585,7 +1578,7 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
             </Grid.Col>
             <Grid.Col span={{ base: 12, sm: 6 }}>
               <MultiFilePicker
-                label="Documento Guía Transportista:"
+                label="Guía Transportista:"
                 description="PDF o imagen de la guía del transportista"
                 files={
                   !sinGuiaTransportista && documentoGuiaTransportista

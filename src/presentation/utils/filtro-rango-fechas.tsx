@@ -64,8 +64,8 @@ export const DateRangeFilter = ({
   };
 
   return (
-    <Group gap="md" align="end" wrap="wrap">
-      <div className="flex-1 min-w-[180px]">
+    <Group gap="xs" align="end" wrap="nowrap">
+      <div className="flex-1 min-w-[110px]">
         <CustomDatePicker
           label="Fecha Inicio"
           placeholder="Fecha inicio"
@@ -77,7 +77,7 @@ export const DateRangeFilter = ({
           classNames={mergedClasses}
         />
       </div>
-      <div className="flex-1 min-w-[180px]">
+      <div className="flex-1 min-w-[110px]">
         <CustomDatePicker
           label="Fecha Fin"
           placeholder="Fecha fin"
@@ -95,7 +95,7 @@ export const DateRangeFilter = ({
           variant="light"
           color="zinc"
           radius="xl"
-          size="lg"
+          size="md"
           onClick={handleClear}
           title="Limpiar rango de fechas"
           className="bg-zinc-800! hover:bg-zinc-700! text-zinc-300! border-zinc-700!"

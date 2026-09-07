@@ -124,7 +124,7 @@ export const ModalCrearBlending: React.FC<ModalCrearBlendingProps> = ({
             </Box>
             <Select
               placeholder={loadingEmpresas ? "Cargando..." : "Seleccionar Empresa"}
-              disabled={loadingEmpresas}
+              disabled={loadingEmpresas || seleccionados.length > 0}
               rightSection={loadingEmpresas ? <Loader size={14} /> : undefined}
               allowDeselect={false}
               searchable
@@ -139,6 +139,11 @@ export const ModalCrearBlending: React.FC<ModalCrearBlendingProps> = ({
               radius="lg"
               w={200}
               classNames={fieldClasses}
+              description={
+                seleccionados.length > 0
+                  ? "Fija mientras haya lotes seleccionados. Vacíe la lista para cambiar."
+                  : undefined
+              }
             />
             <Select
               placeholder={loadingProveedores ? "Cargando..." : "Filtrar por Proveedor (Opcional)"}
@@ -224,7 +229,7 @@ export const ModalCrearBlending: React.FC<ModalCrearBlendingProps> = ({
                     disponibles.map((item, idx) => {
                       const yaSeleccionado = seleccionados.some((s) =>
                         item.tipo_origen === "lote"
-                          ? s.item.id_lote_guia === item.id_lote_guia
+                          ? s.item.id_lote_mineral === item.id_lote_mineral
                           : s.item.id_reblending === item.id_reblending
                       );
 
@@ -572,12 +577,15 @@ export const ModalCrearBlending: React.FC<ModalCrearBlendingProps> = ({
       <ModalMejorCombinacion
         opened={modalOptimizacionAbierto}
         close={() => setModalOptimizacionAbierto(false)}
-        onAplicar={(leyMinOro, leyMinPlata, pesoMax) =>
+        onAplicar={(leyMinOro, leyMinPlata, pesoMax, capMaxPorLote, precioOro, precioPlata) =>
           aplicarMejorCombinacion(
             seleccionados.map((s) => s.item),
             leyMinOro,
             leyMinPlata,
-            pesoMax
+            pesoMax,
+            capMaxPorLote,
+            precioOro,
+            precioPlata,
           )
         }
       />

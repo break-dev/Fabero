@@ -43,7 +43,7 @@ export const useCierreLeyes = () => {
     setLoading(true);
     try {
       const data = await CierreLeyesService.getLotesCierre(filtros);
-      setLotes(data);
+      setLotes((data ?? []).filter((l): l is LoteCierreResponse => l != null && l.id != null));
     } catch (err: unknown) {
       console.error(err);
       notifyError("Ocurrió un error al cargar los lotes de cierre");
@@ -86,6 +86,10 @@ export const useCierreLeyes = () => {
     setIniciandoLoteSugeridoId(idLote);
     try {
       const nuevoLoteCierre = await CierreLeyesService.iniciarLote(idLote);
+      if (!nuevoLoteCierre || nuevoLoteCierre.id == null) {
+        notifyError("La respuesta del servidor no contiene el lote iniciado.");
+        return false;
+      }
       setLotes((prev) => [nuevoLoteCierre, ...prev]);
       setLotesSugeridos((prev) => prev.filter((l) => l.id !== idLote));
       notifySuccess("Lote seleccionado e iniciado correctamente");
@@ -126,12 +130,14 @@ export const useCierreLeyes = () => {
     });
 
     // Snapshot para revertir en error
-    const snapshot: LoteCierreResponse | undefined = lotesRef.current.find((l) => l.id === payload.id_lote_mineral);
+    const snapshot: LoteCierreResponse | undefined = lotesRef.current.find(
+      (l) => l != null && l.id === payload.id_lote_mineral,
+    );
 
     // Mutacion optimista local
     setLotes((prev) =>
       prev.map((l) => {
-        if (l.id !== payload.id_lote_mineral) return l;
+        if (!l || l.id !== payload.id_lote_mineral) return l;
         return {
           ...l,
           analisis: l.analisis.map((a) => {
@@ -149,13 +155,20 @@ export const useCierreLeyes = () => {
 
     try {
       const servidor = await CierreLeyesService.guardarValorLey(payload);
-      setLotes((prev) => prev.map((l) => (l.id === servidor.id ? servidor : l)));
+      if (!servidor || servidor.id == null) {
+        notifyError("La respuesta del servidor es inválida.");
+        if (snapshot) {
+          setLotes((prev) => prev.map((l) => (l && l.id === snapshot.id ? snapshot : l)));
+        }
+        return false;
+      }
+      setLotes((prev) => prev.map((l) => (l && l.id === servidor.id ? servidor : l)));
       return true;
     } catch (err: unknown) {
       console.error(err);
       notifyError("Error al guardar el valor de la ley");
       if (snapshot) {
-        setLotes((prev) => prev.map((l) => (l.id === snapshot.id ? snapshot : l)));
+        setLotes((prev) => prev.map((l) => (l && l.id === snapshot.id ? snapshot : l)));
       }
       return false;
     } finally {
@@ -176,7 +189,11 @@ export const useCierreLeyes = () => {
     setAgregandoAnalisisPorLote((prev) => ({ ...prev, [idLoteMineral]: true }));
     try {
       const loteActualizado = await CierreLeyesService.agregarAnalisis(idLoteMineral);
-      setLotes((prev) => prev.map((l) => (l.id === idLoteMineral ? loteActualizado : l)));
+      if (!loteActualizado || loteActualizado.id == null) {
+        notifyError("La respuesta del servidor es inválida.");
+        return false;
+      }
+      setLotes((prev) => prev.map((l) => (l && l.id === idLoteMineral ? loteActualizado : l)));
       notifySuccess("Nuevo análisis agregado");
       return true;
     } catch (err: unknown) {
@@ -196,7 +213,11 @@ export const useCierreLeyes = () => {
     setGuardandoValorPorLote((prev) => ({ ...prev, [idLoteMineral]: true }));
     try {
       const loteActualizado = await CierreLeyesService.eliminarFila(idLoteMineral, uuidFila);
-      setLotes((prev) => prev.map((l) => (l.id === idLoteMineral ? loteActualizado : l)));
+      if (!loteActualizado || loteActualizado.id == null) {
+        notifyError("La respuesta del servidor es inválida.");
+        return false;
+      }
+      setLotes((prev) => prev.map((l) => (l && l.id === idLoteMineral ? loteActualizado : l)));
       notifySuccess("Fila de análisis eliminada");
       return true;
     } catch (err: unknown) {
@@ -216,7 +237,11 @@ export const useCierreLeyes = () => {
     setConfirmandoLote((prev) => ({ ...prev, [idLoteMineral]: true }));
     try {
       const loteActualizado = await CierreLeyesService.confirmarLoteLeyes(idLoteMineral, conValorComercial);
-      setLotes((prev) => prev.map((l) => (l.id === idLoteMineral ? loteActualizado : l)));
+      if (!loteActualizado || loteActualizado.id == null) {
+        notifyError("La respuesta del servidor es inválida.");
+        return false;
+      }
+      setLotes((prev) => prev.map((l) => (l && l.id === idLoteMineral ? loteActualizado : l)));
       notifySuccess(
         `Lote confirmado ${conValorComercial ? "Con Valor Comercial" : "Sin Valor Comercial"} correctamente`,
       );
@@ -242,7 +267,11 @@ export const useCierreLeyes = () => {
     setGuardandoValorPorLote((prev) => ({ ...prev, [idLoteMineral]: true }));
     try {
       const loteActualizado = await CierreLeyesService.actualizarOrigenFila(idLoteMineral, uuidFila, tipoOrigen);
-      setLotes((prev) => prev.map((l) => (l.id === idLoteMineral ? loteActualizado : l)));
+      if (!loteActualizado || loteActualizado.id == null) {
+        notifyError("La respuesta del servidor es inválida.");
+        return false;
+      }
+      setLotes((prev) => prev.map((l) => (l && l.id === idLoteMineral ? loteActualizado : l)));
       return true;
     } catch (err: unknown) {
       console.error(err);
@@ -305,7 +334,10 @@ export const useCierreLeyes = () => {
 
   const validacionCierrePorLote = useMemo(() => {
     const out: Record<number, CierreValidacion> = {};
-    for (const l of lotes) out[l.id] = validarCierre(l, grupos);
+    for (const l of lotes) {
+      if (!l || l.id == null) continue;
+      out[l.id] = validarCierre(l, grupos);
+    }
     return out;
   }, [lotes, grupos, validarCierre]);
 

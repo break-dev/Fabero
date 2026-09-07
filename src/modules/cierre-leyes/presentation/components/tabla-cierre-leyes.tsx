@@ -306,7 +306,7 @@ export const TablaCierreLeyes = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
-            {lotes.map((l: LoteCierreResponse) => {
+            {lotes.filter((l): l is LoteCierreResponse => l != null).map((l: LoteCierreResponse) => {
               // Get unique uuid_filas saved in database for this lote
               const dbUuids = Array.from(
                 new Set(l.analisis.map((a: AnalisisMineralResponse) => a.uuid_fila).filter(Boolean))

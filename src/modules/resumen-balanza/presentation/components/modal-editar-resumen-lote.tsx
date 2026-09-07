@@ -228,6 +228,11 @@ export const ModalEditarResumenLote = ({ opened, lote, onClose, onSuccess }: Pro
         motivo: motivo || undefined,
       };
 
+      // El modal sólo se renderiza para filas LOTE_RECEPCION (id_lote garantizado).
+      if (lote.id_lote == null) {
+        notifyError("Esta fila no corresponde a un lote editable.");
+        return;
+      }
       await RecepcionMineralService.actualizar_lote(lote.id_lote, dto);
       notifySuccess("Lote actualizado correctamente");
       onSuccess();

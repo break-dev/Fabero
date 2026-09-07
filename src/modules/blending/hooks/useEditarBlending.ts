@@ -124,7 +124,7 @@ export const useEditarBlending = (
       setNuevosPendientes((prev) => [
         ...prev,
         {
-          id_lote_guia: item.tipo_origen === "lote" ? item.id_lote_guia : null,
+          id_lote_mineral: item.tipo_origen === "lote" ? item.id_lote_mineral : null,
           id_reblending: item.tipo_origen === "blending" ? item.id_reblending : null,
           peso_adicional: pesoAdicional,
         },
@@ -144,12 +144,19 @@ export const useEditarBlending = (
   }, []);
 
   // ============== Mejor Combinación (sólo sobre nuevos pendientes) ==============
+  // Estrategia: greedy por densidad ($/kg TMH) sobre los pendientes, cap por
+  // lote configurable, leyes mínimas como restricción dura. El cap se aplica
+  // al pesoMaximoParaNuevos (peso que aún puede agregarse sin superar el
+  // pesoMaxResultante del blending resultante).
   const aplicarMejorCombinacion = useCallback(
     (
       disponibles: ItemDisponibleResponse[],
       leyMinOro: number,
       leyMinPlata: number,
-      pesoMaxResultante: number
+      pesoMaxResultante: number,
+      capMaxPorLotePct: number,
+      precioOroOpt?: number,
+      precioPlataOpt?: number,
     ) => {
       if (nuevosPendientes.length === 0) {
         notifyError(
@@ -178,7 +185,7 @@ export const useEditarBlending = (
         .map((p) => {
           const info = disponibles.find(
             (d) =>
-              (p.id_lote_guia != null && d.id_lote_guia === p.id_lote_guia) ||
+              (p.id_lote_mineral != null && d.id_lote_mineral === p.id_lote_mineral) ||
               (p.id_reblending != null && d.id_reblending === p.id_reblending)
           );
           if (!info) return null;
@@ -193,88 +200,76 @@ export const useEditarBlending = (
 
       // Filtrar con stock > 0
       const conStock = conInfo.filter((c) => c.info.tmh_disponible > 0);
-      if (conStock.length === 0) return;
+      if (conStock.length === 0) {
+        notifyError("No hay pendientes con stock disponible para mezclar.");
+        return;
+      }
 
-      // Filtrar por leyes mínimas (70% de tolerancia)
-      let candidatos = conStock.filter(
+      // RESTRICCIÓN DURA de leyes mínimas (no se rellena al 70%).
+      const candidatos = conStock.filter(
         (c) =>
-          (leyMinOro > 0 ? c.info.ley_oro >= leyMinOro * 0.7 : true) &&
-          (leyMinPlata > 0 ? c.info.ley_plata >= leyMinPlata * 0.7 : true)
-      );
-      if (candidatos.length === 0) candidatos = [...conStock];
-
-      // Ordenar por score combinado (Au × 2 + Ag)
-      candidatos.sort((a, b) => {
-        const scoreA = a.info.ley_oro * 2 + a.info.ley_plata;
-        const scoreB = b.info.ley_oro * 2 + b.info.ley_plata;
-        return scoreB - scoreA;
-      });
-
-      const seleccionadosParaMezcla = candidatos.slice(
-        0,
-        Math.min(candidatos.length, 6)
+          (leyMinOro <= 0 || c.info.ley_oro >= leyMinOro) &&
+          (leyMinPlata <= 0 || c.info.ley_plata >= leyMinPlata),
       );
 
-      // Repartir pesoMaximoParaNuevos entre los pendientes seleccionados
-      const count = seleccionadosParaMezcla.length;
+      if (candidatos.length === 0) {
+        notifyError(
+          `Ningún pendiente cumple las leyes mínimas exigidas (Au≥${leyMinOro}, Ag≥${leyMinPlata}). Relájelas para incluir más candidatos.`,
+        );
+        return;
+      }
+
+      // Densidad de rentabilidad ($/kg TMH).
+      const usaPrecios =
+        (precioOroOpt !== undefined && precioOroOpt > 0) ||
+        (precioPlataOpt !== undefined && precioPlataOpt > 0);
+      const densidad = (info: ItemDisponibleResponse): number => {
+        const humedad = 1 - info.ley_humedad / 100;
+        const leyScore = usaPrecios
+          ? info.ley_oro * (precioOroOpt ?? 0) + info.ley_plata * (precioPlataOpt ?? 0)
+          : info.ley_oro * 2 + info.ley_plata;
+        return humedad * leyScore / 1000;
+      };
+
+      // Ordenar por densidad descendente.
+      const ordenados = [...candidatos].sort((a, b) => densidad(b.info) - densidad(a.info));
+
+      // Greedy fill respetando cap por lote sobre el peso NUEVO.
+      const capAbsoluto = (Math.min(100, Math.max(1, capMaxPorLotePct)) / 100) * pesoMaximoParaNuevos;
+      let restante = pesoMaximoParaNuevos;
       const pesosAsignados = new Map<number, number>();
 
-      if (count === 1) {
-        const { info } = seleccionadosParaMezcla[0];
-        const peso = Math.min(info.tmh_disponible, pesoMaximoParaNuevos);
-        const key = seleccionadosParaMezcla[0].pendiente.id_lote_guia ?? seleccionadosParaMezcla[0].pendiente.id_reblending ?? -1;
-        pesosAsignados.set(key, peso);
-      } else {
-        const capMaxPorLote = pesoMaximoParaNuevos * 0.65;
-        const sumaDisponible = seleccionadosParaMezcla.reduce(
-          (acc, curr) => acc + curr.info.tmh_disponible,
-          0
-        );
-
-        seleccionadosParaMezcla.forEach(({ pendiente, info }) => {
-          const key = pendiente.id_lote_guia ?? pendiente.id_reblending ?? -1;
-          const proporcion = info.tmh_disponible / (sumaDisponible || 1);
-          const pesoIdeal = pesoMaximoParaNuevos * proporcion;
-          pesosAsignados.set(key, Math.min(pesoIdeal, info.tmh_disponible, capMaxPorLote));
-        });
-
-        // Distribuir remanente
-        const sumaAsignada = Array.from(pesosAsignados.values()).reduce(
-          (a, b) => a + b,
-          0
-        );
-        if (sumaAsignada < pesoMaximoParaNuevos) {
-          let remanente = pesoMaximoParaNuevos - sumaAsignada;
-          for (const { pendiente, info } of seleccionadosParaMezcla) {
-            if (remanente <= 0.001) break;
-            const key = pendiente.id_lote_guia ?? pendiente.id_reblending ?? -1;
-            const actual = pesosAsignados.get(key) || 0;
-            const margenStock = info.tmh_disponible - actual;
-            if (margenStock > 0) {
-              const sumar = Math.min(margenStock, remanente);
-              pesosAsignados.set(key, actual + sumar);
-              remanente -= sumar;
-            }
-          }
+      for (const { pendiente, info } of ordenados) {
+        if (restante <= 0.001) break;
+        const key = pendiente.id_lote_mineral ?? pendiente.id_reblending ?? -1;
+        const asignable = Math.min(info.tmh_disponible, restante, capAbsoluto);
+        if (asignable > 0.01) {
+          pesosAsignados.set(key, asignable);
+          restante -= asignable;
         }
       }
 
-      // Aplicar distribución al estado nuevosPendientes
+      if (pesosAsignados.size === 0) {
+        notifyError("No se pudo asignar peso a ningún pendiente con los parámetros dados.");
+        return;
+      }
+
+      // Aplicar distribución al estado nuevosPendientes preservando el orden de densidad.
       setNuevosPendientes((prev) =>
         prev
           .map((p) => {
-            const key = p.id_lote_guia ?? p.id_reblending ?? -1;
+            const key = p.id_lote_mineral ?? p.id_reblending ?? -1;
             const nuevo = pesosAsignados.get(key);
-            if (nuevo === undefined || nuevo <= 0.01) {
-              return null;
-            }
+            if (nuevo === undefined || nuevo <= 0.01) return null;
             return { ...p, peso_adicional: Number(nuevo.toFixed(2)) };
           })
           .filter((x): x is AdicionPesoPayload => x !== null)
       );
 
+      const usados = pesoMaximoParaNuevos - restante;
       notifySuccess(
-        `Mejor combinación calculada (${seleccionadosParaMezcla.length} lotes nuevos optimizados).`
+        `Mejor combinación calculada: ${pesosAsignados.size} pendiente(s), `
+        + `${usados.toFixed(2)}/${pesoMaximoParaNuevos.toFixed(2)} kg TMH nuevos.`,
       );
     },
     [blending, nuevosPendientes, notifyError, notifySuccess]
@@ -298,7 +293,7 @@ export const useEditarBlending = (
     nuevosPendientes.forEach((p) => {
       const info = disponibles.find(
         (d) =>
-          (p.id_lote_guia != null && d.id_lote_guia === p.id_lote_guia) ||
+          (p.id_lote_mineral != null && d.id_lote_mineral === p.id_lote_mineral) ||
           (p.id_reblending != null && d.id_reblending === p.id_reblending)
       );
       if (info) {
@@ -375,7 +370,7 @@ export const useEditarBlending = (
     const adiciones: AdicionPesoPayload[] = nuevosPendientes
       .filter((p) => p.peso_adicional > EPSILON)
       .map((p) => ({
-        id_lote_guia: p.id_lote_guia ?? undefined,
+        id_lote_mineral: p.id_lote_mineral ?? undefined,
         id_reblending: p.id_reblending ?? undefined,
         peso_adicional: Number(p.peso_adicional.toFixed(2)),
       }));

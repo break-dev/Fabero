@@ -153,6 +153,78 @@ const formatPeso = (peso: number | null | undefined): string => {
   return `${Math.round(peso)} kg`;
 };
 
+/**
+ * Convierte un timestamp SQL (`YYYY-MM-DD HH:MM:SS`) a ms epoch. Devuelve `null` si no parsea.
+ */
+const parseFechaMs = (isoString: string | null | undefined): number | null => {
+  if (!isoString) return null;
+  // Normalizar separador espacio → T para que el parser JS lo entienda como local.
+  const normalized = isoString.replace(" ", "T");
+  const ms = new Date(normalized).getTime();
+  return Number.isFinite(ms) ? ms : null;
+};
+
+interface PesadaRender {
+  label: string;
+  fecha: string | null;
+  peso: number | null;
+}
+
+/**
+ * Resuelve el orden cronológico real de las dos pesadas y devuelve los labels y valores
+ * correctos para imprimir. Soporta los dos flujos del sistema:
+ *
+ *   - **Recepción de Mineral (LOTE)**: el camión llega cargado (BRUTO primero) y retorna
+ *     vacío tras la descarga (TARA después).
+ *   - **Despacho de Mineral**: el camión llega vacío (TARA primero) y retorna cargado tras
+ *     el despacho (BRUTO después).
+ *
+ * Si falta uno de los timestamps (tickets parciales), mantiene el orden BRUTO→TARA por
+ * defecto (compatibilidad con el flujo de Recepción).
+ */
+const buildPesadas = (data: RES_TicketBalanzaData): [PesadaRender, PesadaRender | null] => {
+  const taraMs = parseFechaMs(data.fecha_hora_peso_tara);
+  const brutoMs = parseFechaMs(data.fecha_hora_peso_bruto);
+
+  const taraExists = data.peso_tara !== null && data.peso_tara !== undefined;
+  const brutoExists = data.peso_bruto !== null && data.peso_bruto !== undefined;
+
+  if (taraMs !== null && brutoMs !== null) {
+    const taraFirst = taraMs <= brutoMs;
+    if (taraFirst) {
+      return [
+        { label: "1RA PESADA (TARA):", fecha: data.fecha_hora_peso_tara, peso: data.peso_tara },
+        brutoExists
+          ? { label: "2DA PESADA (BRUTO):", fecha: data.fecha_hora_peso_bruto, peso: data.peso_bruto }
+          : null,
+      ];
+    }
+    return [
+      { label: "1RA PESADA (BRUTO):", fecha: data.fecha_hora_peso_bruto, peso: data.peso_bruto },
+      taraExists
+        ? { label: "2DA PESADA (TARA):", fecha: data.fecha_hora_peso_tara, peso: data.peso_tara }
+        : null,
+    ];
+  }
+
+  // Fallback: al menos uno de los timestamps no está. Mantener orden histórico LOTE (BRUTO primero).
+  if (brutoExists) {
+    return [
+      { label: "1RA PESADA (BRUTO):", fecha: data.fecha_hora_peso_bruto, peso: data.peso_bruto },
+      taraExists
+        ? { label: "2DA PESADA (TARA):", fecha: data.fecha_hora_peso_tara, peso: data.peso_tara }
+        : null,
+    ];
+  }
+  if (taraExists) {
+    return [
+      { label: "1RA PESADA (TARA):", fecha: data.fecha_hora_peso_tara, peso: data.peso_tara },
+      null,
+    ];
+  }
+  return [{ label: "1RA PESADA:", fecha: null, peso: null }, null];
+};
+
 const formatUbicacion = (
   direccion?: string | null,
   nombreSucursal?: string | null,
@@ -234,7 +306,7 @@ export const TicketBalanzaPdf = ({ data }: TicketBalanzaPdfProps) => {
               <Text style={styles.dateText}>DESPACHO: {data.despacho_correlativo}</Text>
             )}
             <Text style={styles.dateText}>
-              FECHA: {formatFechaSolo(data.fecha_hora_peso_inicial || data.fecha_impresion || "")}
+              FECHA: {formatFechaSolo(data.fecha_hora_peso_bruto || data.fecha_impresion || "")}
             </Text>
           </View>
         </View>
@@ -333,23 +405,29 @@ export const TicketBalanzaPdf = ({ data }: TicketBalanzaPdfProps) => {
         {/* PESAJES */}
         <Text style={styles.sectionTitle}>DETALLE DE PESAJES</Text>
 
-        <View style={styles.pesadaBlock}>
-          <Text style={styles.pesadaHeader}>1RA PESADA (BRUTO):</Text>
-          <View style={styles.pesadaDetailRow}>
-            <Text>{formatFechaHora(data.fecha_hora_peso_inicial)}</Text>
-            <Text style={styles.boldText}>{formatPeso(data.peso_bruto)}</Text>
-          </View>
-        </View>
-
-        {data.fecha_hora_peso_final && (
-          <View style={styles.pesadaBlock}>
-            <Text style={styles.pesadaHeader}>2DA PESADA (TARA):</Text>
-            <View style={styles.pesadaDetailRow}>
-              <Text>{formatFechaHora(data.fecha_hora_peso_final)}</Text>
-              <Text style={styles.boldText}>{formatPeso(data.peso_tara)}</Text>
-            </View>
-          </View>
-        )}
+        {(() => {
+          const [primera, segunda] = buildPesadas(data);
+          return (
+            <>
+              <View style={styles.pesadaBlock}>
+                <Text style={styles.pesadaHeader}>{primera.label}</Text>
+                <View style={styles.pesadaDetailRow}>
+                  <Text>{formatFechaHora(primera.fecha)}</Text>
+                  <Text style={styles.boldText}>{formatPeso(primera.peso)}</Text>
+                </View>
+              </View>
+              {segunda && (
+                <View style={styles.pesadaBlock}>
+                  <Text style={styles.pesadaHeader}>{segunda.label}</Text>
+                  <View style={styles.pesadaDetailRow}>
+                    <Text>{formatFechaHora(segunda.fecha)}</Text>
+                    <Text style={styles.boldText}>{formatPeso(segunda.peso)}</Text>
+                  </View>
+                </View>
+              )}
+            </>
+          );
+        })()}
 
         <View style={styles.dashedLine} />
 

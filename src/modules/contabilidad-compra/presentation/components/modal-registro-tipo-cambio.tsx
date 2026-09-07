@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button, Group, NumberInput, Stack, Text } from "@mantine/core";
-import { IconCoin } from "@tabler/icons-react";
+import { IconCoin, IconExternalLink } from "@tabler/icons-react";
 import { z } from "zod";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
 import { AuxService } from "../../../../service/auxiliar.service";
@@ -89,6 +89,18 @@ export const ModalRegistroTipoCambio = ({
           Estás registrando el tipo de cambio para la fecha <b>{fecha}</b>. Solo puede existir un
           registro activo por día.
         </Text>
+        <a
+          href="https://e-consulta.sunat.gob.pe/cl-at-ittipcam/tcS01Alias"
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-yellow-500/30 bg-yellow-500/5 hover:bg-yellow-500/10 transition-colors text-yellow-300 text-xs"
+        >
+          <IconExternalLink size={14} />
+          <span>
+            Consulta los <b>tipos de cambio oficiales</b> publicados por SUNAT.
+            Se abrirá en una nueva pestaña.
+          </span>
+        </a>
         <NumberInput
           label="Valor de Compra"
           decimalScale={3}

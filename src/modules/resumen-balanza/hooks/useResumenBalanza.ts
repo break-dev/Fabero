@@ -20,7 +20,7 @@ export const useResumenBalanza = () => {
   const [fechaFin, setFechaFin] = useState<string>(defaultFechaFin());
   const [tipoIngreso, setTipoIngreso] = useState<string | null>(null);
   const [placa, setPlaca] = useState<string | null>(null);
-  const [idLoteMineral, setIdLoteMineral] = useState<string | null>(null);
+  const [loteCorrelativo, setLoteCorrelativo] = useState<string>("");
   const [idEmpresaTransporte, setIdEmpresaTransporte] = useState<string | null>(null);
 
   // Datos principales
@@ -67,7 +67,7 @@ export const useResumenBalanza = () => {
         fecha_fin: fechaFin || undefined,
         tipo_ingreso: tipoIngreso || undefined,
         placa: placa || undefined,
-        id_lote_mineral: idLoteMineral ? Number(idLoteMineral) : undefined,
+        lote_correlativo: loteCorrelativo.trim() || undefined,
         id_empresa_transporte: idEmpresaTransporte ? Number(idEmpresaTransporte) : undefined,
       };
 
@@ -86,7 +86,7 @@ export const useResumenBalanza = () => {
     setFechaFin(defaultFechaFin());
     setTipoIngreso(null);
     setPlaca(null);
-    setIdLoteMineral(null);
+    setLoteCorrelativo("");
     setIdEmpresaTransporte(null);
   };
 
@@ -101,7 +101,7 @@ export const useResumenBalanza = () => {
   useEffect(() => {
     loadResumen();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idSucursal, fechaInicio, fechaFin, tipoIngreso, placa, idLoteMineral, idEmpresaTransporte]);
+  }, [idSucursal, fechaInicio, fechaFin, tipoIngreso, placa, loteCorrelativo, idEmpresaTransporte]);
 
   return {
     items,
@@ -115,8 +115,8 @@ export const useResumenBalanza = () => {
     setTipoIngreso,
     placa,
     setPlaca,
-    idLoteMineral,
-    setIdLoteMineral,
+    loteCorrelativo,
+    setLoteCorrelativo,
     idEmpresaTransporte,
     setIdEmpresaTransporte,
     metadata,

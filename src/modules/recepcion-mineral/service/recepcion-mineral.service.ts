@@ -155,6 +155,7 @@ export const RecepcionMineralService = {
   },
 
   /**
+  /**
    * Actualizar lote completo (desde Resumen de Balanza)
    */
   actualizar_lote: async (
@@ -226,9 +227,24 @@ export const RecepcionMineralService = {
 
   /**
    * Obtener datos del Ticket de Balanza en formato completo para impresión PDF
+   * (filas LOTE_RECEPCION del Resumen de Balanza).
    */
   obtener_ticket_balanza: async (loteId: number): Promise<RES_TicketBalanzaData> => {
     const { data } = await api.get(`${PATH}/lotes/${loteId}/ticket-balanza`);
+    return data.data;
+  },
+
+  /**
+   * Obtener datos del Ticket de Balanza en formato completo para impresión PDF
+   * partiendo de un id_distribucion_detalle (filas DISTRIBUCION_DETALLE del
+   * Resumen de Balanza). Soporta orígenes LOTE y BLENDING.
+   */
+  obtener_ticket_balanza_por_distribucion_detalle: async (
+    idDistribucionDetalle: number
+  ): Promise<RES_TicketBalanzaData> => {
+    const { data } = await api.get(
+      `${PATH}/distribuciones-detalles/${idDistribucionDetalle}/ticket-balanza`
+    );
     return data.data;
   },
 };

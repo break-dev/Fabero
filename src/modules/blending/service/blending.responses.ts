@@ -1,7 +1,7 @@
 import type { IArchivo } from "../../../shared/interfaces/archivo";
 
 export interface ItemDisponibleResponse {
-  id_lote_guia: number | null;
+  id_lote_mineral: number | null;
   id_reblending: number | null;
   tipo_origen: "lote" | "blending";
   codigo: string;
@@ -20,7 +20,7 @@ export interface ItemDisponibleResponse {
 export interface BlendingDetalleResponse {
   id: number;
   id_blending: number;
-  id_lote_guia: number | null;
+  id_lote_mineral: number | null;
   id_reblending: number | null;
   peso_actual: number;
   peso_tomado: number;
@@ -65,6 +65,7 @@ export interface BlendingLogCambioItem {
 export interface BlendingResponse {
   id: number;
   id_empleado_registro: number;
+  id_empresa: number | null;
   empleado_registro_nombre?: string;
   correlativo: string;
   numero_correlativo: string;

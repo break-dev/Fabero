@@ -29,6 +29,10 @@ export interface CrearDistribucionDetalleRequest {
 export interface PesarDistribucionDetalleRequest {
   peso_tara?: number | null;
   peso_bruto?: number | null;
+  /** true = bloquear tara, false = desbloquear (cascade reset del bruto) */
+  confirmar_tara?: boolean | null;
+  /** true = bloquear bruto, false = desbloquear (sin cascade) */
+  confirmar_bruto?: boolean | null;
 }
 
 export interface DespachoFiltros {

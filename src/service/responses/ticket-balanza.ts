@@ -27,11 +27,15 @@ export interface RES_TicketBalanzaData {
   zona_origen_nombre?: string | null;
   observacion_peso_inicial: string | null;
   observacion_peso_final: string | null;
-  fecha_hora_peso_inicial: string | null;
+  /** Timestamp del pesaje BRUTO. Para LOTE (Recepción) suele ser la 1ra pesada; para DESPACHO suele ser la 2da. */
+  fecha_hora_peso_bruto: string | null;
   peso_bruto: number | null;
-  fecha_hora_peso_final: string | null;
+  /** Timestamp del pesaje TARA. Para LOTE (Recepción) suele ser la 2da pesada; para DESPACHO suele ser la 1ra. */
+  fecha_hora_peso_tara: string | null;
   peso_tara: number | null;
   peso_neto: number | null;
+  /** Indica si el ticket proviene de un despacho (flujo TARA→BRUTO) o de una recepción (flujo BRUTO→TARA). */
+  es_despacho?: boolean | null;
   despacho_correlativo?: string | null;
   planta_destino_nombre?: string | null;
   operador: string | null;

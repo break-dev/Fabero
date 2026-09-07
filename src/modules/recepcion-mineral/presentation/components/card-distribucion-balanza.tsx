@@ -15,6 +15,7 @@ import {
   IconScale,
   IconBarcode,
   IconCheck,
+  IconLock,
   IconX,
   IconDroplet,
   IconSun,
@@ -78,15 +79,14 @@ interface DetallePesajeItemProps {
 }
 
 const DetallePesajeItem = ({ detalle, onSaved }: DetallePesajeItemProps) => {
-  const { printTicketBalanza, loadingTicket } = useTicketBalanza();
+  const { printTicketBalanzaByDistribucionDetalle, loadingTicket } =
+    useTicketBalanza();
   const ctrl = usePesarDistribucionDetalle({
     detalle,
     onSaved,
-    idLoteMineralParaTicket: detalle.detalle_id_lote_mineral,
     onPrintTicket: () => {
-      if (detalle.detalle_id_lote_mineral) {
-        printTicketBalanza(detalle.detalle_id_lote_mineral);
-      }
+      // Imprime el ticket del detalle (soporta lote y blending como origen).
+      printTicketBalanzaByDistribucionDetalle(detalle.id);
     },
   });
 
@@ -94,7 +94,11 @@ const DetallePesajeItem = ({ detalle, onSaved }: DetallePesajeItemProps) => {
   const taraMenorBruto =
     ctrl.taraNum > 0 && ctrl.brutoNum > 0 && ctrl.taraNum < ctrl.brutoNum;
 
-  const humedad = Number(detalle.lote_ley_humedad) || 0;
+  const esBlending =
+    detalle.detalle_id_blending !== null && detalle.detalle_id_blending !== undefined;
+  const humedad = Number(
+    esBlending ? (detalle.blending_ley_humedad ?? 0) : (detalle.lote_ley_humedad ?? 0)
+  );
   const pesoHumedo = Number(detalle.peso_tomado) || 0;
   const pesoSeco = pesoHumedo * (1 - humedad / 100);
 
@@ -113,7 +117,7 @@ const DetallePesajeItem = ({ detalle, onSaved }: DetallePesajeItemProps) => {
             radius="sm"
             className="font-mono font-bold text-[9px]"
           >
-            {detalle.lote_correlativo ?? `Detalle #${detalle.id}`}
+            {detalle.lote_correlativo ?? detalle.blending_correlativo ?? `Detalle #${detalle.id}`}
           </Badge>
           {detalle.numero_particion !== null && (
             <Badge
@@ -156,13 +160,9 @@ const DetallePesajeItem = ({ detalle, onSaved }: DetallePesajeItemProps) => {
                 color="indigo"
                 radius="sm"
                 size="sm"
-                onClick={() => {
-                  if (detalle.detalle_id_lote_mineral) {
-                    printTicketBalanza(detalle.detalle_id_lote_mineral);
-                  }
-                }}
+                onClick={() => printTicketBalanzaByDistribucionDetalle(detalle.id)}
                 loading={loadingTicket}
-                disabled={!detalle.detalle_id_lote_mineral}
+                disabled={!detalle.id}
                 className="bg-indigo-500/10! hover:bg-indigo-500/20! text-indigo-400! border-indigo-500/20!"
                 aria-label="Imprimir ticket"
               >
@@ -182,34 +182,57 @@ const DetallePesajeItem = ({ detalle, onSaved }: DetallePesajeItemProps) => {
               min={0}
               decimalScale={3}
               hideControls
-              value={pesado ? (Number(detalle.peso_tara) || 0).toFixed(3) : ctrl.pesoTara}
+              value={
+                ctrl.taraConfirmada
+                  ? (Number(ctrl.pesoTara || detalle.peso_tara) || 0).toFixed(3)
+                  : ctrl.pesoTara
+              }
               onChange={(val) => ctrl.setPesoTara(val ?? "")}
-              disabled={ctrl.loadingTara || ctrl.loadingBruto}
+              disabled={ctrl.loadingTara || ctrl.loadingBruto || ctrl.taraConfirmada}
               size="xs"
               radius="md"
               classNames={fieldClasses}
               style={{ flex: 1 }}
             />
-            <Tooltip label="Guardar tara e imprimir ticket" withArrow>
-              <ActionIcon
-                type="button"
-                variant="filled"
-                radius="md"
-                size="md"
-                onClick={() => ctrl.guardarTara()}
-                loading={ctrl.loadingTara}
-                disabled={!ctrl.taraValido || ctrl.loadingBruto}
-                style={{ alignSelf: "center", marginTop: 20 }}
-                className={
-                  taraMenorBruto || !ctrl.brutoNum
-                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                    : "bg-red-600 hover:bg-red-700 text-white"
-                }
-                aria-label="Guardar tara"
-              >
-                <IconCheck size={16} />
-              </ActionIcon>
-            </Tooltip>
+            {ctrl.taraConfirmada ? (
+              <Tooltip label="Desbloquear tara (reseteará el bruto)" withArrow>
+                <ActionIcon
+                  type="button"
+                  variant="light"
+                  radius="md"
+                  size="md"
+                  onClick={() => ctrl.desbloquearTara()}
+                  loading={ctrl.loadingTara}
+                  disabled={ctrl.loadingBruto}
+                  style={{ alignSelf: "center", marginTop: 20 }}
+                  className="bg-amber-500/10! hover:bg-amber-500/20! text-amber-400! border-amber-500/20!"
+                  aria-label="Desbloquear tara"
+                >
+                  <IconLock size={16} />
+                </ActionIcon>
+              </Tooltip>
+            ) : (
+              <Tooltip label="Confirmar tara e imprimir ticket" withArrow>
+                <ActionIcon
+                  type="button"
+                  variant="filled"
+                  radius="md"
+                  size="md"
+                  onClick={() => ctrl.confirmarTara()}
+                  loading={ctrl.loadingTara}
+                  disabled={!ctrl.taraValido || ctrl.loadingBruto}
+                  style={{ alignSelf: "center", marginTop: 20 }}
+                  className={
+                    taraMenorBruto || !ctrl.brutoNum
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                      : "bg-red-600 hover:bg-red-700 text-white"
+                  }
+                  aria-label="Confirmar tara"
+                >
+                  <IconCheck size={16} />
+                </ActionIcon>
+              </Tooltip>
+            )}
           </Group>
         </Grid.Col>
 
@@ -221,34 +244,62 @@ const DetallePesajeItem = ({ detalle, onSaved }: DetallePesajeItemProps) => {
               min={0}
               decimalScale={3}
               hideControls
-              value={pesado ? (Number(detalle.peso_bruto) || 0).toFixed(3) : ctrl.pesoBruto}
+              value={
+                ctrl.brutoConfirmado
+                  ? (Number(ctrl.pesoBruto || detalle.peso_bruto) || 0).toFixed(3)
+                  : ctrl.pesoBruto
+              }
               onChange={(val) => ctrl.setPesoBruto(val ?? "")}
-              disabled={ctrl.loadingTara || ctrl.loadingBruto}
+              disabled={
+                ctrl.loadingTara
+                || ctrl.loadingBruto
+                || ctrl.brutoConfirmado
+                || !ctrl.taraConfirmada
+              }
               size="xs"
               radius="md"
               classNames={fieldClasses}
               style={{ flex: 1 }}
             />
-            <Tooltip label="Guardar bruto e imprimir ticket" withArrow>
-              <ActionIcon
-                type="button"
-                variant="filled"
-                radius="md"
-                size="md"
-                onClick={() => ctrl.guardarBruto()}
-                loading={ctrl.loadingBruto}
-                disabled={!ctrl.brutoValido || ctrl.loadingTara}
-                style={{ alignSelf: "center", marginTop: 20 }}
-                className={
-                  taraMenorBruto
-                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                    : "bg-red-600 hover:bg-red-700 text-white"
-                }
-                aria-label="Guardar bruto"
-              >
-                <IconCheck size={16} />
-              </ActionIcon>
-            </Tooltip>
+            {ctrl.brutoConfirmado ? (
+              <Tooltip label="Desbloquear bruto" withArrow>
+                <ActionIcon
+                  type="button"
+                  variant="light"
+                  radius="md"
+                  size="md"
+                  onClick={() => ctrl.desbloquearBruto()}
+                  loading={ctrl.loadingBruto}
+                  disabled={ctrl.loadingTara}
+                  style={{ alignSelf: "center", marginTop: 20 }}
+                  className="bg-amber-500/10! hover:bg-amber-500/20! text-amber-400! border-amber-500/20!"
+                  aria-label="Desbloquear bruto"
+                >
+                  <IconLock size={16} />
+                </ActionIcon>
+              </Tooltip>
+            ) : (
+              <Tooltip label="Confirmar bruto e imprimir ticket" withArrow>
+                <ActionIcon
+                  type="button"
+                  variant="filled"
+                  radius="md"
+                  size="md"
+                  onClick={() => ctrl.confirmarBruto()}
+                  loading={ctrl.loadingBruto}
+                  disabled={!ctrl.brutoValido || ctrl.loadingTara || !ctrl.taraConfirmada}
+                  style={{ alignSelf: "center", marginTop: 20 }}
+                  className={
+                    taraMenorBruto
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                      : "bg-red-600 hover:bg-red-700 text-white"
+                  }
+                  aria-label="Confirmar bruto"
+                >
+                  <IconCheck size={16} />
+                </ActionIcon>
+              </Tooltip>
+            )}
           </Group>
         </Grid.Col>
 
@@ -314,7 +365,14 @@ export const CardDistribucionBalanza = ({
 
   const detalles = ru.distribucion_detalles ?? [];
   const todosPesados =
-    detalles.length > 0 && detalles.every((d) => d.peso_neto !== null && d.peso_neto > 0);
+    detalles.length > 0 &&
+    detalles.every(
+      (d) =>
+        d.peso_neto !== null &&
+        d.peso_neto > 0 &&
+        Boolean(d.peso_tara_confirmado) &&
+        Boolean(d.peso_bruto_confirmado),
+    );
 
   const despachoCorrelativo = detalles[0]?.despacho_correlativo ?? null;
 
