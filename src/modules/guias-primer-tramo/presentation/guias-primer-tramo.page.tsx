@@ -209,7 +209,7 @@ export const GuiasPrimerTramoPage = () => {
           },
           {
             accessor: "fechas",
-            title: "Fechas Clave",
+            title: <div className="text-center">Fechas Clave</div>,
             render: (g: RES_GuiaPrimerTramo) => {
               const fechaEmision = g.fecha_emision || g.created_at;
               if (!fechaEmision && !g.fecha_inicio_traslado && !g.fecha_en_planta) {
@@ -242,12 +242,13 @@ export const GuiasPrimerTramoPage = () => {
           },
           {
             accessor: "guia_remitente",
-            title: "Guía Remitente",
+            title: "GRR",
+            textAlign: "center",
             render: (g: RES_GuiaPrimerTramo) => {
               const doc = g.documentos?.guia_remitente ?? null;
               const hasGuia = !!g.guia_remitente;
               return (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center gap-2">
                   <Text size="xs" fw={500} className="text-zinc-200 font-mono">
                     {hasGuia ? g.guia_remitente : "—"}
                   </Text>
@@ -270,7 +271,8 @@ export const GuiasPrimerTramoPage = () => {
           },
           {
             accessor: "guia_transportista",
-            title: "Guía Transportista",
+            title: "GRT",
+            textAlign: "center",
             render: (g: RES_GuiaPrimerTramo) => {
               if (g.sin_guia_transportista) {
                 return (
@@ -282,7 +284,7 @@ export const GuiasPrimerTramoPage = () => {
               const doc = g.documentos?.guia_transportista ?? null;
               const hasGuia = !!g.guia_transportista;
               return (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center gap-2">
                   <Text size="xs" className="text-zinc-300 font-mono">
                     {hasGuia ? g.guia_transportista : "—"}
                   </Text>
@@ -305,13 +307,14 @@ export const GuiasPrimerTramoPage = () => {
           },
           {
             accessor: "proveedor",
-            title: "Proveedor / Concesión",
+            title: "Proveedor",
+            textAlign: "center",
             render: (g: RES_GuiaPrimerTramo) => (
-              <Stack gap={1}>
-                <Text size="xs" fw={600} className="text-zinc-100">
+              <Stack gap={1} align="center">
+                <Text size="xs" fw={600} className="text-zinc-100 text-center">
                   {g.proveedor_razon_social ?? `ID ${g.id_proveedor}`}
                 </Text>
-                <Text size="10px" c="emerald.4" fw={500}>
+                <Text size="10px" c="emerald.4" fw={500} className="text-center">
                   Concesión: {g.concesion_nombre ?? "—"}
                 </Text>
               </Stack>
@@ -320,12 +323,13 @@ export const GuiasPrimerTramoPage = () => {
           {
             accessor: "conductor",
             title: "Conductor",
+            textAlign: "center",
             render: (g: RES_GuiaPrimerTramo) => (
-              <Stack gap={1}>
-                <Text size="xs" fw={600} className="text-zinc-200">
+              <Stack gap={1} align="center">
+                <Text size="xs" fw={600} className="text-zinc-200 text-center">
                   {g.conductor_nombre ?? "—"}
                 </Text>
-                <Text size="10px" c="dimmed" className="font-mono">
+                <Text size="10px" c="dimmed" className="font-mono text-center">
                   Lic: {g.conductor_licencia ?? "—"}
                 </Text>
               </Stack>
@@ -334,10 +338,11 @@ export const GuiasPrimerTramoPage = () => {
           {
             accessor: "empresa_transporte",
             title: "Empresa Transporte",
+            textAlign: "center",
             render: (g: RES_GuiaPrimerTramo) => (
               <Text
                 size="xs"
-                className="text-zinc-300 font-semibold truncate max-w-50"
+                className="text-zinc-300 font-semibold truncate max-w-50 text-center mx-auto"
                 title={g.empresa_transporte_razon_social ?? ""}
               >
                 {g.empresa_transporte_razon_social || "—"}
@@ -347,10 +352,11 @@ export const GuiasPrimerTramoPage = () => {
           {
             accessor: "vehiculo_tractor",
             title: "Vehículo",
+            textAlign: "center",
             render: (g: RES_GuiaPrimerTramo) => {
               const tractor = g.vehiculo_placa ? g.vehiculo_placa.toUpperCase() : "—";
               return (
-                <Text size="xs" className="text-zinc-200 font-mono">
+                <Text size="xs" className="text-zinc-200 font-mono text-center">
                   {tractor}
                 </Text>
               );
@@ -359,10 +365,11 @@ export const GuiasPrimerTramoPage = () => {
           {
             accessor: "vehiculo_carreta",
             title: "Carreta",
+            textAlign: "center",
             render: (g: RES_GuiaPrimerTramo) => {
               const carreta = g.vehiculo_carreta_placa ? g.vehiculo_carreta_placa.toUpperCase() : null;
               return (
-                <Text size="xs" className="text-zinc-300 font-mono">
+                <Text size="xs" className="text-zinc-300 font-mono text-center">
                   {carreta ?? "—"}
                 </Text>
               );

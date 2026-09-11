@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   Stack,
   Group,
@@ -36,6 +36,7 @@ import { RegistroConductor } from "../../../../presentation/utils/registro-condu
 import { CustomDatePicker } from "../../../../presentation/utils/date-picker-input";
 import { AuxService } from "../../../../service/auxiliar.service";
 import { useNotify } from "../../../../hooks/useNotify";
+import { mostrarConfirmacion } from "../../../../presentation/utils/modal-confirmacion";
 import {
   ConcesionesPorProveedorService,
   GuiasPrimerTramoService,
@@ -312,6 +313,41 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
       await reloadConcesiones(Number(idProveedor));
       setIdConcesion(String(newIdConcesion));
     }
+  };
+
+  /**
+   * Handler del Select de proveedor. Si ya hay items cargados y el operador
+   * cambia a otro proveedor, pide confirmacion previa: al confirmar, limpia
+   * los items, recepcionesPorItem, pesosOficialesPorLote y los inputs de guias
+   * (autocompletados desde la recepcion) via `sincronizarGuiasPorRecepciones([])`.
+   *
+   * Si no hay items o el valor no cambia, asigna directamente. Esto incluye
+   * el caso del autocompletado (que setea idProveedor desde handleAgregarItems
+   * y NO pasa por aqui).
+   */
+  const handleProveedorChange = (newVal: string | null) => {
+    if (newVal === idProveedor || items.length === 0) {
+      setIdProveedor(newVal);
+      return;
+    }
+
+    mostrarConfirmacion({
+      title: "Cambiar proveedor y limpiar items",
+      confirmLabel: "Sí, limpiar y cambiar",
+      cancelLabel: "Cancelar",
+      message: (
+        <>
+          Cambiar el proveedor eliminará los <strong className="text-rose-400">{items.length}</strong> item(s) actualmente seleccionados y las guías/autocompletados asociados. ¿Desea continuar?
+        </>
+      ),
+      onConfirm: () => {
+        setItems([]);
+        setRecepcionesPorItem(new Map());
+        setPesosOficialesPorLote({});
+        setIdProveedor(newVal);
+        void sincronizarGuiasPorRecepciones([]);
+      },
+    });
   };
 
   // Refresca el catálogo de vehículos (tractores/carretas) tras un registro exitoso
@@ -631,7 +667,7 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
     try {
       const data = await ItemsMineralService.get_items_disponibles(
         idSucursal,
-        undefined,
+        idProveedor ? Number(idProveedor) : undefined,
         inicio,
         fin,
       );
@@ -648,6 +684,18 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
   };
 
   const handleAgregarItems = (seleccionados: RES_ItemMineralDisponible[]) => {
+    // Autocompletar el proveedor si no hay uno seteado y los items vienen del mismo.
+    // El sub-modal bloquea la mezcla de proveedores cuando no hay fijo, asi que
+    // podemos tomar el primero con seguridad.
+    if (!idProveedor && seleccionados.length > 0) {
+      const primerProveedor = seleccionados.find(
+        (i) => i.id_proveedor_minero !== null,
+      )?.id_proveedor_minero;
+      if (primerProveedor !== null && primerProveedor !== undefined) {
+        setIdProveedor(String(primerProveedor));
+      }
+    }
+
     const nuevos: ItemFormItem[] = seleccionados.map((i) => ({
       tempId: `${itemKey(i)}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       id_lote_mineral: i.tipo_item === "PARTICION" ? null : i.id_lote_mineral,
@@ -1273,7 +1321,7 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
                     label: p.razon_social + (p.documento ? ` (${p.documento})` : ""),
                   }))}
                   value={idProveedor}
-                  onChange={setIdProveedor}
+                  onChange={handleProveedorChange}
                   classNames={fieldClasses}
                   radius="lg"
                   size="xs"
@@ -1994,6 +2042,7 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
         items={itemsDisponibles}
         fechaInicioFiltroIngreso={itemsFechaInicio}
         fechaFinFiltroIngreso={itemsFechaFin}
+        idProveedorFijo={idProveedor ? Number(idProveedor) : null}
         onClose={() => setOpenItemModal(false)}
         onConfirm={handleAgregarItems}
         onFechaInicioChange={async (nuevaFecha) => {
@@ -2002,7 +2051,7 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
           try {
             const data = await ItemsMineralService.get_items_disponibles(
               idSucursal,
-              undefined,
+              idProveedor ? Number(idProveedor) : undefined,
               nuevaFecha,
               itemsFechaFin,
             );
@@ -2023,7 +2072,7 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
           try {
             const data = await ItemsMineralService.get_items_disponibles(
               idSucursal,
-              undefined,
+              idProveedor ? Number(idProveedor) : undefined,
               itemsFechaInicio,
               nuevaFecha,
             );
@@ -2090,6 +2139,13 @@ interface ModalSeleccionarItemProps {
   items: RES_ItemMineralDisponible[];
   fechaInicioFiltroIngreso: string;
   fechaFinFiltroIngreso: string;
+  /**
+   * Si llega un id_proveedor, los items de OTROS proveedores se renderizan
+   * deshabilitados (gris + tooltip) para impedir mezcla. Si es null, se
+   * muestran todos pero el botón "Agregar" se bloquea si los seleccionados
+   * pertenecen a mas de un proveedor.
+   */
+  idProveedorFijo: number | null;
   onClose: () => void;
   onConfirm: (seleccionados: RES_ItemMineralDisponible[]) => void;
   onFechaInicioChange: (fecha: string) => void;
@@ -2102,6 +2158,7 @@ const ModalSeleccionarItem = ({
   items,
   fechaInicioFiltroIngreso,
   fechaFinFiltroIngreso,
+  idProveedorFijo,
   onClose,
   onConfirm,
   onFechaInicioChange,
@@ -2126,7 +2183,31 @@ const ModalSeleccionarItem = ({
     onClose();
   };
 
+  const isItemDisabled = (i: RES_ItemMineralDisponible): boolean => {
+    if (idProveedorFijo !== null) {
+      return i.id_proveedor_minero !== null && i.id_proveedor_minero !== idProveedorFijo;
+    }
+    // Sin proveedor fijo: si ya hay un proveedor ancla (primer seleccionado),
+    // cualquier item de otro proveedor queda disabled.
+    if (proveedorAncla !== null) {
+      const provItem = i.proveedor_nombre ?? "(Sin proveedor)";
+      return provItem !== proveedorAncla;
+    }
+    return false;
+  };
+
+  // Proveedor ancla: nombre del primer item seleccionado (estable mientras
+  // no se deseleccione completamente). Si no hay seleccion, queda null.
+  const proveedorAncla = useMemo<string | null>(() => {
+    for (const i of items) {
+      if (seleccionados.has(itemKey(i)) && i.proveedor_nombre) return i.proveedor_nombre;
+    }
+    return null;
+  }, [items, seleccionados]);
+
   const toggle = (key: string) => {
+    const item = items.find((i) => itemKey(i) === key);
+    if (item && isItemDisabled(item)) return;
     setSeleccionados((prev) => {
       const next = new Set(prev);
       if (next.has(key)) {
@@ -2138,7 +2219,24 @@ const ModalSeleccionarItem = ({
     });
   };
 
+  /**
+   * Detecta proveedores unicos entre los items seleccionados. Si hay mas de uno
+   * y no hay proveedor fijo, devuelve los nombres para el tooltip.
+   */
+  const proveedoresEnSeleccion = (): { count: number; nombres: string[] } => {
+    const nombresSet = new Set<string>();
+    for (const i of items) {
+      if (seleccionados.has(itemKey(i)) && i.proveedor_nombre) {
+        nombresSet.add(i.proveedor_nombre);
+      }
+    }
+    return { count: nombresSet.size, nombres: Array.from(nombresSet) };
+  };
+
+  const mezclaProveedores = proveedoresEnSeleccion();
+
   const handleConfirm = () => {
+    if (idProveedorFijo === null && mezclaProveedores.count > 1) return;
     const seleccionItems = items.filter((i) => seleccionados.has(itemKey(i)));
     onConfirm(seleccionItems);
     setSeleccionados(new Set());
@@ -2153,6 +2251,34 @@ const ModalSeleccionarItem = ({
     const matchesPlaca = i.vehiculo_placa?.toLowerCase().includes(query) ?? false;
     return matchesCorrelativo || matchesProveedor || matchesPlaca;
   });
+
+  // Orden estable: por proveedor (alfabetico), luego por correlativo.
+  // `slice()` evita mutar el array filtrado.
+  const ordenados = filtrados.slice().sort((a, b) => {
+    const provA = a.proveedor_nombre ?? "";
+    const provB = b.proveedor_nombre ?? "";
+    if (provA < provB) return -1;
+    if (provA > provB) return 1;
+    return a.correlativo.localeCompare(b.correlativo);
+  });
+
+  // Agrupacion visual por proveedor: cada grupo renderiza una celda con
+  // rowspan sobre todos sus items. Items sin `proveedor_nombre` caen en
+  // "(Sin proveedor)". `ordenados` ya viene agrupado por el sort previo,
+  // asi que basta con cortar al cambiar de proveedor.
+  const gruposPorProveedor: Array<{
+    key: string;
+    items: RES_ItemMineralDisponible[];
+  }> = [];
+  for (const it of ordenados) {
+    const key = it.proveedor_nombre ?? "(Sin proveedor)";
+    const last = gruposPorProveedor[gruposPorProveedor.length - 1];
+    if (last && last.key === key) {
+      last.items.push(it);
+    } else {
+      gruposPorProveedor.push({ key, items: [it] });
+    }
+  }
 
   const filtrosHeader = (
     <div className="flex items-center gap-3">
@@ -2231,6 +2357,7 @@ const ModalSeleccionarItem = ({
           <Table verticalSpacing="xs" horizontalSpacing="sm" className="w-full min-w-180">
             <thead className="sticky top-0 bg-zinc-900/95 backdrop-blur z-10">
               <tr className="text-zinc-300 text-xs">
+                <th className="text-center">Proveedor</th>
                 <th style={{ width: 40 }} className="text-center">#</th>
                 <th className="text-center">Tipo</th>
                 <th className="text-center">Correlativo</th>
@@ -2243,74 +2370,120 @@ const ModalSeleccionarItem = ({
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-4 text-zinc-400 text-xs">Cargando items...</td>
+                  <td colSpan={8} className="text-center py-4 text-zinc-400 text-xs">Cargando items...</td>
                 </tr>
-              ) : filtrados.length === 0 ? (
+              ) : ordenados.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-4 text-zinc-500 text-xs">
+                  <td colSpan={8} className="text-center py-4 text-zinc-500 text-xs">
                     No hay items disponibles para los filtros aplicados.
                   </td>
                 </tr>
               ) : (
-                filtrados.map((i) => {
-                  const key = itemKey(i);
-                  return (
-                    <tr
-                      key={key}
-                      className={`border-b border-zinc-900/40 cursor-pointer hover:bg-zinc-900/30 ${seleccionados.has(key) ? "bg-emerald-950/20" : ""}`}
-                      onClick={() => toggle(key)}
-                    >
-                      <td className="text-center" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={seleccionados.has(key)}
-                          onChange={() => toggle(key)}
-                          className="accent-emerald-500"
-                        />
-                      </td>
-                      <td className="text-center">
-                        <Badge
-                          variant="light"
-                          color={i.tipo_item === "PARTICION" ? "violet" : "teal"}
-                          size="sm"
-                          radius="md"
-                          className="font-bold uppercase"
+                gruposPorProveedor.map((g) => (
+                  <Fragment key={g.key}>
+                    {g.items.map((i, idx) => {
+                      const key = itemKey(i);
+                      const disabled = isItemDisabled(i);
+                      const tooltipLabel = disabled
+                        ? idProveedorFijo !== null
+                          ? `Este item pertenece al proveedor "${i.proveedor_nombre ?? "sin nombre"}". Cambie el proveedor o limpie los items seleccionados para poder elegir este.`
+                          : `Este item pertenece al proveedor "${i.proveedor_nombre ?? "sin nombre"}". Solo puedes seleccionar items de un mismo proveedor ("${proveedorAncla ?? g.key}").`
+                        : "";
+                      return (
+                        <tr
+                          key={key}
+                          className={`border-b border-zinc-900/40 ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer hover:bg-zinc-900/30"} ${seleccionados.has(key) ? "bg-emerald-950/20" : ""}`}
+                          onClick={() => !disabled && toggle(key)}
                         >
-                          {i.tipo_item}
-                        </Badge>
-                      </td>
-                      <td className="text-center font-mono text-zinc-100 text-xs">{i.correlativo}</td>
-                      <td className="text-center text-zinc-300 text-xs">
-                        {i.vehiculo_placa ? i.vehiculo_placa.toUpperCase() : "—"}
-                      </td>
-                      <td className="text-center font-mono text-zinc-200 text-xs">{i.peso_inicial?.toFixed(2) ?? "—"}</td>
-                      <td className="text-center font-mono text-zinc-200 text-xs">{i.peso_final?.toFixed(2) ?? "—"}</td>
-                      <td className="text-center font-mono text-emerald-300 text-xs">{i.peso_neto?.toFixed(2) ?? "—"}</td>
-                    </tr>
-                  );
-                })
+                          {idx === 0 && (
+                            <td
+                              rowSpan={g.items.length}
+                              className="text-center align-middle font-semibold text-zinc-100 text-xs bg-zinc-800/30 border-r border-l border-zinc-800/80 px-3"
+                            >
+                              {g.key}
+                            </td>
+                          )}
+                          <td className="text-center" onClick={(e) => e.stopPropagation()}>
+                            <Tooltip label={tooltipLabel} withArrow disabled={!disabled}>
+                              <input
+                                type="checkbox"
+                                checked={seleccionados.has(key)}
+                                onChange={() => toggle(key)}
+                                disabled={disabled}
+                                className="accent-emerald-500 disabled:cursor-not-allowed"
+                              />
+                            </Tooltip>
+                          </td>
+                          <td className="text-center">
+                            <Badge
+                              variant="light"
+                              color={i.tipo_item === "PARTICION" ? "violet" : "teal"}
+                              size="sm"
+                              radius="md"
+                              className="font-bold uppercase"
+                            >
+                              {i.tipo_item}
+                            </Badge>
+                          </td>
+                          <td className="text-center font-mono text-zinc-100 text-xs">{i.correlativo}</td>
+                          <td className="text-center text-zinc-300 text-xs">
+                            {i.vehiculo_placa ? i.vehiculo_placa.toUpperCase() : "—"}
+                          </td>
+                          <td className="text-center font-mono text-zinc-200 text-xs">{i.peso_inicial?.toFixed(2) ?? "—"}</td>
+                          <td className="text-center font-mono text-zinc-200 text-xs">{i.peso_final?.toFixed(2) ?? "—"}</td>
+                          <td className="text-center font-mono text-emerald-300 text-xs">{i.peso_neto?.toFixed(2) ?? "—"}</td>
+                        </tr>
+                      );
+                    })}
+                  </Fragment>
+                ))
               )}
             </tbody>
           </Table>
         </div>
 
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
-          <Text size="xs" c="dimmed" className="text-center sm:text-left">
-            {seleccionados.size} seleccionado(s)
-          </Text>
+          <div className="flex flex-col gap-1">
+            <Text size="xs" c="dimmed">
+              {seleccionados.size} seleccionado(s)
+            </Text>
+            {idProveedorFijo === null && mezclaProveedores.count > 1 && (
+              <Text size="xs" c="red.4">
+                Mezcla de proveedores detectada ({mezclaProveedores.nombres.join(", ")}). Selecciona items de un solo proveedor o asigna uno en el formulario.
+              </Text>
+            )}
+          </div>
           <div className="flex justify-center gap-2">
             <Button variant="subtle" color="gray" radius="md" size="sm" onClick={handleClose}>
               Cancelar
             </Button>
-            <Button
-              radius="md"
-              size="sm"
-              onClick={handleConfirm}
-              disabled={seleccionados.size === 0}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+            <Tooltip
+              label={
+                seleccionados.size === 0
+                  ? "Selecciona al menos un item."
+                  : idProveedorFijo === null && mezclaProveedores.count > 1
+                    ? `Mezcla de proveedores: ${mezclaProveedores.nombres.join(", ")}.`
+                    : ""
+              }
+              withArrow
+              disabled={
+                !(seleccionados.size === 0 ||
+                  (idProveedorFijo === null && mezclaProveedores.count > 1))
+              }
             >
-              Agregar {seleccionados.size > 0 ? `(${seleccionados.size})` : ""}
-            </Button>
+              <Button
+                radius="md"
+                size="sm"
+                onClick={handleConfirm}
+                disabled={
+                  seleccionados.size === 0 ||
+                  (idProveedorFijo === null && mezclaProveedores.count > 1)
+                }
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+              >
+                Agregar {seleccionados.size > 0 ? `(${seleccionados.size})` : ""}
+              </Button>
+            </Tooltip>
           </div>
         </div>
       </Stack>
