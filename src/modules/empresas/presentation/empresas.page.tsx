@@ -33,14 +33,36 @@ export const EmpresasPage = () => {
     openCreate,
     closeCreate,
     onEmpresaCreada,
+    onEmpresaActualizada,
     handleUpdateLogo,
     actualizarCantidadCuentasEmpresa,
   } = useEmpresas();
 
+  const [editingEmpresa, setEditingEmpresa] = useState<RES_Empresa | null>(null);
+
   const registro = useRegistroEmpresa({
-    onSuccess: onEmpresaCreada,
-    onClose: closeCreate,
+    onSuccess: (nueva) => {
+      if (editingEmpresa) {
+        onEmpresaActualizada(nueva);
+        setEditingEmpresa(null);
+      } else {
+        onEmpresaCreada(nueva);
+      }
+    },
+    onClose: () => {
+      closeCreate();
+      setEditingEmpresa(null);
+    },
+    editingEmpresa,
   });
+
+  const handleOpenEdit = (empresa: RES_Empresa) => {
+    setEditingEmpresa(empresa);
+  };
+
+  const handleCloseEdit = () => {
+    setEditingEmpresa(null);
+  };
 
   const [selectedEmpresaCuentas, setSelectedEmpresaCuentas] =
     useState<RES_Empresa | null>(null);
@@ -123,17 +145,26 @@ export const EmpresasPage = () => {
               empresa={empresa}
               onUpdateLogo={handleUpdateLogo}
               onOpenCuentas={(e) => setSelectedEmpresaCuentas(e)}
+              onEdit={handleOpenEdit}
             />
           ))}
         </div>
       )}
 
-      {/* Registration Modal */}
+      {/* Registration / Edit Modal */}
       <ModalEstandar
-        opened={openedCreate}
-        close={closeCreate}
-        title="Registrar Empresa"
-        size="md"
+        opened={openedCreate || editingEmpresa !== null}
+        close={() => {
+          if (editingEmpresa) handleCloseEdit();
+          else closeCreate();
+          registro.reset();
+        }}
+        title={
+          editingEmpresa
+            ? `Editar Empresa: ${editingEmpresa.razon_social}`
+            : "Registrar Empresa"
+        }
+        size="lg"
       >
         <RegistroEmpresa
           ruc={registro.ruc}
@@ -142,11 +173,27 @@ export const EmpresasPage = () => {
           setRazonSocial={registro.setRazonSocial}
           logoFile={registro.logoFile}
           setLogoFile={registro.setLogoFile}
+          idDepartamento={registro.idDepartamento}
+          setIdDepartamento={registro.setIdDepartamento}
+          idProvincia={registro.idProvincia}
+          setIdProvincia={registro.setIdProvincia}
+          idDistrito={registro.idDistrito}
+          setIdDistrito={registro.setIdDistrito}
+          domicilioFiscal={registro.domicilioFiscal}
+          setDomicilioFiscal={registro.setDomicilioFiscal}
+          departamentos={registro.departamentos}
+          provincias={registro.provincias}
+          distritos={registro.distritos}
+          loadingDepartamentos={registro.loadingDepartamentos}
+          loadingProvincias={registro.loadingProvincias}
+          loadingDistritos={registro.loadingDistritos}
           error={registro.error}
           loading={registro.loading}
+          isEdit={registro.isEdit}
           onSave={registro.handleGuardar}
           onCancel={() => {
-            closeCreate();
+            if (editingEmpresa) handleCloseEdit();
+            else closeCreate();
             registro.reset();
           }}
         />

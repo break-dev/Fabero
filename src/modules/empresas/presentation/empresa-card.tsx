@@ -21,6 +21,7 @@ interface EmpresaCardProps {
   empresa: RES_Empresa;
   onUpdateLogo: (id: number, file: File) => Promise<boolean>;
   onOpenCuentas: (empresa: RES_Empresa) => void;
+  onEdit: (empresa: RES_Empresa) => void;
   loadingCuentas?: boolean;
 }
 
@@ -28,6 +29,7 @@ export const EmpresaCard = ({
   empresa,
   onUpdateLogo,
   onOpenCuentas,
+  onEdit,
   loadingCuentas = false,
 }: EmpresaCardProps) => {
   const [isUploading, setIsUploading] = useState(false);
@@ -75,6 +77,17 @@ export const EmpresaCard = ({
           >
             {cantidad === 1 ? "1 cuenta" : `${cantidad} cuentas`}
           </Badge>
+          <Tooltip label="Editar Empresa" withArrow>
+            <ActionIcon
+              variant="subtle"
+              color="yellow"
+              radius="xl"
+              size="sm"
+              onClick={() => onEdit(empresa)}
+            >
+              <PencilSquareIcon className="w-4 h-4" />
+            </ActionIcon>
+          </Tooltip>
           <Tooltip label="Gestionar Cuentas" withArrow position="left">
             <ActionIcon
               variant="subtle"

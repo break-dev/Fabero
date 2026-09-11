@@ -3,6 +3,7 @@ import type { IRespuesta } from "../../../shared/interfaces/_response";
 import type { CuentaBancariaEmpresaResponse, RES_Empresa } from "./empresas.responses";
 import type {
   CrearCuentaBancariaEmpresaRequest,
+  DTO_EditarEmpresa,
   EditarCuentaBancariaEmpresaRequest,
 } from "./empresas.requests";
 import type { EstadoBase } from "../../../shared/enums/_generic/estado-base";
@@ -19,6 +20,14 @@ export class EmpresasService {
       },
     });
     return response;
+  };
+
+  public static actualizar_empresa = async (
+    id: number,
+    payload: DTO_EditarEmpresa,
+  ): Promise<IRespuesta<RES_Empresa>> => {
+    const { data } = await api.put(`${this.PATH}/${id}`, payload);
+    return data;
   };
 
   public static actualizar_logo = async (

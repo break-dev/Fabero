@@ -71,6 +71,14 @@ export const useEmpresas = () => {
     }
   };
 
+  const handleEmpresaActualizada = (actualizada: RES_Empresa) => {
+    setEmpresas((prev) =>
+      prev.map((emp) =>
+        emp.id_empresa === actualizada.id_empresa ? actualizada : emp,
+      ),
+    );
+  };
+
   const onEmpresaCreada = (nueva: RES_Empresa) => {
     setEmpresas((prev) => [nueva, ...prev]);
   };
@@ -102,6 +110,7 @@ export const useEmpresas = () => {
 
     // Handlers
     onEmpresaCreada,
+    onEmpresaActualizada: handleEmpresaActualizada,
     handleUpdateLogo,
     actualizarCantidadCuentasEmpresa,
     recargar: listar,

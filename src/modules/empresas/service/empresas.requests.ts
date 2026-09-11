@@ -8,9 +8,24 @@ export const Schema_RegistroEmpresa = z.object({
     .string()
     .min(3, "La razón social debe tener al menos 3 caracteres"),
   path_logo: z.string().optional(),
+  id_departamento: z.number().int().nullable().optional(),
+  id_provincia: z.number().int().nullable().optional(),
+  id_distrito: z.number().int().nullable().optional(),
+  domicilio_fiscal: z.string().max(50).nullable().optional(),
 });
 
 export type DTO_RegistroEmpresa = z.infer<typeof Schema_RegistroEmpresa>;
+
+export const Schema_EditarEmpresa = z.object({
+  ruc: z.string().length(11).optional(),
+  razon_social: z.string().min(3).optional(),
+  id_departamento: z.number().int().nullable().optional(),
+  id_provincia: z.number().int().nullable().optional(),
+  id_distrito: z.number().int().nullable().optional(),
+  domicilio_fiscal: z.string().max(50).nullable().optional(),
+});
+
+export type DTO_EditarEmpresa = z.infer<typeof Schema_EditarEmpresa>;
 
 export const Schema_CrearCuentaBancariaEmpresa = z.object({
   id_empresa: z.number().min(1, "Empresa requerida"),
