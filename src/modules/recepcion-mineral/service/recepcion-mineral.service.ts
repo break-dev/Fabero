@@ -77,8 +77,12 @@ export const RecepcionMineralService = {
       formData.append("id_zona_origen", String(dto.id_zona_origen));
     }
     formData.append("numero_contacto", dto.numero_contacto || "");
-    formData.append("tipo_producto", dto.tipo_producto);
-    formData.append("tipo_mineral", dto.tipo_mineral);
+    if (dto.tipo_producto !== null && dto.tipo_producto !== undefined) {
+      formData.append("tipo_producto", dto.tipo_producto);
+    }
+    if (dto.tipo_mineral !== null && dto.tipo_mineral !== undefined) {
+      formData.append("tipo_mineral", dto.tipo_mineral);
+    }
     formData.append("peso_inicial", String(dto.peso_inicial));
 
     if (dto.evidencias && dto.evidencias.length > 0) {

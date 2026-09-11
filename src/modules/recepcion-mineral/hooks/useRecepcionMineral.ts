@@ -134,6 +134,7 @@ export const useRecepcionMineral = () => {
       id_empleado_registro: 0,
       id_empresa: idEmpresa,
       id_proveedor_minero: null,
+      id_proveedor_minero_recepcion: null,
       id_zona_origen: null,
       correlativo: TEMP_LOTE_CORRELATIVO,
       numero_correlativo: null,

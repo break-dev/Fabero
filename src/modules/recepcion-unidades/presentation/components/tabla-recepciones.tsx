@@ -241,6 +241,33 @@ export const TablaRecepciones = ({
             },
           },
           {
+            accessor: "proveedor_razon_social",
+            title: "Proveedor",
+            textAlign: "center",
+            width: 200,
+            render: (r: RecepcionUnidadResponse) => {
+              if (!r.proveedor_razon_social && !r.proveedor_ruc) {
+                return (
+                  <Text size="xs" className="text-zinc-500 italic">
+                    (sin asignar)
+                  </Text>
+                );
+              }
+              return (
+                <div className="flex flex-col gap-1 items-center">
+                  <Text size="sm" className="text-zinc-200 max-w-47.5" truncate title={r.proveedor_razon_social ?? ""}>
+                    {r.proveedor_razon_social ?? "—"}
+                  </Text>
+                  {r.proveedor_ruc && (
+                    <Text size="xs" className="text-zinc-500 italic">
+                      RUC: {r.proveedor_ruc}
+                    </Text>
+                  )}
+                </div>
+              );
+            },
+          },
+          {
             accessor: "vehiculo_placa",
             title: "Vehículo",
             textAlign: "center",
@@ -274,6 +301,22 @@ export const TablaRecepciones = ({
               <div>
                 <Text size="sm" className="text-zinc-200 max-w-47.5" truncate title={r.empresa_transporte_razon_social}>
                   {r.empresa_transporte_razon_social}
+                </Text>
+              </div>
+            ),
+          },
+          {
+            accessor: "conductor_nombre_completo",
+            title: "Conductor",
+            textAlign: "center",
+            width: 200,
+            render: (r: RecepcionUnidadResponse) => (
+              <div>
+                <Text size="sm" className="text-zinc-200" fw={500}>
+                  {r.conductor_nombre_completo ?? "—"}
+                </Text>
+                <Text size="xs" className="text-zinc-500">
+                  Licencia: {r.conductor_numero_licencia ?? "—"}
                 </Text>
               </div>
             ),
@@ -345,22 +388,6 @@ export const TablaRecepciones = ({
                   )
                 )}
               </Stack>
-            ),
-          },
-          {
-            accessor: "conductor_nombre_completo",
-            title: "Conductor",
-            textAlign: "center",
-            width: 200,
-            render: (r: RecepcionUnidadResponse) => (
-              <div>
-                <Text size="sm" className="text-zinc-200" fw={500}>
-                  {r.conductor_nombre_completo ?? "—"}
-                </Text>
-                <Text size="xs" className="text-zinc-500">
-                  Licencia: {r.conductor_numero_licencia ?? "—"}
-                </Text>
-              </div>
             ),
           },
           {

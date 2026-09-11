@@ -11,6 +11,8 @@ export interface RES_LoteMineral {
   id_proveedor_minero: number | null;
   proveedor_nombre?: string;
   proveedor_telefono?: string;
+  id_proveedor_minero_recepcion: number | null;
+  proveedor_nombre_recepcion?: string;
   id_empleado_registro: number;
   empleado_registro_nombre?: string;
   id_zona_origen: number | null;

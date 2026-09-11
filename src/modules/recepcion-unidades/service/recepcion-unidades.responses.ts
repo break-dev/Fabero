@@ -36,6 +36,7 @@ export interface RecepcionUnidadResponse {
   estado_pesaje: EstadoPesaje | string | null;
   id_proveedor_minero: number | null;
   proveedor_razon_social: string | null;
+  proveedor_ruc: string | null;
   id_empleado_autoriza: number | null;
   empleado_autoriza_nombre: string | null;
   id_empleado_recepcion: number | null;

@@ -22,11 +22,27 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
   const { notifyError } = useNotify();
 
   // Inputs
-  const [idProveedor, setIdProveedor] = useState<string | null>(null);
-  const [idZona, setIdZona] = useState<string | null>(null);
-  const [contacto, setContacto] = useState<string>("");
-  const [producto, setProducto] = useState<string | null>(null);
-  const [material, setMaterial] = useState<string | null>(null);
+  // El proveedor_minero se autocompleta con el de la recepción
+  // (denormalizado como `id_proveedor_minero_recepcion` en la respuesta del lote).
+  // Si la recepción no tiene proveedor pero el lote sí, se usa el del lote.
+  // El usuario puede cambiarlo libremente desde el Select.
+  const initialProveedorId =
+    lote.id_proveedor_minero_recepcion ?? lote.id_proveedor_minero ?? null;
+  const [idProveedor, setIdProveedor] = useState<string | null>(
+    initialProveedorId ? String(initialProveedorId) : null,
+  );
+  const [idZona, setIdZona] = useState<string | null>(
+    lote.id_zona_origen ? String(lote.id_zona_origen) : null,
+  );
+  const [contacto, setContacto] = useState<string>(
+    lote.numero_contacto ?? "",
+  );
+  const [producto, setProducto] = useState<string | null>(
+    lote.tipo_producto ?? null,
+  );
+  const [material, setMaterial] = useState<string | null>(
+    lote.tipo_mineral ?? null,
+  );
   const [pesoInicial, setPesoInicial] = useState<string>("");
   const [evidencias, setEvidencias] = useState<File[]>([]);
 
@@ -77,14 +93,6 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
   };
 
   const handleConfirmar = async () => {
-    if (!producto) {
-      notifyError("Debe seleccionar el producto.");
-      return;
-    }
-    if (!material) {
-      notifyError("Debe seleccionar el tipo de material.");
-      return;
-    }
     if (!pesoInicial || isNaN(Number(pesoInicial)) || Number(pesoInicial) <= 0) {
       notifyError("Debe ingresar un peso inicial válido y mayor a cero.");
       return;
@@ -176,28 +184,28 @@ export const ModalPesoInicial = ({ lote, onCancel, onSubmit }: Props) => {
                 </Group>
               </div>
 
-              {/* Producto */}
+              {/* Producto (opcional) */}
               <Select
                 label="Producto:"
-                placeholder="Seleccione"
+                placeholder="Opcional"
                 data={["Aurífero", "Polimetálico"]}
                 value={producto}
                 onChange={(val) => setProducto(val)}
                 classNames={fieldClasses}
                 radius="lg"
-                required
+                clearable
               />
 
-              {/* Tipo Material */}
+              {/* Tipo Material (opcional) */}
               <Select
                 label="Tipo Material:"
-                placeholder="Seleccione"
+                placeholder="Opcional"
                 data={["Mixto", "Óxido", "Sulfuro"]}
                 value={material}
                 onChange={(val) => setMaterial(val)}
                 classNames={fieldClasses}
                 radius="lg"
-                required
+                clearable
               />
             </Stack>
           </Grid.Col>

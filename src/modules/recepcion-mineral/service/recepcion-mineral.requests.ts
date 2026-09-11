@@ -12,8 +12,8 @@ export interface DTO_PesoInicial {
   id_proveedor_minero: number | null;
   id_zona_origen: number | null;
   numero_contacto: string;
-  tipo_producto: string;
-  tipo_mineral: string;
+  tipo_producto: string | null;
+  tipo_mineral: string | null;
   peso_inicial: number;
   evidencias?: File[];
 }

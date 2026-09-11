@@ -28,19 +28,25 @@ export const ModalCondicionIngreso = ({
   const [conCodigoManual, setConCodigoManual] = useState(false);
   const [codigoManual, setCodigoManual] = useState("");
 
+  // Identifica la empresa Fabero por coincidencia en razon_social.
+  // Heurística estable: primera empresa cuya razón social contiene "fabero"
+  // (case-insensitive). Si no hay coincidencia, queda sin selección.
+  const faberoEmpresa = useMemo(
+    () =>
+      empresasTitulares.find((e) =>
+        e.razon_social?.toLowerCase().includes("fabero"),
+      ),
+    [empresasTitulares],
+  );
+
   useEffect(() => {
     if (opened) {
       setCondicion(CondicionIngreso.Comercializacion);
-      setIdEmpresa(null);
+      setIdEmpresa(faberoEmpresa ? String(faberoEmpresa.id_empresa) : null);
       setConCodigoManual(false);
       setCodigoManual("");
     }
-  }, [opened]);
-
-  const prefijoActual = useMemo(
-    () => (condicion === CondicionIngreso.Comercializacion ? "FB" : "LOT"),
-    [condicion],
-  );
+  }, [opened, faberoEmpresa]);
 
   const handleConfirm = () => {
     if (!idEmpresa) return;
@@ -97,10 +103,12 @@ export const ModalCondicionIngreso = ({
           data={[
             {
               value: CondicionIngreso.Comercializacion,
-              label: `Comercialización (Prefijo ${prefijoActual})`,
+              label: "Comercialización",
             },
-            { value: CondicionIngreso.Chancado, label: "Chancado (Prefijo LOT)" },
-            { value: CondicionIngreso.Almacen, label: "Almacén (Prefijo LOT)" },
+            {
+              value: CondicionIngreso.OtrosServicios,
+              label: "Otros Servicios",
+            },
           ]}
           value={condicion}
           onChange={(val) => setCondicion((val as CondicionIngreso) || CondicionIngreso.Comercializacion)}

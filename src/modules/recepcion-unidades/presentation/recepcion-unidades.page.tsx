@@ -1,4 +1,4 @@
-import { Stack, Button } from "@mantine/core";
+import { Stack, Button, Tooltip } from "@mantine/core";
 import { useTitlePage } from "../../../hooks/useTitlePage";
 import { useRecepciones } from "../hooks/useRecepciones";
 import { Filtros } from "./components/filtros";
@@ -119,7 +119,11 @@ export const RecepcionUnidadesPage = () => {
         </div>
 
         <div className="flex items-center gap-2 shrink-0 pb-0.5">
-          {hasActiveFilters && (
+          <Tooltip
+            label="Limpiar todos los filtros"
+            withArrow
+            disabled={!hasActiveFilters}
+          >
             <Button
               variant="subtle"
               color="red"
@@ -127,11 +131,12 @@ export const RecepcionUnidadesPage = () => {
               size="sm"
               leftSection={<IconX size={16} />}
               onClick={clearFilters}
-              className="text-red-400 hover:bg-red-500/10 transition-colors h-9.5"
+              disabled={!hasActiveFilters}
+              className="text-red-400 hover:bg-red-500/10 transition-colors h-9.5 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Limpiar
             </Button>
-          )}
+          </Tooltip>
 
           <RefreshButton onClick={fetchRecepciones} loading={loading} label="Recargar recepciones" />
 
