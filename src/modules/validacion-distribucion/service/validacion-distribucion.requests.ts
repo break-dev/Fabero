@@ -8,7 +8,7 @@ export interface DTO_RecepcionFicticia {
   id_empleado_autoriza?: number | null;
   id_proveedor_minero?: number | null;
   fecha_hora_ingreso?: string | null;
-  segunda_placa?: string | null;
+  id_vehiculo_carreta?: number | null;
 }
 
 export interface DTO_CrearParticion {

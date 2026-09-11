@@ -46,6 +46,7 @@ import type { RES_ArchivosGuiasRecepcion, RES_ItemMineralDisponible } from "../.
 import type { RES_Proveedor } from "../../../../service/responses/proveedor";
 import type { ProveedorResponse } from "../../../proveedores-mineros/service/proveedores.responses";
 import type { RES_Vehiculo } from "../../../../service/responses/vehiculo";
+import type { RES_TipoVehiculo } from "../../../../service/responses/tipo-vehiculo";
 import type { RES_EmpresaTransporte } from "../../../../service/responses/empresa-transporte";
 import type { RES_Conductor } from "../../../../service/responses/conductor";
 import { MOTIVO_TRASLADO_OPTIONS } from "../../../../shared/enums/_generic/motivo-traslado";
@@ -269,6 +270,14 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
   const [openedModalEmpresa, setOpenedModalEmpresa] = useState<null | "tractor" | "carreta">(null);
   const [openedModalConductor, setOpenedModalConductor] = useState(false);
 
+  // Resolución perezosa del TipoVehiculo con es_carreta=1. Se carga la primera
+  // vez que se abre el submodal "Registrar Vehículo Carreta" para auto-asignar
+  // el tipo correcto al crear el vehículo (de lo contrario el nuevo vehículo
+  // quedaba con id_tipo_vehiculo=NULL y no aparecía en el dropdown filtrado).
+  const [idTipoVehiculoCarreta, setIdTipoVehiculoCarreta] = useState<number | null>(null);
+  const [loadingTipoCarreta, setLoadingTipoCarreta] = useState(false);
+  const [tipoCarretaChecked, setTipoCarretaChecked] = useState(false);
+
   const reloadProveedores = async () => {
     setLoadingProveedores(true);
     try {
@@ -331,6 +340,23 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
       setIdVehiculoCarreta(idStr);
     }
     setOpenedModalVehiculo(null);
+  };
+
+  // Abre el submodal de registro de vehículo carreta. El id_tipo_vehiculo ya
+  // se resolvió eagerly en el useEffect de catálogos (`loadTipoCarreta`), así
+  // que acá solo validamos el estado y abrimos el modal. Si todavía no se
+  // terminó de cargar, esperamos; si no existe el tipo carreta, notificamos.
+  const handleOpenCarretaVehiculoModal = () => {
+    if (!tipoCarretaChecked) {
+      return;
+    }
+    if (idTipoVehiculoCarreta === null) {
+      notifyError(
+        "No existe un Tipo de Vehículo marcado como 'Carreta'. Créelo en Gestión de Tipos de Vehículo antes de continuar.",
+      );
+      return;
+    }
+    setOpenedModalVehiculo("carreta");
   };
 
   const handleEmpresaCreada = async (
@@ -500,10 +526,32 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
       }
     };
 
+    const loadTipoCarreta = async () => {
+      setLoadingTipoCarreta(true);
+      try {
+        const tipos: RES_TipoVehiculo[] = await AuxService.get_tipos_vehiculo();
+        if (isMounted) {
+          // El backend serializa TINYINT(1) como número (0/1), no boolean.
+          // Usar `Number(...) === 1` para ser consistente con el filtro
+          // existente de carretas (línea `Number(v.es_carreta) === 1`).
+          const tipoCarreta = tipos.find((t) => Number(t.es_carreta) === 1);
+          setIdTipoVehiculoCarreta(tipoCarreta ? tipoCarreta.id_tipo_vehiculo : null);
+        }
+      } catch (e) {
+        console.error("Error al cargar tipos de vehículo", e);
+      } finally {
+        if (isMounted) {
+          setLoadingTipoCarreta(false);
+          setTipoCarretaChecked(true);
+        }
+      }
+    };
+
     loadProveedores();
     loadVehiculos();
     loadEmpresas();
     loadConductores();
+    loadTipoCarreta();
 
     return () => {
       isMounted = false;
@@ -1446,7 +1494,9 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
                     radius="lg"
                     variant="filled"
                     color="indigo"
-                    onClick={() => setOpenedModalVehiculo("carreta")}
+                    loading={loadingTipoCarreta}
+                    disabled={loadingTipoCarreta}
+                    onClick={handleOpenCarretaVehiculoModal}
                     className="mb-0.5"
                   >
                     <IconPlus size={16} />
@@ -1905,7 +1955,7 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
       >
         <RegistroVehiculoSimple
           idEmpresaTransporte={idEmpresaTransporte ? Number(idEmpresaTransporte) : null}
-          idTipoVehiculo={null}
+          idTipoVehiculo={openedModalVehiculo === "carreta" ? idTipoVehiculoCarreta : null}
           onCancel={() => setOpenedModalVehiculo(null)}
           onSuccess={(vehiculo) => handleVehiculoCreado(vehiculo, openedModalVehiculo ?? "tractor")}
         />

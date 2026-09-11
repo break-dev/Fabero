@@ -1,4 +1,6 @@
 import type { RES_CambiosLog } from "../../../service/responses/_generic/cambios-log";
+import type { MotivoTraslado } from "../../../shared/enums/_generic/motivo-traslado";
+import type { EstadoBase } from "../../../shared/enums/_generic/estado-base";
 
 export interface DespachoListItem {
   id: number;
@@ -89,6 +91,7 @@ export interface DistribucionItem {
   conductor_nombre_completo: string | null;
   capacidad_vehiculo: number | null;
   detalles: DistribucionDetalleItem[];
+  guia_segundo_tramo: GuiaSegundoTramo | null;
 }
 
 export interface DespachoDetalle {
@@ -133,4 +136,34 @@ export interface CrearDistribucionResult {
   id_distribucion: number;
   id_recepcion_unidad: number | null;
   advertencias: string[];
+}
+
+export interface GuiaSegundoTramoDocumento {
+  url: string;
+  path_relativo: string;
+  nombre_original: string | null;
+  extension: string | null;
+}
+
+export interface GuiaSegundoTramoDocumentos {
+  guia_remitente: GuiaSegundoTramoDocumento | null;
+  guia_transportista: GuiaSegundoTramoDocumento | null;
+}
+
+export interface GuiaSegundoTramo {
+  id: number;
+  id_distribucion: number;
+  id_empleado_registro: number | null;
+  empleado_registro_nombre: string | null;
+  motivo_traslado: MotivoTraslado | string | null;
+  fecha_inicio_traslado: string | null;
+  fecha_emision: string | null;
+  fecha_en_planta: string | null;
+  guia_transportista: string | null;
+  guia_remitente: string | null;
+  sin_guia_transportista: boolean;
+  log_cambios: RES_CambiosLog[] | null;
+  documentos: GuiaSegundoTramoDocumentos | null;
+  estado: EstadoBase | string;
+  created_at: string;
 }

@@ -12,6 +12,8 @@ export interface RecepcionUnidadResponse {
   empleado_registro_nombre: string;
   id_vehiculo: number | null;
   vehiculo_placa: string | null;
+  id_vehiculo_carreta: number | null;
+  vehiculo_carreta_placa: string | null;
   id_empresa_transporte: number;
   empresa_transporte_razon_social: string;
   id_tipo_vehiculo: number | null;
@@ -21,7 +23,6 @@ export interface RecepcionUnidadResponse {
   conductor_dni: string | null;
   conductor_numero_licencia: string | null;
   tipo_ingreso: TipoIngreso | string | null;
-  segunda_placa: string | null;
   fecha_hora_ingreso: string | null;
   evidencias: IArchivo[];
   observacion: string | null;

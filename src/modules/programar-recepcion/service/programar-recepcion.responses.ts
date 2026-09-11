@@ -77,7 +77,8 @@ export interface ProgramacionDetail {
   conductor_dni: string | null;
   conductor_numero_licencia: string | null;
   tipo_ingreso: TipoIngreso | string | null;
-  segunda_placa: string | null;
+  id_vehiculo_carreta: number | null;
+  vehiculo_carreta_placa: string | null;
   fecha_hora_ingreso: string | null;
   evidencias: IArchivo[];
   observacion: string | null;

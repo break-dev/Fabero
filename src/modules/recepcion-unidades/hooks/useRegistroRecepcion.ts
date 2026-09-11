@@ -46,7 +46,7 @@ export const useRegistroRecepcion = (
     id_conductor: 0,
     id_proveedor_minero: undefined,
     tipo_ingreso: TipoIngreso.RecepcionMineral,
-    segunda_placa: "",
+    id_vehiculo_carreta: null,
     observacion: "",
     evidencias: [],
     guia_remitente: "",

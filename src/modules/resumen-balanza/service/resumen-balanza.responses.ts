@@ -80,7 +80,8 @@ export interface RES_ResumenBalanzaItem {
   tipo_ingreso: string;
   fecha_hora_ingreso: string;
   fecha_hora_salida: string | null;
-  segunda_placa: string | null;
+  id_vehiculo_carreta: number | null;
+  vehiculo_carreta_placa: string | null;
   estado_pesaje: string;
 
   // ── Vehículo / Transporte ──

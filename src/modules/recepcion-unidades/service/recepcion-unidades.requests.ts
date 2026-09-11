@@ -18,7 +18,7 @@ export interface CrearRecepcionRequest {
   id_conductor: number;
   id_proveedor_minero?: number;
   tipo_ingreso?: TipoIngreso;
-  segunda_placa?: string;
+  id_vehiculo_carreta?: number | null;
   observacion?: string;
   evidencias?: File[];
   id_sucursal?: number;

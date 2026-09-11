@@ -55,7 +55,7 @@ export const RecepcionUnidadesService = {
     appendIfDefined(formData, "id_proveedor_minero", payload.id_proveedor_minero);
     appendIfDefined(formData, "tipo_ingreso", payload.tipo_ingreso);
     appendIfDefined(formData, "id_sucursal", payload.id_sucursal);
-    appendIfDefined(formData, "segunda_placa", payload.segunda_placa);
+    appendIfDefined(formData, "id_vehiculo_carreta", payload.id_vehiculo_carreta);
     appendIfDefined(formData, "observacion", payload.observacion);
     appendIfDefined(formData, "guia_remitente", payload.guia_remitente);
     appendIfDefined(formData, "guia_transportista", payload.guia_transportista);

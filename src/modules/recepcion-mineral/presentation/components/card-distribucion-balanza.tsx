@@ -411,7 +411,7 @@ export const CardDistribucionBalanza = ({
               <DataRow label="Vehículo" value={ru.vehiculo_placa || "—"} />
               <DataRow label="Empresa" value={ru.empresa_transporte_razon_social || "—"} />
               <DataRow label="Tipo" value={ru.tipo_vehiculo_nombre || "—"} />
-              <DataRow label="Placa Acople" value={ru.segunda_placa || "—"} />
+              <DataRow label="Placa Acople" value={ru.vehiculo_carreta_placa || "—"} />
               <DataRow
                 label="Conductor"
                 value={

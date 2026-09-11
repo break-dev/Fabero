@@ -122,29 +122,31 @@ export const FormTipoVehiculo = ({ onSelectTipoVehiculo }: Props) => {
                 label: "text-zinc-400 font-medium text-xs mb-1.5",
               }}
             />
-            <Group justify="space-between" align="center" mt="xs">
-              <Group gap="xl">
-                <Switch
-                  label="¿Tiene Carreta?"
-                  checked={tieneCarreta}
-                  onChange={(e) => setTieneCarreta(e.currentTarget.checked)}
-                  size="sm"
-                  color="indigo"
-                  classNames={{
-                    label: "text-zinc-400 font-medium text-xs cursor-pointer",
-                  }}
-                />
-                <Switch
-                  label="¿Es Carreta?"
-                  checked={esCarreta}
-                  onChange={(e) => setEsCarreta(e.currentTarget.checked)}
-                  size="sm"
-                  color="indigo"
-                  classNames={{
-                    label: "text-zinc-400 font-medium text-xs cursor-pointer",
-                  }}
-                />
-              </Group>
+            <Group justify={editingTipo ? "space-between" : "flex-end"} align="center" mt="xs">
+              {editingTipo && (
+                <Group gap="xl">
+                  <Switch
+                    label="¿Tiene Carreta?"
+                    checked={tieneCarreta}
+                    onChange={(e) => setTieneCarreta(e.currentTarget.checked)}
+                    size="sm"
+                    color="indigo"
+                    classNames={{
+                      label: "text-zinc-400 font-medium text-xs cursor-pointer",
+                    }}
+                  />
+                  <Switch
+                    label="¿Es Carreta?"
+                    checked={esCarreta}
+                    onChange={(e) => setEsCarreta(e.currentTarget.checked)}
+                    size="sm"
+                    color="indigo"
+                    classNames={{
+                      label: "text-zinc-400 font-medium text-xs cursor-pointer",
+                    }}
+                  />
+                </Group>
+              )}
               <Group gap="xs">
                 {editingTipo && (
                   <ActionIcon

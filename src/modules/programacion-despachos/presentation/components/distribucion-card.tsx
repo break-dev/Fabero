@@ -1,5 +1,9 @@
 import { Text, Badge, Group, ActionIcon, Tooltip, Divider } from "@mantine/core";
-import { IconHistory, IconScale } from "@tabler/icons-react";
+import {
+  IconHistory,
+  IconScale,
+  IconTruckLoading,
+} from "@tabler/icons-react";
 import { EstadoDistribucion } from "../../../../shared/enums/programacion-despachos/estado-distribucion";
 import { EstadoPesaje } from "../../../../shared/enums/_generic/estado-pesaje";
 import type { DistribucionItem } from "../../service/programacion-despachos.responses";
@@ -7,6 +11,7 @@ import type { DistribucionItem } from "../../service/programacion-despachos.resp
 interface Props {
   distribucion: DistribucionItem;
   onVerLog: (dist: DistribucionItem) => void;
+  onAbrirGuiaSegundoTramo: (dist: DistribucionItem) => void;
 }
 
 const formatFecha = (f: string | null | undefined) => {
@@ -72,12 +77,13 @@ const estadoPesajeBadge = (estado: string | null) => {
   }
 };
 
-export const DistribucionCard = ({ distribucion, onVerLog }: Props) => {
+export const DistribucionCard = ({ distribucion, onVerLog, onAbrirGuiaSegundoTramo }: Props) => {
   const totalPeso = distribucion.detalles.reduce(
     (acc, d) => acc + (d.peso_tomado ?? 0),
     0
   );
   const itemsCount = distribucion.detalles.length;
+  const tieneGuiaSegundoTramo = !!distribucion.guia_segundo_tramo;
 
   return (
     <div className="bg-zinc-950/60 border border-zinc-800/80 rounded-xl overflow-hidden">
@@ -145,19 +151,41 @@ export const DistribucionCard = ({ distribucion, onVerLog }: Props) => {
             </Text>
           </div>
         </div>
-        <Tooltip label="Ver historial" withArrow>
-          <ActionIcon
-            type="button"
-            color="zinc"
-            variant="light"
-            radius="xl"
-            size="sm"
-            onClick={() => onVerLog(distribucion)}
-            className="bg-zinc-500/10! hover:bg-zinc-500/20! text-zinc-300! border-zinc-500/20! shrink-0"
+        <Group gap={6} wrap="nowrap" className="shrink-0">
+          <Tooltip
+            label={
+              tieneGuiaSegundoTramo
+                ? "Editar Guía de Segundo Tramo"
+                : "Registrar Guía de Segundo Tramo"
+            }
+            withArrow
           >
-            <IconHistory size={14} />
-          </ActionIcon>
-        </Tooltip>
+            <ActionIcon
+              type="button"
+              color="indigo"
+              variant="light"
+              radius="xl"
+              size="sm"
+              onClick={() => onAbrirGuiaSegundoTramo(distribucion)}
+              className="bg-indigo-500/10! hover:bg-indigo-500/20! text-indigo-400! border-indigo-500/20! shrink-0"
+            >
+              <IconTruckLoading size={14} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Ver historial" withArrow>
+            <ActionIcon
+              type="button"
+              color="zinc"
+              variant="light"
+              radius="xl"
+              size="sm"
+              onClick={() => onVerLog(distribucion)}
+              className="bg-zinc-500/10! hover:bg-zinc-500/20! text-zinc-300! border-zinc-500/20! shrink-0"
+            >
+              <IconHistory size={14} />
+            </ActionIcon>
+          </Tooltip>
+        </Group>
       </div>
 
       {/* Items */}

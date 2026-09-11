@@ -26,10 +26,12 @@ import type {
   CrearDistribucionResult,
   DespachoDetalleItem,
   DistribucionItem,
+  GuiaSegundoTramo,
 } from "../../service/programacion-despachos.responses";
 import { useDespachoDetalle } from "../../hooks/useDespachoDetalle";
 import { DistribucionCard } from "./distribucion-card";
 import { RegistroDistribucionModal } from "./registro-distribucion-modal";
+import { ModalGuiaSegundoTramo } from "./modal-guia-segundo-tramo";
 
 interface Props {
   opened: boolean;
@@ -66,6 +68,12 @@ export const ModalDetalleDespacho = ({
     DespachoDetalleItem[]
   >([]);
 
+  // ---- modal de Guia Segundo Tramo: una sola instancia, se reabre apuntando
+  //      a la distribucion seleccionada desde la card.
+  const [modalGuiaAbierto, setModalGuiaAbierto] = useState(false);
+  const [guiaDistribucionSeleccionada, setGuiaDistribucionSeleccionada] =
+    useState<DistribucionItem | null>(null);
+
   useEffect(() => {
     if (opened && idDespacho !== null) {
       refrescar();
@@ -98,6 +106,29 @@ export const ModalDetalleDespacho = ({
     setModalDistribucionAbierto(false);
     setDetallesParaDistribuir([]);
     onDistribucionCreada(result);
+    refrescar();
+  };
+
+  const abrirGuiaSegundoTramo = (dist: DistribucionItem) => {
+    setGuiaDistribucionSeleccionada(dist);
+    setModalGuiaAbierto(true);
+  };
+
+  const cerrarGuiaSegundoTramo = () => {
+    setModalGuiaAbierto(false);
+    setGuiaDistribucionSeleccionada(null);
+  };
+
+  /**
+   * Tras guardar/actualizar la guia, refrescar el detalle del despacho para
+   * que DistribucionItem.guia_segundo_tramo se actualice y la card muestre el
+   * estado correcto (tooltip "Editar" en vez de "Registrar").
+   * La guia retornada por el modal ya viene persistida en backend; no la
+   * inspeccionamos aca — el cache del detalle se reconstruye via `refrescar()`.
+   */
+  const handleGuiaSaved = (guia: GuiaSegundoTramo): void => {
+    void guia;
+    cerrarGuiaSegundoTramo();
     refrescar();
   };
 
@@ -299,7 +330,12 @@ export const ModalDetalleDespacho = ({
     return (
       <Stack gap="sm">
         {distribuciones.map((d) => (
-          <DistribucionCard key={d.id} distribucion={d} onVerLog={onVerLog} />
+          <DistribucionCard
+            key={d.id}
+            distribucion={d}
+            onVerLog={onVerLog}
+            onAbrirGuiaSegundoTramo={abrirGuiaSegundoTramo}
+          />
         ))}
       </Stack>
     );
@@ -415,6 +451,21 @@ export const ModalDetalleDespacho = ({
           idDespacho={idDespacho}
           detallesDespacho={detallesParaDistribuir}
           onSuccess={onDistribucionSuccess}
+        />
+      )}
+
+      {modalGuiaAbierto && guiaDistribucionSeleccionada !== null && (
+        <ModalGuiaSegundoTramo
+          opened={modalGuiaAbierto}
+          idDistribucion={guiaDistribucionSeleccionada.id}
+          guia={guiaDistribucionSeleccionada.guia_segundo_tramo ?? null}
+          contexto={{
+            distribucionId: guiaDistribucionSeleccionada.id,
+            vehiculoPlaca: guiaDistribucionSeleccionada.vehiculo_placa,
+            sucursalNombre: guiaDistribucionSeleccionada.sucursal_nombre,
+          }}
+          onClose={cerrarGuiaSegundoTramo}
+          onSaved={handleGuiaSaved}
         />
       )}
     </>

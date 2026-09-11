@@ -56,6 +56,8 @@ export interface RecepcionMineralResponse {
   empleado_registro_nombre: string;
   id_vehiculo: number | null;
   vehiculo_placa: string | null;
+  id_vehiculo_carreta: number | null;
+  vehiculo_carreta_placa: string | null;
   id_empresa_transporte: number | null;
   empresa_transporte_razon_social: string | null;
   id_tipo_vehiculo: number | null;
@@ -64,7 +66,6 @@ export interface RecepcionMineralResponse {
   conductor_nombre_completo: string | null;
   conductor_dni: string | null;
   tipo_ingreso: string;
-  segunda_placa: string | null;
   fecha_hora_ingreso: string;
   fecha_hora_salida: string | null;
   fecha_hora_inicio_pesaje: string | null;

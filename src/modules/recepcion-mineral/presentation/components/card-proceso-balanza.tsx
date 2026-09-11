@@ -7,7 +7,6 @@ import {
   Group,
   ActionIcon,
   Select,
-  TextInput,
   Badge,
   Tooltip,
 } from "@mantine/core";
@@ -101,7 +100,9 @@ export const CardProcesoBalanza = ({
   const [selectedPlaca, setSelectedPlaca] = useState<string>(
     formatPlacaInput(ru.vehiculo_placa || ""),
   );
-  const [segPlaca2, setSegPlaca2] = useState(formatPlacaInput(ru.segunda_placa || ""));
+  const [idVehiculoCarreta, setIdVehiculoCarreta] = useState<string | null>(
+    ru.id_vehiculo_carreta ? String(ru.id_vehiculo_carreta) : null,
+  );
   const [idEmp, setIdEmp] = useState<string>(
     ru.id_empresa_transporte ? String(ru.id_empresa_transporte) : "",
   );
@@ -116,6 +117,7 @@ export const CardProcesoBalanza = ({
   const [openNewVehiculoModal, setOpenNewVehiculoModal] = useState(false);
   const [openNewTipoVehiculoModal, setOpenNewTipoVehiculoModal] = useState(false);
   const [openNewEmpresaTransporteModal, setOpenNewEmpresaTransporteModal] = useState(false);
+  const [openNewCarretaModal, setOpenNewCarretaModal] = useState(false);
   const [docsModalOpen, setDocsModalOpen] = useState(false);
 
   // Listas de "recién agregados" para que aparezcan en el Select sin esperar un re-fetch del padre.
@@ -169,6 +171,28 @@ export const CardProcesoBalanza = ({
     return Array.from(map.values());
   }, [conductores, conductoresAdded]);
 
+  // Vehículos de tipo NO carreta (es_carreta = 0/NULL) para el dropdown "Vehículo" (tractor).
+  // El backend serializa TINYINT(1) como número 0/1 (no boolean), mismo patrón que
+  // `guias-primer-tramo`. Falsy/null cuentan como no carreta.
+  const vehiculosTractor = useMemo(
+    () => vehiculosData.filter((v) => !v.es_carreta || Number(v.es_carreta) === 0),
+    [vehiculosData],
+  );
+
+  // Vehículos de tipo carreta (es_carreta === 1) para el dropdown "Vehículo Carreta".
+  const vehiculosCarreta = useMemo(
+    () => vehiculosData.filter((v) => Number(v.es_carreta) === 1),
+    [vehiculosData],
+  );
+
+  // id_tipo_vehiculo del TipoVehiculo con es_carreta=1 (resuelto eagerly).
+  const idTipoVehiculoCarreta = useMemo(
+    () =>
+      tiposVehiculoData.find((t) => Number(t.es_carreta) === 1)?.id_tipo_vehiculo ??
+      null,
+    [tiposVehiculoData],
+  );
+
   const handleSaveField = async (field: string, value: unknown) => {
     try {
       await validarCampo(ru.id, field, value);
@@ -197,6 +221,16 @@ export const CardProcesoBalanza = ({
     setSelectedPlaca(placa);
     handleSaveField("placa", placa);
     setOpenNewVehiculoModal(false);
+  };
+
+  const handleCreatedCarreta = (v: RES_Vehiculo) => {
+    setVehiculosAdded((prev) => {
+      const sinDuplicado = prev.filter((x) => x.id_vehiculo !== v.id_vehiculo);
+      return [v, ...sinDuplicado];
+    });
+    setIdVehiculoCarreta(String(v.id_vehiculo));
+    handleSaveField("id_vehiculo_carreta", v.id_vehiculo);
+    setOpenNewCarretaModal(false);
   };
 
   const handleCreatedTipoVehiculo = (t: RES_TipoVehiculo) => {
@@ -333,10 +367,10 @@ export const CardProcesoBalanza = ({
                   <Select
                     label="Vehículo"
                     placeholder={
-                      vehiculosData.length === 0 ? "Cargando..." : "Seleccione placa"
+                      vehiculosTractor.length === 0 ? "Cargando..." : "Seleccione placa"
                     }
                     searchable
-                    data={vehiculosData
+                    data={vehiculosTractor
                       .filter((v): v is typeof v & { placa: string } =>
                         typeof v.placa === "string" && v.placa.length > 0,
                       )
@@ -466,24 +500,58 @@ export const CardProcesoBalanza = ({
                 </div>
               </Grid.Col>
 
-              {/* Placa Acople */}
+              {/* Vehículo Carreta */}
               <Grid.Col span={{ base: 12, sm: 6 }}>
-                <TextInput
-                  label="Placa Acople"
-                  placeholder="Opcional"
-                  value={segPlaca2}
-                  onChange={(e) => setSegPlaca2(formatPlacaInput(e.target.value))}
-                  onBlur={() => {
-                    if (segPlaca2 !== (ru.segunda_placa ?? "")) {
-                      handleSaveField("segunda_placa", segPlaca2);
+                <div className="flex items-end gap-1">
+                  <Select
+                    label="Vehículo Carreta"
+                    placeholder={
+                      vehiculosCarreta.length === 0 ? "Cargando..." : "Opcional"
                     }
-                  }}
-                  size="xs"
-                  maxLength={7}
-                  style={{ maxWidth: 180 }}
-                  classNames={fieldClasses}
-                  disabled={esProgramacion}
-                />
+                    searchable
+                    data={vehiculosCarreta
+                      .filter(
+                        (v): v is typeof v & { id_vehiculo: number; placa: string } =>
+                          typeof v.id_vehiculo === "number" &&
+                          typeof v.placa === "string" &&
+                          v.placa.length > 0,
+                      )
+                      .map((v) => ({
+                        value: String(v.id_vehiculo),
+                        label: v.placa,
+                      }))}
+                    value={idVehiculoCarreta}
+                    onChange={(val) => {
+                      setIdVehiculoCarreta(val);
+                      if (val) {
+                        handleSaveField("id_vehiculo_carreta", Number(val));
+                      } else {
+                        handleSaveField("id_vehiculo_carreta", null);
+                      }
+                    }}
+                    nothingFoundMessage="Sin vehículos carreta registrados"
+                    size="xs"
+                    style={{ maxWidth: 180 }}
+                    classNames={selectInputClasses}
+                    comboboxProps={{ withinPortal: true }}
+                    className="flex-1"
+                    disabled={esProgramacion}
+                  />
+                  {!esProgramacion && (
+                    <Tooltip label="Registrar Vehículo Carreta" withArrow>
+                      <ActionIcon
+                        variant="filled"
+                        color="indigo"
+                        radius="md"
+                        size="sm"
+                        className="mb-0.5 bg-indigo-600 hover:bg-indigo-700"
+                        onClick={() => setOpenNewCarretaModal(true)}
+                      >
+                        <IconTruck size={12} />
+                      </ActionIcon>
+                    </Tooltip>
+                  )}
+                </div>
               </Grid.Col>
 
               {/* Conductor */}
@@ -725,6 +793,23 @@ export const CardProcesoBalanza = ({
           onCancel={() => setOpenNewVehiculoModal(false)}
           onSuccess={(v) => {
             handleCreatedVehiculo(v);
+          }}
+        />
+      </ModalEstandar>
+
+      {/* Modal inline para crear nuevo vehículo CARRETA (resuelve tipo automaticamente) */}
+      <ModalEstandar
+        opened={openNewCarretaModal}
+        close={() => setOpenNewCarretaModal(false)}
+        title="Registrar Vehículo Carreta"
+        size="sm"
+      >
+        <RegistroVehiculoSimple
+          idEmpresaTransporte={null}
+          idTipoVehiculo={idTipoVehiculoCarreta}
+          onCancel={() => setOpenNewCarretaModal(false)}
+          onSuccess={(v) => {
+            handleCreatedCarreta(v);
           }}
         />
       </ModalEstandar>

@@ -458,9 +458,9 @@ export const ResumenBalanzaPage = () => {
                     <div className="inline-flex items-center justify-center bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-0.5 rounded-md font-bold text-xs tracking-wider uppercase font-mono">
                       {fullPlaca}
                     </div>
-                    {r.segunda_placa && (
+                    {r.vehiculo_carreta_placa && (
                       <Text size="xs" className="text-zinc-500 mt-0.5">
-                        Acople: {r.segunda_placa}
+                        Acople: {r.vehiculo_carreta_placa}
                       </Text>
                     )}
                   </div>
