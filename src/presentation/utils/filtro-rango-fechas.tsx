@@ -1,5 +1,4 @@
-import { ActionIcon, Group } from "@mantine/core";
-import { IconX } from "@tabler/icons-react";
+import { Group } from "@mantine/core";
 import dayjs from "dayjs";
 import { CustomDatePicker } from "./date-picker-input";
 import { formatLocalDate } from "./local-date";
@@ -33,7 +32,6 @@ export interface DateRangeFilterProps {
   onFechaFinChange: (value: string) => void;
   defaultDaysBack?: number;
   classNames?: Record<string, string>;
-  showClearButton?: boolean;
 }
 
 export const DateRangeFilter = ({
@@ -43,17 +41,10 @@ export const DateRangeFilter = ({
   onFechaFinChange,
   defaultDaysBack,
   classNames,
-  showClearButton = true,
 }: DateRangeFilterProps) => {
   const effectiveInicio =
     fechaInicio || (defaultDaysBack !== undefined ? defaultFechaInicio(defaultDaysBack) : defaultFechaInicio());
   const effectiveFin = fechaFin || defaultFechaFin();
-  const hasActiveFilters = Boolean(fechaInicio) || Boolean(fechaFin);
-
-  const handleClear = () => {
-    onFechaInicioChange("");
-    onFechaFinChange("");
-  };
 
   const toDate = (s: string | null | undefined): Date | null =>
     s ? dayjs(s).toDate() : null;
@@ -73,7 +64,6 @@ export const DateRangeFilter = ({
           onChange={(val) => onFechaInicioChange(val ? dayjs(val).format("YYYY-MM-DD") : "")}
           radius="lg"
           size="sm"
-          clearable
           classNames={mergedClasses}
         />
       </div>
@@ -85,24 +75,9 @@ export const DateRangeFilter = ({
           onChange={(val) => onFechaFinChange(val ? dayjs(val).format("YYYY-MM-DD") : "")}
           radius="lg"
           size="sm"
-          clearable
           classNames={mergedClasses}
         />
       </div>
-      {showClearButton && hasActiveFilters && (
-        <ActionIcon
-          type="button"
-          variant="light"
-          color="zinc"
-          radius="xl"
-          size="md"
-          onClick={handleClear}
-          title="Limpiar rango de fechas"
-          className="bg-zinc-800! hover:bg-zinc-700! text-zinc-300! border-zinc-700!"
-        >
-          <IconX size={16} />
-        </ActionIcon>
-      )}
     </Group>
   );
 };

@@ -592,7 +592,6 @@ export const ValorizacionCompraPage = () => {
             fechaFin={fechaFin}
             onFechaInicioChange={setFechaInicio}
             onFechaFinChange={setFechaFin}
-            showClearButton={false}
           />
 
           {/* Proveedor */}

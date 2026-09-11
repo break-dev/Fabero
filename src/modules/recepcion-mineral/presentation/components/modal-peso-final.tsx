@@ -49,8 +49,9 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
   const [idProveedor, setIdProveedor] = useState<string | null>(lote.id_proveedor_minero ? String(lote.id_proveedor_minero) : null);
   const [idZona, setIdZona] = useState<string | null>(lote.id_zona_origen ? String(lote.id_zona_origen) : null);
   const [contacto, setContacto] = useState<string>(lote.numero_contacto || "");
-  const [producto, setProducto] = useState<string>(lote.tipo_producto || "Aurífero");
-  const [material, setMaterial] = useState<string>(lote.tipo_mineral || "Mixto");
+  // Producto y Material son opcionales (pueden quedar null en el primer pesaje).
+  const [producto, setProducto] = useState<string | null>(lote.tipo_producto ?? null);
+  const [material, setMaterial] = useState<string | null>(lote.tipo_mineral ?? null);
   const [pesoInicial, setPesoInicial] = useState<string>(lote.peso_inicial ? String(lote.peso_inicial) : "");
 
   // Estados Formulario - Peso Final (Derecha)
@@ -169,27 +170,27 @@ export const ModalPesoFinal = ({ lote, onCancel, onSubmit }: Props) => {
             <Grid.Col span={{ base: 12, sm: 6 }}>
               <Select
                 label="Producto:"
-                placeholder="Seleccione"
+                placeholder="Opcional"
                 data={["Aurífero", "Polimetálico"]}
                 value={producto}
-                onChange={(val) => setProducto(val || "Aurífero")}
+                onChange={(val) => setProducto(val)}
                 classNames={fieldClasses}
                 radius="lg"
                 size="xs"
-                required
+                clearable
               />
             </Grid.Col>
             <Grid.Col span={{ base: 12, sm: 6 }}>
               <Select
                 label="Tipo Material:"
-                placeholder="Seleccione"
+                placeholder="Opcional"
                 data={["Mixto", "Óxido", "Sulfuro"]}
                 value={material}
-                onChange={(val) => setMaterial(val || "Mixto")}
+                onChange={(val) => setMaterial(val)}
                 classNames={fieldClasses}
                 radius="lg"
                 size="xs"
-                required
+                clearable
               />
             </Grid.Col>
 

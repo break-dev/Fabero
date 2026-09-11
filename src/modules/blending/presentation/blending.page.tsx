@@ -235,7 +235,6 @@ export const BlendingPage = () => {
             fechaFin={fechaFin || null}
             onFechaInicioChange={setFechaInicio}
             onFechaFinChange={setFechaFin}
-            showClearButton={false}
           />
         </div>
 

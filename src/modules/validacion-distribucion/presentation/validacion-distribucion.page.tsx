@@ -5,6 +5,7 @@ import {
   Button,
   Container,
   Group,
+  Menu,
   Paper,
   SegmentedControl,
   Stack,
@@ -14,6 +15,8 @@ import {
   Tooltip,
 } from "@mantine/core";
 import {
+  IconColumnInsertRight,
+  IconDotsVertical,
   IconPrinter,
   IconSearch,
   IconShieldCheck,
@@ -37,6 +40,7 @@ import type { DTO_CrearParticion } from "../service/validacion-distribucion.requ
 import { TicketBalanzaPdf } from "../../../presentation/utils/ticket-balanza-pdf";
 import { useUIStore } from "../../../stores/ui.store";
 import { RefreshButton } from "../../../presentation/utils/refresh-button";
+import { mostrarConfirmacion } from "../../../presentation/utils/modal-confirmacion";
 
 type Row = RES_LotePendiente;
 type EstadoParticion = "TODOS" | "CON" | "SIN";
@@ -678,18 +682,50 @@ export const ValidacionDistribucionPage = () => {
                         <IconShieldCheck size={16} />
                       </ActionIcon>
                     </Tooltip>
-                    <Button
-                      size="xs"
-                      radius="lg"
-                      loading={creatingParticionId === r.id_lote_mineral}
-                      disabled={
-                        creatingParticionId !== null ||
-                        r.lote_esta_validado === true
-                      }
-                      onClick={() => void handleCrearParticion(r.id_lote_mineral)}
-                    >
-                      + Nueva partición
-                    </Button>
+                    <Menu position="bottom-end" withArrow shadow="md" width={200}>
+                      <Menu.Target>
+                        <ActionIcon
+                          variant="subtle"
+                          color="gray"
+                          radius="lg"
+                          size="md"
+                          loading={creatingParticionId === r.id_lote_mineral}
+                          disabled={
+                            creatingParticionId !== null ||
+                            r.lote_esta_validado === true
+                          }
+                          aria-label="Más acciones"
+                          title="Más acciones"
+                        >
+                          <IconDotsVertical size={16} />
+                        </ActionIcon>
+                      </Menu.Target>
+                      <Menu.Dropdown>
+                        <Menu.Item
+                          leftSection={<IconColumnInsertRight size={14} />}
+                          disabled={r.lote_esta_validado === true}
+                          onClick={() =>
+                            mostrarConfirmacion({
+                              title: "Crear nueva partición",
+                              message: (
+                                <>
+                                  ¿Está seguro de crear una nueva partición para
+                                  el lote{" "}
+                                  <strong>{r.lote_correlativo}</strong>? Esta
+                                  acción no se puede deshacer.
+                                </>
+                              ),
+                              confirmLabel: "Sí, crear",
+                              cancelLabel: "Cancelar",
+                              tipo: "info",
+                              onConfirm: () => handleCrearParticion(r.id_lote_mineral),
+                            })
+                          }
+                        >
+                          Particionar
+                        </Menu.Item>
+                      </Menu.Dropdown>
+                    </Menu>
                   </Group>
                 );
               },

@@ -118,10 +118,10 @@ export const RecepcionMineralService = {
     if (dto.numero_contacto !== undefined) {
       formData.append("numero_contacto", dto.numero_contacto);
     }
-    if (dto.tipo_producto !== undefined) {
+    if (dto.tipo_producto !== null && dto.tipo_producto !== undefined) {
       formData.append("tipo_producto", dto.tipo_producto);
     }
-    if (dto.tipo_mineral !== undefined) {
+    if (dto.tipo_mineral !== null && dto.tipo_mineral !== undefined) {
       formData.append("tipo_mineral", dto.tipo_mineral);
     }
     if (dto.peso_inicial !== undefined) {
@@ -179,10 +179,10 @@ export const RecepcionMineralService = {
     if (dto.numero_contacto !== undefined) {
       formData.append("numero_contacto", dto.numero_contacto);
     }
-    if (dto.tipo_producto !== undefined) {
+    if (dto.tipo_producto !== null && dto.tipo_producto !== undefined) {
       formData.append("tipo_producto", dto.tipo_producto);
     }
-    if (dto.tipo_mineral !== undefined) {
+    if (dto.tipo_mineral !== null && dto.tipo_mineral !== undefined) {
       formData.append("tipo_mineral", dto.tipo_mineral);
     }
     if (dto.peso_inicial !== undefined && dto.peso_inicial !== null) {

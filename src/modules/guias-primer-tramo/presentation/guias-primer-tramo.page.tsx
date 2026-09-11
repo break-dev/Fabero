@@ -156,7 +156,6 @@ export const GuiasPrimerTramoPage = () => {
             fechaFin={fechaFin}
             onFechaInicioChange={setFechaInicio}
             onFechaFinChange={setFechaFin}
-            showClearButton={false}
           />
         </div>
         <div className="flex gap-2 shrink-0">

@@ -190,7 +190,6 @@ export default function ContabilidadCompraPage() {
             fechaFin={fechaFin}
             onFechaInicioChange={setFechaInicio}
             onFechaFinChange={setFechaFin}
-            showClearButton={false}
           />
           <Select
             label="Proveedor"

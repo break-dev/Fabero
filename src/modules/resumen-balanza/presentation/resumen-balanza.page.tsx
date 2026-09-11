@@ -181,7 +181,6 @@ export const ResumenBalanzaPage = () => {
                 fechaFin={fechaFin}
                 onFechaInicioChange={setFechaInicio}
                 onFechaFinChange={setFechaFin}
-                showClearButton={false}
               />
             </Grid.Col>
 

@@ -25,8 +25,8 @@ export interface DTO_PesoFinal {
   id_proveedor_minero?: number | null;
   id_zona_origen?: number | null;
   numero_contacto?: string;
-  tipo_producto?: string;
-  tipo_mineral?: string;
+  tipo_producto?: string | null;
+  tipo_mineral?: string | null;
   peso_inicial?: number;
   id_vehiculo?: number | null;
   id_empresa_transporte?: number | null;

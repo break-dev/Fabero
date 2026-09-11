@@ -80,7 +80,6 @@ export const FiltrosDespachos = ({ filtros, setFiltros, onLimpiar }: Props) => {
           fechaFin={filtros.fecha_fin ?? null}
           onFechaInicioChange={(v) => setFiltros({ ...filtros, fecha_inicio: v })}
           onFechaFinChange={(v) => setFiltros({ ...filtros, fecha_fin: v })}
-          showClearButton={false}
         />
       </Grid.Col>
 

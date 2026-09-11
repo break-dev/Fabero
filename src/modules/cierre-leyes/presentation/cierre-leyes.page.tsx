@@ -88,7 +88,6 @@ export const CierreLeyesPage = () => {
             fechaFin={fechaFin}
             onFechaInicioChange={setFechaInicio}
             onFechaFinChange={setFechaFin}
-            showClearButton={false}
           />
         </div>
 
