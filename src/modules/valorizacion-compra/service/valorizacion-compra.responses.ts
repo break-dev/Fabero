@@ -28,8 +28,6 @@ export interface RES_ValorizacionCompraDetalle {
   factor: number;
   precio_por_tonelada: number;
   subtotal: number;
-  penalidad?: number;
-  flete?: number;
   log_cambios?: Record<string, unknown>[];
 }
 

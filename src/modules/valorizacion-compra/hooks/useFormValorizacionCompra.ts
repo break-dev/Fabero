@@ -44,6 +44,12 @@ interface Props {
   onSuccess: () => void;
 }
 
+const nowIsoDateTime = (): string => {
+  const d = new Date();
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+};
+
 const basename = (path: string): string => {
   const normalized = path.replace(/\\/g, "/");
   return normalized.substring(normalized.lastIndexOf("/") + 1) || path;
@@ -149,7 +155,9 @@ export const useFormValorizacionCompra = ({
   const [anticipos, setAnticipos] = useState<REQ_ValorizacionAnticipoItem[]>([]);
   const [evidencias, setEvidencias] = useState<File[]>([]);
   const [evidenciasExistentes, setEvidenciasExistentes] = useState<IArchivo[]>([]);
-  const [fechaHoraValorizacion, setFechaHoraValorizacion] = useState<string | null>(null);
+  const [fechaHoraValorizacion, setFechaHoraValorizacion] = useState<string | null>(nowIsoDateTime());
+  const [montoPenalidad, setMontoPenalidad] = useState<number>(0);
+  const [montoFlete, setMontoFlete] = useState<number>(0);
 
   // Catalogs
   const [concesiones, setConcesiones] = useState<ConcesionItem[]>([]);
@@ -184,8 +192,6 @@ export const useFormValorizacionCompra = ({
             maquila: d.maquila,
             consumo: d.consumo,
             factor: d.factor,
-            penalidad: d.penalidad ?? 0,
-            flete: d.flete ?? 0,
           },
           display: d,
         })),
@@ -201,7 +207,11 @@ export const useFormValorizacionCompra = ({
       setEvidencias([]);
       setEvidenciasExistentes(mapEvidenciasToArchivos(valorizacionEditar.evidencias));
 
-      setFechaHoraValorizacion(valorizacionEditar.fecha_hora_valorizacion ?? null);
+      setFechaHoraValorizacion(
+        valorizacionEditar.fecha_hora_valorizacion ?? nowIsoDateTime(),
+      );
+      setMontoPenalidad(valorizacionEditar.monto_penalidad ?? 0);
+      setMontoFlete(valorizacionEditar.monto_flete ?? 0);
     } else {
       setIdProveedor(null);
       setIdConcesion(null);
@@ -215,7 +225,9 @@ export const useFormValorizacionCompra = ({
       setCuentasBancarias([]);
       setCuentasDetraccion([]);
       setAnticiposCatalog([]);
-      setFechaHoraValorizacion(null);
+      setFechaHoraValorizacion(nowIsoDateTime());
+      setMontoPenalidad(0);
+      setMontoFlete(0);
     }
   }, [opened, valorizacionEditar]);
 
@@ -288,20 +300,9 @@ export const useFormValorizacionCompra = ({
     return detalles.reduce((acc, curr) => acc + curr.display.subtotal, 0);
   }, [detalles]);
 
-  const totalPenalidad = useMemo(() => {
-    return detalles.reduce((acc, curr) => {
-      const raw =
-        curr.display.penalidad ?? curr.req.penalidad ?? 0;
-      return acc + (typeof raw === "number" ? raw : parseFloat(String(raw)) || 0);
-    }, 0);
-  }, [detalles]);
+  const totalPenalidad = montoPenalidad;
+  const totalFlete = montoFlete;
 
-  const totalFlete = useMemo(() => {
-    return detalles.reduce((acc, curr) => {
-      const raw = curr.display.flete ?? curr.req.flete ?? 0;
-      return acc + (typeof raw === "number" ? raw : parseFloat(String(raw)) || 0);
-    }, 0);
-  }, [detalles]);
 
   const totalAnticipos = useMemo(() => {
     return anticipos.reduce((acc, curr) => acc + curr.monto_retirado, 0);
@@ -420,8 +421,8 @@ export const useFormValorizacionCompra = ({
           evidencias_existentes: evidenciasExistentes,
           motivo_edicion: motivoCustom && motivoCustom.trim() ? motivoCustom.trim() : undefined,
           fecha_hora_valorizacion: fechaHoraValorizacion,
-          monto_penalidad: totalPenalidad,
-          monto_flete: totalFlete,
+          monto_penalidad: montoPenalidad,
+          monto_flete: montoFlete,
         });
         notifySuccess("Valorización actualizada correctamente");
       } else {
@@ -435,8 +436,8 @@ export const useFormValorizacionCompra = ({
           anticipos: anticipos,
           evidencias,
           fecha_hora_valorizacion: fechaHoraValorizacion,
-          monto_penalidad: totalPenalidad,
-          monto_flete: totalFlete,
+          monto_penalidad: montoPenalidad,
+          monto_flete: montoFlete,
         });
         notifySuccess("Valorización creada correctamente en estado Pendiente");
       }
@@ -481,6 +482,10 @@ export const useFormValorizacionCompra = ({
     setEvidenciasExistentes,
     fechaHoraValorizacion,
     setFechaHoraValorizacion,
+    montoPenalidad,
+    setMontoPenalidad,
+    montoFlete,
+    setMontoFlete,
     montoTransferencia,
     tipoPago,
     modalLoteOpened,

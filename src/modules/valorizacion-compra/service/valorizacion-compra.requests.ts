@@ -17,8 +17,6 @@ export interface REQ_ValorizacionDetalleItem {
   maquila: number;
   consumo: number;
   factor?: number;
-  penalidad?: number;
-  flete?: number;
 }
 
 export interface REQ_ValorizacionAnticipoItem {

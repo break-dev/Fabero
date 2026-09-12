@@ -16,13 +16,14 @@ import {
   NumberInput,
   TextInput,
 } from "@mantine/core";
-import { IconPlus, IconTrash, IconFileText, IconCoins, IconBuildingBank, IconCheck, IconX, IconPencil, IconPaperclip } from "@tabler/icons-react";
+import { IconPlus, IconTrash, IconFileText, IconCoins, IconBuildingBank, IconCheck, IconX, IconPencil, IconPaperclip, IconCalendar } from "@tabler/icons-react";
 import { AuxService } from "../../../../service/auxiliar.service";
 import { useFormValorizacionCompra } from "../../hooks/useFormValorizacionCompra";
 import { ModalAgregarLote } from "./modal-agregar-lote";
 import { ModalSeleccionarAnticipos } from "./modal-seleccionar-anticipos";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
 import { MultiFilePicker } from "../../../../presentation/utils/archivo/multifile-picker";
+import { CustomDatePicker } from "../../../../presentation/utils/date-picker-input";
 import { EstadoBase } from "../../../../shared/enums/_generic/estado-base";
 import type { RES_ValorizacionCompra, RES_ValorizacionCompraDetalle } from "../../service/valorizacion-compra.responses";
 import type { REQ_ValorizacionDetalleItem } from "../../service/valorizacion-compra.requests";
@@ -91,8 +92,6 @@ export const ModalFormValorizacionCompra = ({
     anticipoSaldoEfectivoMap,
     concesionSeleccionada,
     totalSubtotal,
-    totalPenalidad,
-    totalFlete,
     totalAnticipos,
     montoTransferencia,
     tipoPago,
@@ -102,6 +101,10 @@ export const ModalFormValorizacionCompra = ({
     setEvidenciasExistentes,
     fechaHoraValorizacion,
     setFechaHoraValorizacion,
+    montoPenalidad,
+    setMontoPenalidad,
+    montoFlete,
+    setMontoFlete,
     modalLoteOpened,
     setModalLoteOpened,
     modalAnticiposOpened,
@@ -529,17 +532,40 @@ export const ModalFormValorizacionCompra = ({
                 Lotes Valorizados ({detalles.length})
               </Text>
             </Group>
-            <Button
-              leftSection={<IconPlus size={16} />}
-              color="indigo"
-              size="xs"
-              radius="lg"
-              disabled={!idProveedor}
-              onClick={() => setModalLoteOpened(true)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white h-8 text-xs"
-            >
-              Nuevo Lote
-            </Button>
+            <Group gap="md" align="center" wrap="nowrap">
+              <Group gap={6} wrap="nowrap" align="center">
+                <IconCalendar size={14} className="text-zinc-500" />
+                <Text fz={10} fw={600} c="zinc.500" tt="uppercase" lts="0.04em">
+                  Fecha Valorización:
+                </Text>
+                <CustomDatePicker
+                  value={fechaHoraValorizacion ?? undefined}
+                  onChange={(d) => {
+                    if (!d) {
+                      setFechaHoraValorizacion(null);
+                      return;
+                    }
+                    const pad = (n: number) => n.toString().padStart(2, "0");
+                    const now = new Date();
+                    const iso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+                    setFechaHoraValorizacion(iso);
+                  }}
+                  placeholder="DD/MM/YYYY"
+                  style={{ width: 150 }}
+                />
+              </Group>
+              <Button
+                leftSection={<IconPlus size={16} />}
+                color="indigo"
+                size="xs"
+                radius="lg"
+                disabled={!idProveedor}
+                onClick={() => setModalLoteOpened(true)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white h-8 text-xs"
+              >
+                Nuevo Lote
+              </Button>
+            </Group>
           </Group>
 
           {detalles.length === 0 ? (
@@ -700,25 +726,75 @@ export const ModalFormValorizacionCompra = ({
             <Text fz="xs" c="zinc.4">
               Total Lotes: <span className="text-white font-semibold">{detalles.length}</span>
             </Text>
-            <Group gap="md" align="center" wrap="nowrap">
-              <Text fz="xs" c="zinc.4">
-                Penalidad:{" "}
-                <span className="text-amber.400 font-semibold">
-                  ${totalPenalidad.toFixed(2)}
-                </span>
-              </Text>
-              <Text fz="xs" c="zinc.4">
-                Flete:{" "}
-                <span className="text-cyan.400 font-semibold">
-                  ${totalFlete.toFixed(2)}
-                </span>
-              </Text>
-              <Text fz="xs" c="zinc.4">
-                Total Valorización:{" "}
-                <span className="text-emerald-400 font-bold text-sm">
+            <Group gap="md" align="center" wrap="wrap">
+              <Group gap={6} align="center" wrap="nowrap">
+                <Text fz={10} c="zinc.5" tt="uppercase" fw={700}>
+                  Subtotal:
+                </Text>
+                <Text fz="xs" fw={700} c="white" className="font-mono">
                   ${totalSubtotal.toFixed(2)}
-                </span>
-              </Text>
+                </Text>
+              </Group>
+              <Group gap={4} align="center" wrap="nowrap">
+                <Text fz={10} c="zinc.5" tt="uppercase" fw={700}>
+                  Penalidad:
+                </Text>
+                <NumberInput
+                  value={montoPenalidad}
+                  onChange={(val) =>
+                    setMontoPenalidad(
+                      typeof val === "number" ? val : parseFloat(String(val)) || 0,
+                    )
+                  }
+                  min={0}
+                  prefix="$ "
+                  decimalScale={2}
+                  fixedDecimalScale
+                  hideControls
+                  size="xs"
+                  radius="md"
+                  w={130}
+                  disabled={loadingSubmit}
+                  classNames={{
+                    input:
+                      "bg-zinc-950 border-zinc-800 focus:border-amber-500 text-amber-400 font-mono font-semibold text-xs h-7 text-right",
+                  }}
+                />
+              </Group>
+              <Group gap={4} align="center" wrap="nowrap">
+                <Text fz={10} c="zinc.5" tt="uppercase" fw={700}>
+                  Flete:
+                </Text>
+                <NumberInput
+                  value={montoFlete}
+                  onChange={(val) =>
+                    setMontoFlete(
+                      typeof val === "number" ? val : parseFloat(String(val)) || 0,
+                    )
+                  }
+                  min={0}
+                  prefix="$ "
+                  decimalScale={2}
+                  fixedDecimalScale
+                  hideControls
+                  size="xs"
+                  radius="md"
+                  w={130}
+                  disabled={loadingSubmit}
+                  classNames={{
+                    input:
+                      "bg-zinc-950 border-zinc-800 focus:border-cyan-500 text-cyan-400 font-mono font-semibold text-xs h-7 text-right",
+                  }}
+                />
+              </Group>
+              <Group gap={6} align="center" wrap="nowrap">
+                <Text fz={10} c="zinc.5" tt="uppercase" fw={700}>
+                  Total Valorización:
+                </Text>
+                <Text fz="sm" fw={800} c="emerald.4" className="font-mono">
+                  ${(totalSubtotal - montoPenalidad - montoFlete).toFixed(2)}
+                </Text>
+              </Group>
             </Group>
           </Group>
         </Paper>
@@ -838,7 +914,6 @@ export const ModalFormValorizacionCompra = ({
         onAgregarLote={handleAgregarDetalle}
         onEditarLote={handleEditarDetalle}
         fechaHoraValorizacion={fechaHoraValorizacion}
-        onFechaHoraValorizacionChange={setFechaHoraValorizacion}
       />
 
       {/* Modal Seleccionar Anticipos */}
