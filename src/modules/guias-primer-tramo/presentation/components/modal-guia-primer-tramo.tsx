@@ -1044,7 +1044,14 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
     field: "remitente" | "transportista",
     files: File[],
   ) => {
-    if (files.length === 0) return;
+    // El MultiFilePicker envia `[]` cuando el usuario pulsa "Limpiar nuevos"
+    // o elimina el unico archivo desde la papelera del card. Hay que tratarlo
+    // como una operacion valida de limpieza y NO como un payload vacio a ignorar.
+    if (files.length === 0) {
+      if (field === "remitente") setDocumentoGuiaRemitente(null);
+      else setDocumentoGuiaTransportista(null);
+      return;
+    }
     const file = files[0];
     const existing =
       field === "remitente"
@@ -1263,7 +1270,7 @@ export const ModalGuiaPrimerTramo = ({ opened, idSucursal, guia, onClose, onSubm
         opened={opened}
         close={handleClose}
         title={guia ? "Editar Guía de Primer Tramo" : "Registrar Guía de Primer Tramo"}
-        size="85%"
+        size="lg"
       >
         <Stack gap="md" className="max-h-[85vh] overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
           {/* ========== 1. Fechas ========== */}

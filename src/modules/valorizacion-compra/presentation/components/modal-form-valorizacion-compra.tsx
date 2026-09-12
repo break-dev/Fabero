@@ -91,6 +91,8 @@ export const ModalFormValorizacionCompra = ({
     anticipoSaldoEfectivoMap,
     concesionSeleccionada,
     totalSubtotal,
+    totalPenalidad,
+    totalFlete,
     totalAnticipos,
     montoTransferencia,
     tipoPago,
@@ -98,6 +100,8 @@ export const ModalFormValorizacionCompra = ({
     setEvidencias,
     evidenciasExistentes,
     setEvidenciasExistentes,
+    fechaHoraValorizacion,
+    setFechaHoraValorizacion,
     modalLoteOpened,
     setModalLoteOpened,
     modalAnticiposOpened,
@@ -696,9 +700,26 @@ export const ModalFormValorizacionCompra = ({
             <Text fz="xs" c="zinc.4">
               Total Lotes: <span className="text-white font-semibold">{detalles.length}</span>
             </Text>
-            <Text fz="xs" c="zinc.4">
-              Total Valorización: <span className="text-emerald-400 font-bold text-sm">${totalSubtotal.toFixed(2)}</span>
-            </Text>
+            <Group gap="md" align="center" wrap="nowrap">
+              <Text fz="xs" c="zinc.4">
+                Penalidad:{" "}
+                <span className="text-amber.400 font-semibold">
+                  ${totalPenalidad.toFixed(2)}
+                </span>
+              </Text>
+              <Text fz="xs" c="zinc.4">
+                Flete:{" "}
+                <span className="text-cyan.400 font-semibold">
+                  ${totalFlete.toFixed(2)}
+                </span>
+              </Text>
+              <Text fz="xs" c="zinc.4">
+                Total Valorización:{" "}
+                <span className="text-emerald-400 font-bold text-sm">
+                  ${totalSubtotal.toFixed(2)}
+                </span>
+              </Text>
+            </Group>
           </Group>
         </Paper>
 
@@ -816,6 +837,8 @@ export const ModalFormValorizacionCompra = ({
         detalleEditar={detalleEditando}
         onAgregarLote={handleAgregarDetalle}
         onEditarLote={handleEditarDetalle}
+        fechaHoraValorizacion={fechaHoraValorizacion}
+        onFechaHoraValorizacionChange={setFechaHoraValorizacion}
       />
 
       {/* Modal Seleccionar Anticipos */}

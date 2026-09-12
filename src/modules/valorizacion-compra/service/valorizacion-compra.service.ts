@@ -50,6 +50,15 @@ export const ValorizacionCompraService = {
         formData.append("evidencias[]", file);
       });
     }
+    if (payload.fecha_hora_valorizacion) {
+      formData.append("fecha_hora_valorizacion", payload.fecha_hora_valorizacion);
+    }
+    if (payload.monto_penalidad != null) {
+      formData.append("monto_penalidad", String(payload.monto_penalidad));
+    }
+    if (payload.monto_flete != null) {
+      formData.append("monto_flete", String(payload.monto_flete));
+    }
     const { data } = await api.post(`${basePath}`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
@@ -83,6 +92,15 @@ export const ValorizacionCompraService = {
       payload.evidencias.forEach((file) => {
         formData.append("evidencias[]", file);
       });
+    }
+    if (payload.fecha_hora_valorizacion) {
+      formData.append("fecha_hora_valorizacion", payload.fecha_hora_valorizacion);
+    }
+    if (payload.monto_penalidad != null) {
+      formData.append("monto_penalidad", String(payload.monto_penalidad));
+    }
+    if (payload.monto_flete != null) {
+      formData.append("monto_flete", String(payload.monto_flete));
     }
     const { data } = await api.post(`${basePath}/${id}`, formData, {
       headers: { "Content-Type": "multipart/form-data" },

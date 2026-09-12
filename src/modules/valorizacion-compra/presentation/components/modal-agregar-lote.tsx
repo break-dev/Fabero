@@ -11,12 +11,23 @@ import {
   Loader,
   Badge,
   Box,
+  ActionIcon,
+  Tooltip,
 } from "@mantine/core";
-import { IconFileText, IconCoins, IconCheck } from "@tabler/icons-react";
+import {
+  IconFileText,
+  IconCoins,
+  IconCheck,
+  IconPlus,
+  IconCalendar,
+} from "@tabler/icons-react";
 import { ElementoQuimicoValorizacion } from "../../../../shared/enums/_generic/elemento-quimico-valorizacion";
 import { AuxService } from "../../../../service/auxiliar.service";
 import { useNotify } from "../../../../hooks/useNotify";
 import { ModalEstandar } from "../../../../presentation/utils/modal-estandar";
+import { CustomDatePicker } from "../../../../presentation/utils/date-picker-input";
+import { ValorElementoQuimicoService } from "../../service/valor-elemento-quimico.service";
+import { ModalRegistrarPrecioInter } from "./modal-registrar-precio-inter";
 import type { REQ_ValorizacionDetalleItem } from "../../service/valorizacion-compra.requests";
 import type { RES_ValorizacionCompraDetalle } from "../../service/valorizacion-compra.responses";
 
@@ -67,6 +78,8 @@ interface Props {
   idValorizacionEdicion?: number;
   existingDetalles?: ExistingDetalleItem[];
   detalleEditar?: DetalleEditar | null;
+  fechaHoraValorizacion?: string | null;
+  onFechaHoraValorizacionChange?: (nuevaFecha: string | null) => void;
   onAgregarLote: (
     det: REQ_ValorizacionDetalleItem,
     display: RES_ValorizacionCompraDetalle,
@@ -91,6 +104,8 @@ export const ModalAgregarLote = ({
   idValorizacionEdicion,
   existingDetalles = [],
   detalleEditar = null,
+  fechaHoraValorizacion,
+  onFechaHoraValorizacionChange,
   onAgregarLote,
   onEditarLote,
 }: Props) => {
@@ -110,6 +125,28 @@ export const ModalAgregarLote = ({
   const [maquila, setMaquila] = useState<number | string>(0);
   const [consumo, setConsumo] = useState<number | string>(0);
   const [factor, setFactor] = useState<number | string>(1.1023);
+  const [penalidad, setPenalidad] = useState<number | string>(0);
+  const [flete, setFlete] = useState<number | string>(0);
+
+  // Lookup INTER (precio_elemento_quimico) por (elemento, fecha de valorización).
+  const [precioEncontrado, setPrecioEncontrado] = useState<{
+    id: number;
+    inter: number;
+    fecha: string;
+  } | null>(null);
+  const [modalPrecioAbierto, setModalPrecioAbierto] = useState(false);
+
+  // Sincronizar fecha local con la prop del padre.
+  // La prop viene en formato "YYYY-MM-DD HH:MM:SS" o "YYYY-MM-DD".
+  // Si no hay fecha, se usa la fecha actual por defecto.
+  const fechaCorta = useMemo(() => {
+    if (!fechaHoraValorizacion) {
+      const today = new Date();
+      const pad = (n: number) => n.toString().padStart(2, "0");
+      return `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+    }
+    return fechaHoraValorizacion.split(" ")[0] ?? null;
+  }, [fechaHoraValorizacion]);
 
   useEffect(() => {
     if (!opened) {
@@ -170,7 +207,7 @@ export const ModalAgregarLote = ({
 
   useEffect(() => {
     if (!detalleEditar) return;
-    const { req } = detalleEditar;
+    const { req, display } = detalleEditar;
     setSelectedLoteGuiaId(String(req.id_lote_guia));
     setElemento(req.elemento_quimico);
     setInter(req.inter);
@@ -179,7 +216,63 @@ export const ModalAgregarLote = ({
     setMaquila(req.maquila);
     setConsumo(req.consumo);
     setFactor(req.factor ?? 1.1023);
-  }, [detalleEditar]);
+    setPenalidad(display.penalidad ?? req.penalidad ?? 0);
+    setFlete(display.flete ?? req.flete ?? 0);
+    // Preserva el id_valor_elemento_quimico del detalle para no romper el envio
+    setPrecioEncontrado(
+      display.id_valor_elemento_quimico
+        ? {
+            id: display.id_valor_elemento_quimico,
+            inter: req.inter,
+            fecha: fechaHoraValorizacion?.split(" ")[0] ?? "",
+          }
+        : null,
+    );
+  }, [detalleEditar, fechaHoraValorizacion]);
+
+  // Lookup del precio INTER por (elemento, fecha). No aplica en edicion.
+  // Se dispara cada vez que el modal se abre o cambian los parametros.
+  useEffect(() => {
+    if (!opened) return;
+    if (detalleEditar) return;
+    if (!elemento || !fechaCorta) {
+      setPrecioEncontrado(null);
+      setInter(0);
+      return;
+    }
+
+    let cancelado = false;
+    console.log("[ModalAgregarLote] Buscar INTER:", { elemento: elemento, fecha: fechaCorta });
+    ValorElementoQuimicoService.buscarPrecio({
+      elemento,
+      fecha: fechaCorta,
+    })
+      .then((res) => {
+        if (cancelado) return;
+        console.log("[ModalAgregarLote] Respuesta INTER:", res);
+        if (res.success && res.data) {
+          setPrecioEncontrado({
+            id: res.data.id,
+            inter: res.data.inter,
+            fecha: res.data.fecha,
+          });
+          setInter(res.data.inter);
+        } else {
+          setPrecioEncontrado(null);
+          setInter(0);
+        }
+      })
+      .catch((err) => {
+        if (cancelado) return;
+        console.error("[ModalAgregarLote] Error al buscar INTER:", err);
+        setPrecioEncontrado(null);
+        setInter(0);
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [opened, elemento, fechaCorta, detalleEditar]);
 
   const loteEnEdicion = useMemo<LoteDisponible | null>(() => {
     if (!detalleEditar) return null;
@@ -353,6 +446,12 @@ export const ModalAgregarLote = ({
       notifyWarning("Debe seleccionar un elemento químico");
       return;
     }
+    if (!precioEncontrado) {
+      notifyWarning(
+        `Debe registrar el precio INTER para ${elemento} en la fecha seleccionada antes de valorizar. Use el botón "+" al lado de INTER.`,
+      );
+      return;
+    }
 
     const numRec = typeof recuperacion === "number" ? recuperacion : parseFloat(String(recuperacion)) || 0;
     const numInter = typeof inter === "number" ? inter : parseFloat(String(inter)) || 0;
@@ -360,6 +459,8 @@ export const ModalAgregarLote = ({
     const numMaq = typeof maquila === "number" ? maquila : parseFloat(String(maquila)) || 0;
     const numRea = typeof consumo === "number" ? consumo : parseFloat(String(consumo)) || 0;
     const numFac = typeof factor === "number" ? factor : parseFloat(String(factor)) || 1.1023;
+    const numPenalidad = typeof penalidad === "number" ? penalidad : parseFloat(String(penalidad)) || 0;
+    const numFlete = typeof flete === "number" ? flete : parseFloat(String(flete)) || 0;
 
     const cond =
       elemento === ElementoQuimicoValorizacion.Oro
@@ -370,12 +471,15 @@ export const ModalAgregarLote = ({
       id_lote_guia: loteSeleccionado.id_lote_guia,
       elemento_quimico: elemento,
       id_condicion_comercial: cond ? cond.id_condicion_comercial : null,
+      id_valor_elemento_quimico: precioEncontrado.id,
       inter: numInter,
       des_inter: numDes,
       recuperacion: numRec,
       maquila: numMaq,
       consumo: numRea,
       factor: numFac,
+      penalidad: numPenalidad,
+      flete: numFlete,
     };
 
     const displayItem: RES_ValorizacionCompraDetalle = {
@@ -383,6 +487,7 @@ export const ModalAgregarLote = ({
       id_valorizacion_compra: detalleEditar ? detalleEditar.display.id_valorizacion_compra : 0,
       id_lote_guia: loteSeleccionado.id_lote_guia,
       id_condicion_comercial: cond ? cond.id_condicion_comercial : null,
+      id_valor_elemento_quimico: precioEncontrado.id,
       elemento_quimico: elemento,
       numero_correlativo: loteSeleccionado.numero_correlativo,
       lote_correlativo: loteSeleccionado.correlativo_lote,
@@ -401,6 +506,8 @@ export const ModalAgregarLote = ({
       factor: numFac,
       precio_por_tonelada: Number(ptn.toFixed(2)),
       subtotal: Number(totalItem.toFixed(2)),
+      penalidad: numPenalidad,
+      flete: numFlete,
     };
 
     if (detalleEditar) {
@@ -414,17 +521,57 @@ export const ModalAgregarLote = ({
     setInter(0);
     setDesInter(0);
     setFactor(1.1023);
+    setPenalidad(0);
+    setFlete(0);
+    setPrecioEncontrado(null);
     onClose();
   };
+
+  // INTER siempre bloqueado: el valor proviene del precio INTER registrado
+  // para la fecha y elemento seleccionados (via boton "+").
+  const interBloqueado = true;
+
+  const filtrosHeader = (
+    <Group gap={6} wrap="nowrap" align="center">
+      <IconCalendar size={12} className="text-zinc-500" />
+      <Text fz={10} fw={600} c="zinc.500" tt="uppercase" lts="0.04em">
+        Fecha de Inter:
+      </Text>
+      <CustomDatePicker
+        value={fechaCorta}
+        onChange={(d) => {
+          if (!d) {
+            const today = new Date();
+            const pad = (n: number) => n.toString().padStart(2, "0");
+            const iso = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+            onFechaHoraValorizacionChange?.(iso);
+            return;
+          }
+          const pad = (n: number) => n.toString().padStart(2, "0");
+          const iso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+          onFechaHoraValorizacionChange?.(iso);
+        }}
+        placeholder="DD/MM/YYYY"
+        style={{ width: 150 }}
+      />
+    </Group>
+  );
 
   return (
     <ModalEstandar
       opened={opened}
       close={onClose}
       title={detalleEditar ? "Editar Condiciones del Lote" : "Agregar Lote a Valorización"}
-      size="lg"
+      size="xl"
+      rightSection={filtrosHeader}
     >
       <Stack gap="sm" mt="xs">
+        <button
+          data-autofocus
+          tabIndex={-1}
+          aria-hidden="true"
+          className="sr-only opacity-0 w-0 h-0 p-0 m-0 pointer-events-none absolute -z-50"
+        />
         {/* Selección de Lote y Elemento */}
         <Grid>
           <Grid.Col span={{ base: 12, sm: 8 }}>
@@ -553,16 +700,51 @@ export const ModalAgregarLote = ({
           
           <Grid gutter="xs">
             <Grid.Col span={{ base: 6, sm: 4 }}>
-              <NumberInput
-                label="INTER ($/oz):"
-                value={inter}
-                onChange={(val) => setInter(val ?? 0)}
-                min={0}
-                decimalScale={2}
-                size="xs"
-                radius="lg"
-                classNames={fieldClasses}
-              />
+              <div className="flex items-end gap-1.5">
+                <NumberInput
+                  label="INTER ($/oz):"
+                  value={inter}
+                  onChange={(val) => setInter(val ?? 0)}
+                  min={0}
+                  decimalScale={2}
+                  size="xs"
+                  radius="lg"
+                  classNames={fieldClasses}
+                  disabled={interBloqueado}
+                  style={{ flex: 1 }}
+                />
+                <Tooltip
+                  label={
+                    !fechaCorta
+                      ? "Primero seleccione una fecha de inter"
+                      : precioEncontrado
+                        ? "Ya existe un precio INTER registrado para esta fecha y elemento"
+                        : "Registrar precio INTER para esta fecha y elemento"
+                  }
+                  withArrow
+                >
+                  <ActionIcon
+                    size="lg"
+                    radius="md"
+                    color={precioEncontrado ? "gray" : "indigo"}
+                    variant={precioEncontrado ? "subtle" : "light"}
+                    onClick={() => {
+                      if (!elemento || !fechaCorta) {
+                        notifyWarning(
+                          "Seleccione elemento y fecha de inter antes de registrar el precio.",
+                        );
+                        return;
+                      }
+                      setModalPrecioAbierto(true);
+                    }}
+                    disabled={!!precioEncontrado || !fechaCorta || !elemento}
+                    className="mb-1"
+                    aria-label="Registrar precio INTER"
+                  >
+                    <IconPlus size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              </div>
             </Grid.Col>
             <Grid.Col span={{ base: 6, sm: 4 }}>
               <NumberInput
@@ -626,6 +808,34 @@ export const ModalAgregarLote = ({
                 classNames={fieldClasses}
               />
             </Grid.Col>
+            <Grid.Col span={{ base: 6, sm: 4 }}>
+              <NumberInput
+                label="PENALIDAD ($):"
+                value={penalidad}
+                onChange={(val) => setPenalidad(val ?? 0)}
+                min={0}
+                decimalScale={2}
+                fixedDecimalScale
+                hideControls
+                size="xs"
+                radius="lg"
+                classNames={fieldClasses}
+              />
+            </Grid.Col>
+            <Grid.Col span={{ base: 6, sm: 4 }}>
+              <NumberInput
+                label="FLETE ($):"
+                value={flete}
+                onChange={(val) => setFlete(val ?? 0)}
+                min={0}
+                decimalScale={2}
+                fixedDecimalScale
+                hideControls
+                size="xs"
+                radius="lg"
+                classNames={fieldClasses}
+              />
+            </Grid.Col>
           </Grid>
         </Paper>
 
@@ -663,13 +873,33 @@ export const ModalAgregarLote = ({
             radius="lg"
             size="xs"
             leftSection={<IconCheck size={16} />}
-            disabled={!loteSeleccionado}
+            disabled={!loteSeleccionado || (!detalleEditar && !precioEncontrado)}
             className="bg-indigo-600 hover:bg-indigo-700 text-white"
           >
             {detalleEditar ? "Guardar Cambios" : "Agregar Lote"}
           </Button>
         </Group>
       </Stack>
+
+      {/* Sub-modal para registrar precio INTER */}
+      {elemento && fechaCorta && (
+        <ModalRegistrarPrecioInter
+          opened={modalPrecioAbierto}
+          onClose={() => setModalPrecioAbierto(false)}
+          elementoQuimico={elemento}
+          fecha={fechaCorta}
+          interInicial={typeof inter === "number" ? inter : parseFloat(String(inter)) || undefined}
+          onRegistrado={(id, interRegistrado) => {
+            // Refleja el precio recien registrado en INTER y bloquea el boton "+"
+            setInter(interRegistrado);
+            setPrecioEncontrado({
+              id,
+              inter: interRegistrado,
+              fecha: fechaCorta ?? "",
+            });
+          }}
+        />
+      )}
     </ModalEstandar>
   );
 };

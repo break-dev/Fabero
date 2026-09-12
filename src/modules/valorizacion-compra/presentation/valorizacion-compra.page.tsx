@@ -37,6 +37,7 @@ import { CambiosLogViewer } from "../../../presentation/utils/cambios-log-viewer
 import { ModalEstandar } from "../../../presentation/utils/modal-estandar";
 import { ArchivoCard } from "../../../presentation/utils/archivo/archivo-card";
 import { RefreshButton } from "../../../presentation/utils/refresh-button";
+import { mostrarConfirmacion } from "../../../presentation/utils/modal-confirmacion";
 import { EstadoValorizacionCompra } from "../../../shared/enums/valorizacion-compra/estado-valorizacion-compra";
 import { EstadoBase } from "../../../shared/enums/_generic/estado-base";
 import type { RES_CambiosLog } from "../../../service/responses/_generic/cambios-log";
@@ -89,7 +90,7 @@ export const ValorizacionCompraPage = () => {
   const [loadingProveedores, setLoadingProveedores] = useState(false);
   const [proveedores, setProveedores] = useState<RES_Proveedor[]>([]);
 
-  // Filtros adicionales UI con default 7-días-atrás → hoy
+  // Filtros adicionales UI con default 7-dóas-atrÃ�s â hoy
   const [fechaInicio, setFechaInicio] = useState<string>(defaultFechaInicio());
   const [fechaFin, setFechaFin] = useState<string>(defaultFechaFin());
   const [filtroEstado, setFiltroEstado] = useState<string>("Todos");
@@ -107,8 +108,8 @@ export const ValorizacionCompraPage = () => {
     type LogCrudo = Record<string, unknown>;
     type LogProcesado = LogCrudo & { motivo: string };
 
-    // Filtra el item "estado: Pendiente → Aprobado" de la lista de cambios,
-    // manteniendo intactos los demás cambios del mismo log (si los hubiera).
+    // Filtra el item "estado: Pendiente â Aprobado" de la lista de cambios,
+    // manteniendo intactos los demÃ�s cambios del mismo log (si los hubiera).
     const sinTransicionAprobado = (log: LogCrudo): LogCrudo => {
       const cambios = Array.isArray(log.cambios) ? log.cambios : [];
       const filtrados = (cambios as Array<Record<string, unknown>>).filter(
@@ -132,12 +133,12 @@ export const ValorizacionCompraPage = () => {
         .filter((log) => Array.isArray(log.cambios) && (log.cambios as unknown[]).length > 0)
         .map((log) => ({
           ...log,
-          motivo: `Lote ${loteNombre} (${elem}) - Modificación de Parámetros`,
+          motivo: `Lote ${loteNombre} (${elem}) - Modificación de ParÃ�metros`,
         }));
     });
 
     // Logs de las transacciones de anticipo (monto_retirado, saldo_actual, etc.).
-    // Se omite la transición "estado: Pendiente → Aprobado" porque esa se refleja
+    // Se omite la transición "estado: Pendiente â Aprobado" porque esa se refleja
     // en la aprobación de la valorización, no en cambios editables del usuario.
     const logsTransacciones: LogProcesado[] = (valorizacionHistorial.transacciones_anticipo || []).flatMap(
       (t) => {
@@ -148,7 +149,7 @@ export const ValorizacionCompraPage = () => {
           .filter((log) => Array.isArray(log.cambios) && (log.cambios as unknown[]).length > 0)
           .map((log) => ({
             ...log,
-            motivo: `Transacción Anticipo ${codigo} — ${valorizacionHistorial.numero_correlativo?.replace(/^VAL/, "") ?? ""}`,
+            motivo: `Transacción Anticipo ${codigo} â ${valorizacionHistorial.numero_correlativo?.replace(/^VAL/, "") ?? ""}`,
           }));
       },
     );
@@ -368,7 +369,31 @@ export const ValorizacionCompraPage = () => {
                   size="sm"
                   loading={isBusy}
                   disabled={isBusy}
-                  onClick={() => handleAprobar(r.id)}
+                  onClick={() => {
+                    const totalFmt = Number(r.total_subtotal ?? 0).toLocaleString("es-PE", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    });
+                    mostrarConfirmacion({
+                      title: "Aprobar valorización",
+                      message: (
+                        <div className="space-y-2">
+                          <p>
+                            Se aprobará la valorización
+                            del proveedor {" "} <strong className="text-white">{r.proveedor_nombre}</strong>
+                            con un total de {" "}
+                            <strong className="text-emerald-400">$ {totalFmt}</strong>.
+                          </p>
+                          <p className="text-zinc-400 text-xs">
+                            Una vez aprobada, la valorización no podrá ser editada.
+                          </p>
+                        </div>
+                      ),
+                      confirmLabel: "Sí, aprobar",
+                      cancelLabel: "Cancelar",
+                      onConfirm: () => handleAprobar(r.id),
+                    });
+                  }}
                 >
                   <IconCheck size={14} />
                 </ActionIcon>
@@ -509,7 +534,7 @@ export const ValorizacionCompraPage = () => {
                     </Group>
                   </Group>
 
-                  {/* Métricas en una sola línea con separadores */}
+                  {/* Mótricas en una sola lónea con separadores */}
                   <Box
                     mt={6}
                     p="xs"
@@ -707,7 +732,7 @@ export const ValorizacionCompraPage = () => {
         rightSection={
           valorizacionHistorial ? (
             <Text size="xs" c="dimmed" fw={600} className="font-mono">
-              VALORIZACIÓN #{valorizacionHistorial.id}
+              VALORIZACIóN #{valorizacionHistorial.id}
             </Text>
           ) : undefined
         }

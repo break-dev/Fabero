@@ -9,6 +9,7 @@ export interface RES_ValorizacionCompraDetalle {
   id_valorizacion_compra: number;
   id_lote_guia: number;
   id_condicion_comercial: number | null;
+  id_valor_elemento_quimico: number | null;
   elemento_quimico: ElementoQuimicoValorizacion;
   numero_correlativo: number | null;
   lote_correlativo: string | null;
@@ -27,6 +28,8 @@ export interface RES_ValorizacionCompraDetalle {
   factor: number;
   precio_por_tonelada: number;
   subtotal: number;
+  penalidad?: number;
+  flete?: number;
   log_cambios?: Record<string, unknown>[];
 }
 
@@ -60,6 +63,9 @@ export interface RES_ValorizacionCompra {
   created_at: string;
   fecha_hora_aprobacion: string | null;
   fecha_hora_anulacion?: string | null;
+  fecha_hora_valorizacion?: string | null;
+  monto_penalidad?: number;
+  monto_flete?: number;
   id_empleado_anulacion?: number | null;
   empleado_registro: string | null;
   empleado_aprobacion: string | null;

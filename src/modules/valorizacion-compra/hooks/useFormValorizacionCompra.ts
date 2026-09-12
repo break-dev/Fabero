@@ -149,6 +149,7 @@ export const useFormValorizacionCompra = ({
   const [anticipos, setAnticipos] = useState<REQ_ValorizacionAnticipoItem[]>([]);
   const [evidencias, setEvidencias] = useState<File[]>([]);
   const [evidenciasExistentes, setEvidenciasExistentes] = useState<IArchivo[]>([]);
+  const [fechaHoraValorizacion, setFechaHoraValorizacion] = useState<string | null>(null);
 
   // Catalogs
   const [concesiones, setConcesiones] = useState<ConcesionItem[]>([]);
@@ -176,12 +177,15 @@ export const useFormValorizacionCompra = ({
             id_lote_guia: d.id_lote_guia,
             elemento_quimico: d.elemento_quimico,
             id_condicion_comercial: d.id_condicion_comercial,
+            id_valor_elemento_quimico: d.id_valor_elemento_quimico ?? null,
             inter: d.inter,
             des_inter: d.des_inter,
             recuperacion: d.recuperacion,
             maquila: d.maquila,
             consumo: d.consumo,
             factor: d.factor,
+            penalidad: d.penalidad ?? 0,
+            flete: d.flete ?? 0,
           },
           display: d,
         })),
@@ -196,6 +200,8 @@ export const useFormValorizacionCompra = ({
 
       setEvidencias([]);
       setEvidenciasExistentes(mapEvidenciasToArchivos(valorizacionEditar.evidencias));
+
+      setFechaHoraValorizacion(valorizacionEditar.fecha_hora_valorizacion ?? null);
     } else {
       setIdProveedor(null);
       setIdConcesion(null);
@@ -209,6 +215,7 @@ export const useFormValorizacionCompra = ({
       setCuentasBancarias([]);
       setCuentasDetraccion([]);
       setAnticiposCatalog([]);
+      setFechaHoraValorizacion(null);
     }
   }, [opened, valorizacionEditar]);
 
@@ -279,6 +286,21 @@ export const useFormValorizacionCompra = ({
   // Totales
   const totalSubtotal = useMemo(() => {
     return detalles.reduce((acc, curr) => acc + curr.display.subtotal, 0);
+  }, [detalles]);
+
+  const totalPenalidad = useMemo(() => {
+    return detalles.reduce((acc, curr) => {
+      const raw =
+        curr.display.penalidad ?? curr.req.penalidad ?? 0;
+      return acc + (typeof raw === "number" ? raw : parseFloat(String(raw)) || 0);
+    }, 0);
+  }, [detalles]);
+
+  const totalFlete = useMemo(() => {
+    return detalles.reduce((acc, curr) => {
+      const raw = curr.display.flete ?? curr.req.flete ?? 0;
+      return acc + (typeof raw === "number" ? raw : parseFloat(String(raw)) || 0);
+    }, 0);
   }, [detalles]);
 
   const totalAnticipos = useMemo(() => {
@@ -397,6 +419,9 @@ export const useFormValorizacionCompra = ({
           evidencias,
           evidencias_existentes: evidenciasExistentes,
           motivo_edicion: motivoCustom && motivoCustom.trim() ? motivoCustom.trim() : undefined,
+          fecha_hora_valorizacion: fechaHoraValorizacion,
+          monto_penalidad: totalPenalidad,
+          monto_flete: totalFlete,
         });
         notifySuccess("Valorización actualizada correctamente");
       } else {
@@ -409,6 +434,9 @@ export const useFormValorizacionCompra = ({
           detalles: detalles.map((d) => d.req),
           anticipos: anticipos,
           evidencias,
+          fecha_hora_valorizacion: fechaHoraValorizacion,
+          monto_penalidad: totalPenalidad,
+          monto_flete: totalFlete,
         });
         notifySuccess("Valorización creada correctamente en estado Pendiente");
       }
@@ -444,11 +472,15 @@ export const useFormValorizacionCompra = ({
     anticipoSaldoTransaccionMap,
     concesionSeleccionada,
     totalSubtotal,
+    totalPenalidad,
+    totalFlete,
     totalAnticipos,
     evidencias,
     setEvidencias,
     evidenciasExistentes,
     setEvidenciasExistentes,
+    fechaHoraValorizacion,
+    setFechaHoraValorizacion,
     montoTransferencia,
     tipoPago,
     modalLoteOpened,

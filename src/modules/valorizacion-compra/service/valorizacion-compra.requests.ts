@@ -10,12 +10,15 @@ export interface REQ_ValorizacionDetalleItem {
   id_lote_guia: number;
   elemento_quimico: ElementoQuimicoValorizacion;
   id_condicion_comercial?: number | null;
+  id_valor_elemento_quimico?: number | null;
   inter: number;
   des_inter: number;
   recuperacion: number;
   maquila: number;
   consumo: number;
   factor?: number;
+  penalidad?: number;
+  flete?: number;
 }
 
 export interface REQ_ValorizacionAnticipoItem {
@@ -33,6 +36,9 @@ export interface REQ_CrearValorizacion {
   detalles: REQ_ValorizacionDetalleItem[];
   anticipos?: REQ_ValorizacionAnticipoItem[];
   evidencias?: File[];
+  fecha_hora_valorizacion?: string | null;
+  monto_penalidad?: number;
+  monto_flete?: number;
 }
 
 export interface REQ_EditarValorizacion {
@@ -45,6 +51,9 @@ export interface REQ_EditarValorizacion {
   evidencias?: File[];
   evidencias_existentes?: IArchivo[];
   motivo_edicion?: string;
+  fecha_hora_valorizacion?: string | null;
+  monto_penalidad?: number;
+  monto_flete?: number;
 }
 
 export interface REQ_AnularValorizacion {
