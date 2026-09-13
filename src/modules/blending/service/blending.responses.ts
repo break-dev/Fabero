@@ -24,6 +24,7 @@ export interface BlendingDetalleResponse {
   id_reblending: number | null;
   peso_actual: number;
   peso_tomado: number;
+  numero_particion: number | null;
   tms_tomado: number;
   created_at: string;
   codigo: string;

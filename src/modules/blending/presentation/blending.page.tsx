@@ -287,6 +287,7 @@ export const BlendingPage = () => {
                   <Table.Thead className="bg-zinc-900 text-zinc-300">
                     <Table.Tr>
                       <Table.Th className="text-center">Código</Table.Th>
+                      <Table.Th className="text-center">Parte</Table.Th>
                       <Table.Th className="text-center">Origen / Proveedor</Table.Th>
                       <Table.Th className="text-center">Peso Anterior (kg)</Table.Th>
                       <Table.Th className="text-center">Peso Tomado (TMH kg)</Table.Th>
@@ -302,6 +303,9 @@ export const BlendingPage = () => {
                         <Table.Tr key={i}>
                           <Table.Td className="text-center font-bold text-zinc-100">
                             {d.codigo}
+                          </Table.Td>
+                          <Table.Td className="text-center text-zinc-300">
+                            {d.numero_particion === null ? "—" : d.numero_particion}
                           </Table.Td>
                           <Table.Td className="text-center text-zinc-300">
                             {d.id_reblending ? "Blending" : d.proveedor_nombre}
