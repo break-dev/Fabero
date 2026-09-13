@@ -501,6 +501,9 @@ export const AuxService = {
     id_proveedor_minero: number;
     proveedor_nombre: string;
     concesion_nombre: string;
+    id_cuenta_bancaria: number | null;
+    monto_penalidad: number;
+    monto_flete: number;
     total_dolares: number;
     monto_anticipos: number;
   }>>> => {
@@ -513,6 +516,9 @@ export const AuxService = {
       id_proveedor_minero: number;
       proveedor_nombre: string;
       concesion_nombre: string;
+      id_cuenta_bancaria: number | null;
+      monto_penalidad: number;
+      monto_flete: number;
       total_dolares: number;
       monto_anticipos: number;
     }>>>(`${path}/valorizaciones-aprobadas-proveedor`, {

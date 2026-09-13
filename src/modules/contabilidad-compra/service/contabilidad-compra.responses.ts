@@ -71,6 +71,9 @@ export interface RES_ComprobanteCompra {
   tipo_cambio_venta: number;
   porcentaje_igv: number;
   porcentaje_detraccion: number;
+  total_dolares_antes_descuento: number;
+  total_soles_antes_descuento: number;
+  descuento: number;
   total_dolares: number;
   total_soles: number;
   monto_igv_soles: number;
@@ -80,6 +83,7 @@ export interface RES_ComprobanteCompra {
   monto_neto: number;
   avance_pago_neto: number;
   avance_pago_detraccion: number;
+  id_cuenta_bancaria_proveedor_sugerida: number | null;
   aprobaciones: RES_AprobacionComprobante[];
   estado: EstadoComprobanteCompra;
   created_at: string;

@@ -153,10 +153,6 @@ export const ModalRegistroPago = ({
     if (!opened) return;
     queueMicrotask(() => {
       setMonto(calcPorPagar(esParaDetraccion));
-      setIdBancoEmpresa(null);
-      setIdCuentaEmpresa(null);
-      setIdBancoProveedor(null);
-      setIdCuentaProveedor(null);
     });
   }, [esParaDetraccion, opened, calcPorPagar]);
 
@@ -193,17 +189,16 @@ export const ModalRegistroPago = ({
       .then((res) => {
         if (cancelled) return;
         const lista = Array.isArray(res) ? res : [];
-        setCuentasProveedor(
-          lista.map((c) => ({
-            id_cuenta_bancaria: c.id,
-            banco: c.banco_nombre ?? "",
-            banco_abv: "",
-            id_banco: Number(c.id_banco),
-            numero_cuenta: c.numero_cuenta,
-            moneda: c.moneda,
-            es_para_detraccion: Boolean(c.es_para_detraccion),
-          })),
-        );
+        const mapped = lista.map((c) => ({
+          id_cuenta_bancaria: c.id,
+          banco: c.banco_nombre ?? "",
+          banco_abv: "",
+          id_banco: Number(c.id_banco),
+          numero_cuenta: c.numero_cuenta,
+          moneda: c.moneda,
+          es_para_detraccion: Boolean(c.es_para_detraccion),
+        }));
+        setCuentasProveedor(mapped);
       })
       .catch((e: unknown) => console.error("Error cuentas proveedor:", e))
       .finally(() => {
@@ -259,6 +254,79 @@ export const ModalRegistroPago = ({
     () => cuentasProveedorMoneda.filter((c) => !idBancoProveedor || Number(c.id_banco) === Number(idBancoProveedor)),
     [cuentasProveedorMoneda, idBancoProveedor],
   );
+
+  /**
+   * Auto-selecciona la cuenta y banco de Origen (Empresa) y Destino (Proveedor)
+   * cuando se cumplen las precondiciones:
+   *  - modal abierto
+   *  - las listas por moneda cambiaron (carga inicial, toggle neto ↔ detracción, etc.)
+   * Usa `cuentasEmpresaMoneda` / `cuentasProveedorMoneda` (lista completa por moneda),
+   * no la filtrada por banco, para que el banco también se auto-seleccione y no quede
+   * "stale" cuando el banco previo no existe en la nueva moneda.
+   * Si la lista por moneda está vacía, limpia los IDs.
+   * No depende de `idBancoEmpresa/idCuentaEmpresa` para no pisar elecciones manuales del usuario
+   * dentro del mismo banco (esos casos los cubre el efecto "huérfano" de abajo).
+   */
+  useEffect(() => {
+    if (!opened) return;
+
+    // Empresa Origen: primera cuenta de la lista completa filtrada por moneda.
+    if (cuentasEmpresaMoneda.length > 0) {
+      const c = cuentasEmpresaMoneda[0];
+      setIdBancoEmpresa(String(c.id_banco));
+      setIdCuentaEmpresa(String(c.id_cuenta_bancaria));
+    } else {
+      setIdBancoEmpresa(null);
+      setIdCuentaEmpresa(null);
+    }
+
+    // Proveedor Destino:
+    //  - detracción: preferir cuenta marcada como de detracción (en la lista filtrada por moneda).
+    //  - neto: usar la cuenta sugerida por la valorización; si no está, caer a la primera no-detracción.
+    if (cuentasProveedorMoneda.length > 0) {
+      let target: CuentaOption = cuentasProveedorMoneda[0];
+      if (esParaDetraccion) {
+        target =
+          cuentasProveedorMoneda.find((c) => c.es_para_detraccion) ??
+          cuentasProveedorMoneda[0];
+      } else {
+        const idSugerido = comprobante.id_cuenta_bancaria_proveedor_sugerida;
+        target =
+          cuentasProveedorMoneda.find((c) => c.id_cuenta_bancaria === idSugerido) ??
+          cuentasProveedorMoneda.find((c) => !c.es_para_detraccion) ??
+          cuentasProveedorMoneda[0];
+      }
+      setIdBancoProveedor(String(target.id_banco));
+      setIdCuentaProveedor(String(target.id_cuenta_bancaria));
+    } else {
+      setIdBancoProveedor(null);
+      setIdCuentaProveedor(null);
+    }
+  }, [opened, esParaDetraccion, cuentasEmpresaMoneda, cuentasProveedorMoneda, comprobante.id_cuenta_bancaria_proveedor_sugerida]);
+
+  /**
+   * Si el usuario cambia de Banco, y la cuenta seleccionada no pertenece al nuevo banco,
+   * re-seleccionar la primera cuenta de ese banco (evita dejar la cuenta "huérfana").
+   */
+  useEffect(() => {
+    if (!opened || !idBancoEmpresa || cuentasEmpresaFiltradas.length === 0) return;
+    const belongs = cuentasEmpresaFiltradas.some(
+      (c) => String(c.id_cuenta_bancaria) === idCuentaEmpresa,
+    );
+    if (!belongs) {
+      setIdCuentaEmpresa(String(cuentasEmpresaFiltradas[0].id_cuenta_bancaria));
+    }
+  }, [idBancoEmpresa, cuentasEmpresaFiltradas, opened, idCuentaEmpresa]);
+
+  useEffect(() => {
+    if (!opened || !idBancoProveedor || cuentasProveedorFiltradas.length === 0) return;
+    const belongs = cuentasProveedorFiltradas.some(
+      (c) => String(c.id_cuenta_bancaria) === idCuentaProveedor,
+    );
+    if (!belongs) {
+      setIdCuentaProveedor(String(cuentasProveedorFiltradas[0].id_cuenta_bancaria));
+    }
+  }, [idBancoProveedor, cuentasProveedorFiltradas, opened, idCuentaProveedor]);
 
   const porPagar = esParaDetraccion
     ? (comprobante.monto_detraccion_soles - comprobante.avance_pago_detraccion)

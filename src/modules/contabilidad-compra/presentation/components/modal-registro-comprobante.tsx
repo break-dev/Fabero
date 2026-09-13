@@ -69,6 +69,9 @@ export const ModalRegistroComprobante = ({
   const [valorizaciones, setValorizaciones] = useState<Array<{
     id: number;
     numero_correlativo: string;
+    id_cuenta_bancaria: number | null;
+    monto_penalidad: number;
+    monto_flete: number;
     total_dolares: number;
     monto_anticipos: number;
   }>>([]);
@@ -180,18 +183,26 @@ export const ModalRegistroComprobante = ({
     if (!valorizacionSeleccionada || !tipoCambio) {
       return null;
     }
-    const totalDolares = Number(valorizacionSeleccionada.total_dolares);
+    const totalDolaresAntesDescuento = Number(valorizacionSeleccionada.total_dolares);
+    const descuento =
+      Number(valorizacionSeleccionada.monto_penalidad ?? 0) +
+      Number(valorizacionSeleccionada.monto_flete ?? 0);
+    const totalDolares = Math.max(totalDolaresAntesDescuento - descuento, 0);
     const totalAnticipos = Number(valorizacionSeleccionada.monto_anticipos);
     const tcVenta = tipoCambio.valor_venta;
-    const totalSoles = totalDolares * tcVenta;
-    const baseDetraccion = Math.max(totalDolares - totalAnticipos, 0);
+    const totalSolesAntesDescuento = totalDolaresAntesDescuento * tcVenta;
+    const totalSoles = Math.max(totalSolesAntesDescuento - descuento * tcVenta, 0);
+    const baseDetraccion = Math.max(totalDolaresAntesDescuento - totalAnticipos, 0);
     const montoDetraccion = baseDetraccion * (Number(porcentajeDetraccion) / 100);
     const montoNeto = totalDolares - totalAnticipos - montoDetraccion;
 
     return {
+      totalDolaresAntesDescuento,
+      descuento,
       totalDolares,
       totalAnticipos,
       tcVenta,
+      totalSolesAntesDescuento,
       totalSoles,
       montoDetraccion,
       montoNeto,
@@ -391,7 +402,15 @@ export const ModalRegistroComprobante = ({
           {resumenCalcs && (
             <div className="grid grid-cols-2 gap-2 p-3 bg-zinc-900/40 border border-zinc-800 rounded-lg">
               <div>
-                <Text fz={10} c="dimmed" tt="uppercase" fw={700}>Total Comprobante</Text>
+                <Text fz={10} c="dimmed" tt="uppercase" fw={700}>Total Antes Descuento</Text>
+                <Text fz="sm" fw={700} c="zinc.3">$ {resumenCalcs.totalDolaresAntesDescuento.toFixed(2)}</Text>
+              </div>
+              <div>
+                <Text fz={10} c="dimmed" tt="uppercase" fw={700}>Descuento (PEN + Flete)</Text>
+                <Text fz="sm" fw={700} c="red.4">- $ {resumenCalcs.descuento.toFixed(2)}</Text>
+              </div>
+              <div>
+                <Text fz={10} c="dimmed" tt="uppercase" fw={700}>Total Dólares</Text>
                 <Text fz="sm" fw={700} c="emerald.4">$ {resumenCalcs.totalDolares.toFixed(2)}</Text>
               </div>
               <div>
